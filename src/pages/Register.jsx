@@ -4,12 +4,38 @@ import Background from "../assets/background.jpg";
 const RegisterPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [noTelepon, setNoTelepon] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log("Email:", email);
-    console.log("Password:", password);
+
+    try {
+      const response = await fetch("/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+          no_telepon: noTelepon,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert("Registrasi berhasil!");
+        console.log(data);
+      } else {
+        alert(`Gagal registrasi: ${data.message || data.error}`);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Terjadi kesalahan saat registrasi.");
+    }
   };
 
   return (
@@ -34,7 +60,7 @@ const RegisterPage = () => {
           left: 0,
           width: "100%",
           height: "100%",
-          backgroundColor: "rgba(0, 0, 0, 0.5)", // ubah 0.5 jadi lebih kecil/besar sesuai gelapnya
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
           zIndex: 1,
         }}
       />
@@ -79,7 +105,7 @@ const RegisterPage = () => {
                 fontSize: "16px",
               }}
             >
-              Email or Phone Number
+              Email
             </label>
             <input
               type="email"
@@ -124,6 +150,46 @@ const RegisterPage = () => {
               required
             />
           </div>
+          {/* Username */}
+          <div style={{ marginBottom: "20px" }}>
+            <label htmlFor="username">Username</label>
+            <input
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your username"
+              required
+              style={{
+                width: "93%",
+                padding: "12px",
+                borderRadius: "12px",
+                border: "1px solid #ccc",
+                fontSize: "14px",
+              }}
+            />
+          </div>
+
+          {/* No Telepon */}
+          <div style={{ marginBottom: "20px" }}>
+            <label htmlFor="phone">Phone Number</label>
+            <input
+              type="text"
+              id="phone"
+              value={noTelepon}
+              onChange={(e) => setNoTelepon(e.target.value)}
+              placeholder="Enter your phone number"
+              required
+              style={{
+                width: "93%",
+                padding: "12px",
+                borderRadius: "12px",
+                border: "1px solid #ccc",
+                fontSize: "14px",
+              }}
+            />
+          </div>
+
           <button
             type="submit"
             style={{

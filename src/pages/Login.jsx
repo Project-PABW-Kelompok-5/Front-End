@@ -5,12 +5,40 @@ const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log("Email:", email);
-    console.log("Password:", password);
+  
+    try {
+      const response = await fetch("http://localhost:3000/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+  
+      const data = await response.json();
+  
+      if (response.ok) {
+        alert("Login berhasil!");
+        console.log("Token:", data.token);
+        console.log("User:", data.user);
+  
+        // Simpan token di localStorage
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify(data.user));
+  
+        // Redirect ke halaman dashboard/home
+        window.location.href = "/";
+      } else {
+        alert(`Login gagal: ${data.message || data.error}`);
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Terjadi kesalahan saat login.");
+    }
   };
+  
 
   return (
     <div
@@ -79,7 +107,7 @@ const LoginPage = () => {
                 fontSize: "16px",
               }}
             >
-              Email or Phone Number
+              Email
             </label>
             <input
               type="email"
@@ -137,6 +165,7 @@ const LoginPage = () => {
             </a>
           </div>
           <button
+            href="/"
             type="submit"
             style={{
               width: "100%",
@@ -176,7 +205,7 @@ const LoginPage = () => {
           >
             <span>Already have an account? </span>
             <a
-              href="/"
+              href="/register"
               style={{
                 color: "#6941C6",
                 textDecoration: "none",
