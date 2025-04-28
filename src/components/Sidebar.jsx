@@ -10,8 +10,8 @@ export default function Sidebar({ children }) {
   const [expanded, setExpanded] = useState(true);
   return (
     <>
-      <aside className="h-screen">
-        <nav className="h-full flex flex-col bg-[#0F0529] border-r shadow-sm">
+      <aside className="min-h-screen sticky top-0">
+        <nav className="h-full flex flex-col bg-[#924DBF] border-r shadow-sm">
           <div className="p-4 pb-2 flex justify-between items-center">
             <img
               src={logo}
