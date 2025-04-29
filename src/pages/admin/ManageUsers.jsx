@@ -1,29 +1,95 @@
 // src/pages/admin/ManageUsers.jsx
-import { useState } from 'react';
+import { useState, useEffect } from "react";
 import { Pencil, Trash2 } from "lucide-react";
-import AdminSidebar from '../../components/AdminSidebar.jsx';
-
-const dummyUsers = [
-  { id: 1, name: 'John Doe', email: 'john@example.com',username: "Jhon1", no_telepon : "082108210821", role: 'User' },
-  { id: 2, name: 'Kuwon Thol', email: 'Kuwon@example.com',username: "Kuwon1", no_telepon : "085808580858", role: 'User' },
-];
+import AdminSidebar from "../../components/AdminSidebar.jsx";
 
 const ManageUsers = () => {
-  const [users, setUsers] = useState(dummyUsers);
+  const [users, setUsers] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [newUser, setNewUser] = useState({ name: '', email: '', username: '' , no_telepon:'', role: 'User' });
+  const [newUser, setNewUser] = useState({
+    name: "",
+    email: "",
+    username: "",
+    password: "",
+    no_telepon: "",
+    role: "User",
+  });
 
-  const handleAddUser = () => {
-    const id = Date.now();
-    setUsers([...users, { ...newUser, id }]);
-    setNewUser({ name: '', email: '',username:'', no_telepon: '', role: 'User' });
-    setShowModal(false);
+  const token = localStorage.getItem("token");
+
+  // Ambil data user dari backend
+  useEffect(() => {
+    fetch("http://localhost:3000/api/admin/users", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => setUsers(data))
+      .catch((err) => console.error("Gagal fetch user:", err));
+  }, []);
+
+  const getAllUsers = () => {
+    fetch("http://localhost:3000/api/admin/users", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => setUsers(data))
+      .catch((err) => console.error("Gagal fetch user:", err));
   };
+  
 
-  const handleDelete = (id) => {
-    setUsers(users.filter(user => user.id !== id));
+  const handleAddUser = async () => {
+    try {
+      const res = await fetch("http://localhost:3000/api/admin/users", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(newUser),
+      });
+  
+      const result = await res.json();
+  
+      if (!res.ok) {
+        console.error("Error Response:", result);
+        throw new Error(result.message || "Gagal menambah pengguna");
+      }
+  
+      getAllUsers(); // ⬅️ Refetch user setelah tambah
+      setNewUser({
+        name: "",
+        email: "",
+        username: "",
+        password: "",
+        no_telepon: "",
+        role: "User",
+      });
+      setShowModal(false);
+    } catch (error) {
+      console.error("Catch Error:", error);
+    }
   };
+  
 
+  const handleDelete = async (id) => {
+    try {
+      const res = await fetch(`http://localhost:3000/api/admin/users/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Gagal menghapus pengguna");
+      setUsers(users.filter((user) => user.id !== id));
+    } catch (error) {
+      console.error(error);
+    }
+  };
   return (
     <div className="flex">
       <AdminSidebar activePage="Manage Users" />
@@ -35,7 +101,7 @@ const ManageUsers = () => {
             onClick={() => setShowModal(true)}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
           >
-           + Tambah Pengguna
+            + Tambah Pengguna
           </button>
         </div>
 
@@ -52,7 +118,7 @@ const ManageUsers = () => {
               </tr>
             </thead>
             <tbody>
-              {users.map(user => (
+              {users.map((user) => (
                 <tr key={user.id} className="border-t">
                   <td className="px-6 py-3">{user.name}</td>
                   <td className="px-6 py-3">{user.email}</td>
@@ -63,7 +129,10 @@ const ManageUsers = () => {
                     <button className="text-blue-600">
                       <Pencil size={16} />
                     </button>
-                    <button onClick={() => handleDelete(user.id)} className="text-red-600">
+                    <button
+                      onClick={() => handleDelete(user.id)}
+                      className="text-red-600"
+                    >
                       <Trash2 size={16} />
                     </button>
                   </td>
@@ -83,33 +152,52 @@ const ManageUsers = () => {
                   type="text"
                   placeholder="Nama"
                   value={newUser.name}
-                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, name: e.target.value })
+                  }
                   className="w-full px-4 py-2 border rounded-lg"
                 />
                 <input
                   type="email"
                   placeholder="Email"
                   value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, email: e.target.value })
+                  }
                   className="w-full px-4 py-2 border rounded-lg"
                 />
                 <input
                   type="username"
                   placeholder="Username"
                   value={newUser.username}
-                  onChange={(e) => setNewUser({ ...newUser, username: e.target.value })}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, username: e.target.value })
+                  }
+                  className="w-full px-4 py-2 border rounded-lg"
+                />
+                <input
+                  type="password"
+                  placeholder="Password"
+                  value={newUser.password || ""}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, password: e.target.value })
+                  }
                   className="w-full px-4 py-2 border rounded-lg"
                 />
                 <input
                   type="no_telepon"
                   placeholder="No Telepon"
-                  value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, no_telepon: e.target.value })}
+                  value={newUser.no_telepon}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, no_telepon: e.target.value })
+                  }
                   className="w-full px-4 py-2 border rounded-lg"
                 />
                 <select
                   value={newUser.role}
-                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, role: e.target.value })
+                  }
                   className="w-full px-4 py-2 border rounded-lg"
                 >
                   <option value="User">User</option>

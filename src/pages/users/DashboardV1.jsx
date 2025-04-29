@@ -11,6 +11,12 @@ const EcommerceDashboard = () => {
   const [setOpen, setSetOpen] = useState(false)
   const [productTypeOpen, setProductTypeOpen] = useState(false)
 
+  const handleLogout = () => {
+    localStorage.removeItem("token"); // atau sessionStorage
+    window.location.href = "/login"; // redirect ke login
+  };
+  
+
   // Sample product data
   const products = [
     {
@@ -133,7 +139,7 @@ const EcommerceDashboard = () => {
         </div>
 
         <div className="flex items-center">
-          <button className="p-2">
+          <button onClick={handleLogout} className="p-2">
             <FaUser className="text-gray-700 text-xl" />
           </button>
           <button className="p-2 ml-2">

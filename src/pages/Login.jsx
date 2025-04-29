@@ -1,12 +1,22 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Background from "../assets/background.jpg";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!email || !password) {
+      return alert("Email dan password wajib diisi.");
+    }
+
+    setIsLoading(true);
+
   
     try {
       const response = await fetch("http://localhost:3000/api/auth/login", {
@@ -18,24 +28,27 @@ const LoginPage = () => {
       });
   
       const data = await response.json();
-  
+
       if (response.ok) {
         alert("Login berhasil!");
-        console.log("Token:", data.token);
-        console.log("User:", data.user);
-  
-        // Simpan token di localStorage
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
-  
-        // Redirect ke halaman dashboard/home
-        window.location.href = "/";
+
+        if (data.user.role === "admin") {
+          navigate("/admin/dashboard");
+        } else if (data.user.role === "user") {
+          navigate("/");
+        } else {
+          navigate("/");
+        }
       } else {
-        alert(`Login gagal: ${data.message || data.error}`);
+        alert(`Login gagal: ${data.message || data.error || "Terjadi kesalahan."}`);
       }
     } catch (error) {
       console.error("Error:", error);
       alert("Terjadi kesalahan saat login.");
+    } finally {
+      setIsLoading(false);
     }
   };
   

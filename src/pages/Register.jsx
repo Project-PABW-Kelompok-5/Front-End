@@ -9,9 +9,14 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
+    // Validasi sederhana sebelum kirim
+    if (!email || !password || !username || !noTelepon) {
+      return alert("Semua field wajib diisi.");
+    }
+  
     try {
-      const response = await fetch("/register", {
+      const response = await fetch("http://localhost:3000/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -23,12 +28,13 @@ const RegisterPage = () => {
           no_telepon: noTelepon,
         }),
       });
-
+  
       const data = await response.json();
-
+  
       if (response.ok) {
-        alert("Registrasi berhasil!");
+        alert("Registrasi berhasil! Silakan login.");
         console.log(data);
+        window.location.href = "/login"; // redirect otomatis ke login
       } else {
         alert(`Gagal registrasi: ${data.message || data.error}`);
       }
@@ -37,6 +43,7 @@ const RegisterPage = () => {
       alert("Terjadi kesalahan saat registrasi.");
     }
   };
+  
 
   return (
     <div
