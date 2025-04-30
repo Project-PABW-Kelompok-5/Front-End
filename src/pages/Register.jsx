@@ -10,8 +10,7 @@ const RegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
   
-    // Validasi sederhana sebelum kirim
-    if (!email || !password || !username || !noTelepon) {
+    if (!email || !password || !username || !noTelepon || password) {
       return alert("Semua field wajib diisi.");
     }
   
@@ -138,7 +137,7 @@ const RegisterPage = () => {
                 marginBottom: "8px",
                 fontSize: "16px",
               }}
-            >
+            > 
               Password
             </label>
             <input
