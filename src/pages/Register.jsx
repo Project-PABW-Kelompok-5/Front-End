@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import Background from "../assets/background.jpg";
+import { auth } from "../firebase";
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+
 
 const RegisterPage = () => {
   const [email, setEmail] = useState("");
@@ -7,15 +10,34 @@ const RegisterPage = () => {
   const [username, setUsername] = useState("");
   const [noTelepon, setNoTelepon] = useState("");
 
+  const isValidEmail = (email) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
+  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
   
-    if (!email || !password || !username || !noTelepon || password) {
+    if (!email || !password || !username || !noTelepon) {
       return alert("Semua field wajib diisi.");
     }
   
+    if (!isValidEmail(email)) {
+      return alert("Format email tidak valid.");
+    }
+  
     try {
-      const response = await fetch("http://localhost:3000/api/auth/register", {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+  
+      // Kirim email verifikasi
+      await sendEmailVerification(user);
+  
+      alert("Registrasi berhasil! Silakan cek email Anda untuk verifikasi.");
+  
+      // (Opsional) simpan data tambahan ke server
+      await fetch("http://localhost:3000/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -23,25 +45,18 @@ const RegisterPage = () => {
         body: JSON.stringify({
           username,
           email,
-          password,
           no_telepon: noTelepon,
+          uid: user.uid, // bisa juga dikirim UID Firebase
         }),
       });
   
-      const data = await response.json();
-  
-      if (response.ok) {
-        alert("Registrasi berhasil! Silakan login.");
-        console.log(data);
-        window.location.href = "/login"; // redirect otomatis ke login
-      } else {
-        alert(`Gagal registrasi: ${data.message || data.error}`);
-      }
+      window.location.href = "/login";
     } catch (error) {
-      console.error("Error:", error);
-      alert("Terjadi kesalahan saat registrasi.");
+      console.error("Firebase Error:", error.message);
+      alert("Registrasi gagal: " + error.message);
     }
   };
+  
   
 
   return (

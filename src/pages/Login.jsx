@@ -1,6 +1,8 @@
+import Background from "../assets/background.jpg";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Background from "../assets/background.jpg";
+import { auth } from "../firebase"; // Import konfigurasi Firebase
+import { signInWithEmailAndPassword } from "firebase/auth"; // Import fungsi untuk login
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -17,36 +19,22 @@ const LoginPage = () => {
 
     setIsLoading(true);
 
-  
     try {
-      const response = await fetch("http://localhost:3000/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-  
-      const data = await response.json();
+      // Proses login dengan Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
 
-      if (response.ok) {
-        alert("Login berhasil!");
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
+      alert("Login berhasil!");
+      localStorage.setItem("token", user.accessToken); // Bisa menyimpan token untuk sesi
+      localStorage.setItem("user", JSON.stringify({
+        id: user.uid,
+        email: user.email,
+        role: "user" // Misalnya, tambahkan role setelah verifikasi lebih lanjut
+      }));
 
-        if (data.user.role === "admin") {
-          navigate("/admin/dashboard");
-        } else if (data.user.role === "user") {
-          navigate("/");
-        } else {
-          navigate("/");
-        }
-      } else {
-        alert(`Login gagal: ${data.message || data.error || "Terjadi kesalahan."}`);
-      }
+      navigate("/"); // Arahkan ke halaman yang sesuai
     } catch (error) {
-      console.error("Error:", error);
-      alert("Terjadi kesalahan saat login.");
+      alert("Login gagal: " + error.message);
     } finally {
       setIsLoading(false);
     }
