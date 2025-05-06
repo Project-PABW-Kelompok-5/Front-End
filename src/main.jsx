@@ -21,11 +21,12 @@ createRoot(document.getElementById('root')).render(
         {/* Public Routes */}
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<Homepage />} />
+        
 
         {/* Protected User Routes */}
         <Route element={<PrivateRoute role="user" />}>
           {/* <Route path="/" element={<Homepage />} /> */}
+          <Route path="/" element={<Homepage />} />
           <Route path="/users/dashboard" element={<EcommerceDashboard />} />
         </Route>
 

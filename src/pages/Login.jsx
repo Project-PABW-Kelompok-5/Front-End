@@ -1,7 +1,8 @@
 import Background from "../assets/background.jpg";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../firebase"; 
+import { auth, firestore } from "../firebase"; 
+import { doc, getDoc } from "firebase/firestore";
 import { signInWithEmailAndPassword } from "firebase/auth"; 
 import { getIdToken } from "firebase/auth";
 
@@ -13,27 +14,47 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     if (!email || !password) {
       return alert("Email dan password wajib diisi.");
     }
-  
+
     setIsLoading(true);
-  
+
     try {
+      // 1. Login dengan Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-  
-      const token = await user.getIdToken(); 
-  
+
+      // 2. Ambil token JWT
+      const token = await user.getIdToken();
+
+      // 3. Ambil data user dari Firestore
+      const userDocRef = doc(firestore, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        throw new Error("Data pengguna tidak ditemukan di Firestore.");
+      }
+
+      const userData = userDoc.data();
+
+      // 4. Simpan token dan user info ke localStorage
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify({
         id: user.uid,
         email: user.email,
+        role: userData.role,
       }));
-  
-      alert("Login berhasil!");
-      navigate("/");
+
+      if (userData.role === "admin") {
+        navigate("/admin/dashboard");
+      } else if (userData.role === "user") {
+        navigate("/");
+      } else {
+        navigate("/");
+      }
+      
     } catch (error) {
       alert("Login gagal: " + error.message);
     } finally {
