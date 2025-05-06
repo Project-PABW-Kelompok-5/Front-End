@@ -1,8 +1,9 @@
 import Background from "../assets/background.jpg";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth } from "../firebase"; // Import konfigurasi Firebase
-import { signInWithEmailAndPassword } from "firebase/auth"; // Import fungsi untuk login
+import { auth } from "../firebase"; 
+import { signInWithEmailAndPassword } from "firebase/auth"; 
+import { getIdToken } from "firebase/auth";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -12,33 +13,34 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     if (!email || !password) {
       return alert("Email dan password wajib diisi.");
     }
-
+  
     setIsLoading(true);
-
+  
     try {
-      // Proses login dengan Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
-      alert("Login berhasil!");
-      localStorage.setItem("token", user.accessToken); // Bisa menyimpan token untuk sesi
+  
+      const token = await user.getIdToken(); 
+  
+      localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify({
         id: user.uid,
         email: user.email,
-        role: "user" // Misalnya, tambahkan role setelah verifikasi lebih lanjut
       }));
-
-      navigate("/"); // Arahkan ke halaman yang sesuai
+  
+      alert("Login berhasil!");
+      navigate("/");
     } catch (error) {
       alert("Login gagal: " + error.message);
     } finally {
       setIsLoading(false);
     }
   };
+  
   
 
   return (
