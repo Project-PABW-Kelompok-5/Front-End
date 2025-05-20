@@ -165,7 +165,7 @@ const Homepage = () => {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center"
+      className="min-h-screen bg-cover bg-center relative"
       style={{ backgroundImage: `url(${Bg})` }}
     >
       <div className="absolute inset-0 bg-black opacity-70"></div>
@@ -182,16 +182,16 @@ const Homepage = () => {
           handleSignInClick={handleSignInClick}
         />
 
-        <div className="max-w-7xl mx-auto py-12 px-4 md:px-10">
+        <div className="w-full px-2 sm:px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12 py-12">
           <h2 className="text-white text-2xl font-bold mb-6">
             Rekomendasi untukmu
           </h2>
           {displayedProducts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-1">
               {displayedProducts.map((product) => (
                 <div
                   key={product.id}
-                  className="bg-white p-2 rounded-xl shadow hover:shadow-lg transition mb-20 mx-10"
+                  className="bg-white p-2 rounded-sm shadow hover:shadow-lg transition mb-6 mx-10"
                 >
                   <div
                     onClick={() => setPreviewProduct(product)}
@@ -324,8 +324,6 @@ const Homepage = () => {
 
         <Footer />
       </div>
-
-      <Footer />
     </div>
   );
 };
