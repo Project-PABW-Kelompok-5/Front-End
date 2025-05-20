@@ -7,7 +7,7 @@ import {
   deleteDoc,
   doc,
 } from "firebase/firestore";
-import Navbar from "../../components/navbar1";
+import Navbar from "../../components/navbar";
 import { firestore } from "../../firebase"; // sesuaikan path jika perlu
 
 // Modal component for adding/editing product
@@ -239,8 +239,9 @@ export default function ProductManagement() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Manajemen Produk</h1>
+    <div className="p-0 max-w-10xl mx-auto">
+      <Navbar />
+      <h1 className="text-2xl font-bold mt-10 mb-6">Manajemen Produk</h1>
 
       <button
         onClick={openAddModal}
