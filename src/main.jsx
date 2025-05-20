@@ -17,8 +17,8 @@ import MyOrder from "./pages/myOrder.jsx";
 import Cart from "./pages/cart.jsx";
 import Checkout from "./pages/checkout.jsx";
 import DeliveryHistory from "./pages/kurir/historyPengiriman.jsx";
-import Wishlist
- from "./pages/wishlist.jsx";
+import Wishlist from "./pages/wishlist.jsx";
+import ManageBalance from "./pages/admin/ManageBalance.jsx";
 
 import "./index.css";
 
@@ -53,6 +53,7 @@ createRoot(document.getElementById("root")).render(
           <Route path="/admin/manageProduct" element={<ManageProduct />} />
           <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/manageCourier" element={<ManageCourier />} />
+          <Route path="/admin/manageBalance" element={<ManageBalance />} />
         </Route>
       </Routes>
     </BrowserRouter>
