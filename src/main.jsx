@@ -14,6 +14,8 @@ import PrivateRoute from "./components/PrivateRoute.jsx";
 import Wallet from "./pages/users/wallet.jsx";
 import Profil from "./pages/profil.jsx";
 import MyOrder from "./pages/myOrder.jsx";
+import Cart from "./pages/cart.jsx";
+import Checkout from "./pages/checkout.jsx";
 
 import "./index.css";
 
@@ -29,6 +31,8 @@ createRoot(document.getElementById("root")).render(
         <Route path="/" element={<Homepage />} />
         <Route path="/profile" element={<Profil />} />
         <Route path="/myOrder" element={<MyOrder />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/checkout" element={<Checkout />} />
 
         {/* Protected User Routes */}
         <Route element={<PrivateRoute role="user" />}>
