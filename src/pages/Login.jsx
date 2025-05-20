@@ -1,43 +1,73 @@
-import React, { useState } from "react";
 import Background from "../assets/background.jpg";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { auth, firestore } from "../firebase"; 
+import { doc, getDoc } from "firebase/firestore";
+import { signInWithEmailAndPassword } from "firebase/auth"; 
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
+    if (!email || !password) {
+      return alert("Email dan password wajib diisi.");
+    }
+
+    setIsLoading(true);
+
     try {
-      const response = await fetch("http://localhost:3000/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-  
-      const data = await response.json();
-  
-      if (response.ok) {
-        alert("Login berhasil!");
-        console.log("Token:", data.token);
-        console.log("User:", data.user);
-  
-        // Simpan token di localStorage
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-  
-        // Redirect ke halaman dashboard/home
-        window.location.href = "/";
-      } else {
-        alert(`Login gagal: ${data.message || data.error}`);
+      // 1. Login dengan Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      // verifikasi email
+      if (!user.emailVerified) {
+        alert("Email belum diverifikasi. Silakan cek email Anda untuk verifikasi.");
+        setIsLoading(false);
+        return;
       }
+
+      // 2. Ambil token JWT
+      const token = await user.getIdToken();
+
+      // 3. Ambil data user dari Firestore
+      const userDocRef = doc(firestore, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        throw new Error("Data pengguna tidak ditemukan di Firestore.");
+      }
+
+      const userData = userDoc.data();
+
+      // 4. Simpan token dan user info ke localStorage
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify({
+        id: user.uid,
+        email: user.email,
+        role: userData.role,
+      }));
+
+      if (userData.role === "admin") {
+        navigate("/admin/dashboard");
+      } else if (userData.role === "user") {
+        navigate("/");
+      } else {
+        navigate("/");
+      }
+      
     } catch (error) {
-      console.error("Error:", error);
-      alert("Terjadi kesalahan saat login.");
+      alert("Login gagal: " + error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
+  
   
 
   return (

@@ -2,9 +2,11 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Navbar from "../components/navbar";
 import Footer from "../components/footer";
-import Bg from "../assets/homepage/bg.jpg";
+import Bg from "../assets/homepage/background.svg";
+import WishlistIcon from "../assets/homepage/wishlistpop.svg";
 
 const products = [
+  // ... (produk tetap seperti sebelumnya)
   {
     id: 1,
     name: "Produk Sepatu",
@@ -91,7 +93,7 @@ const products = [
   },
 ];
 
-const PRODUCTS_PER_PAGE = 8; // Menampilkan 8 produk per halaman
+const PRODUCTS_PER_PAGE = 8;
 
 const Homepage = () => {
   const [query, setQuery] = useState("");
@@ -100,7 +102,9 @@ const Homepage = () => {
   const [showCart, setShowCart] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [currentPage, setCurrentPage] = useState(1);
+  const [previewProduct, setPreviewProduct] = useState(null);
 
+  const handleCloseModal = () => setPreviewProduct(null);
   const navigate = useNavigate();
 
   const handleSearch = () => setSearch(query);
@@ -119,7 +123,6 @@ const Homepage = () => {
   };
 
   const handleSignInClick = () => navigate("/login");
-  const handleWalletClick = () => navigate("/topup");
 
   const filteredProducts = products.filter(
     (product) =>
@@ -146,20 +149,15 @@ const Homepage = () => {
     }
   };
 
-  const handlePageSelect = (page) => {
-    setCurrentPage(page);
-  };
+  const handlePageSelect = (page) => setCurrentPage(page);
 
   const getPaginationButtons = () => {
     let startPage = currentPage - 1 <= 0 ? 1 : currentPage - 1;
     let endPage = currentPage + 1 >= totalPages ? totalPages : currentPage + 1;
 
     if (totalPages > 3) {
-      if (currentPage === 1) {
-        endPage = 3;
-      } else if (currentPage === totalPages) {
-        startPage = totalPages - 2;
-      }
+      if (currentPage === 1) endPage = 3;
+      else if (currentPage === totalPages) startPage = totalPages - 2;
     }
 
     return [...Array(endPage - startPage + 1)].map((_, i) => startPage + i);
@@ -167,96 +165,164 @@ const Homepage = () => {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center"
+      className="relative min-h-screen bg-cover bg-center"
       style={{ backgroundImage: `url(${Bg})` }}
     >
-      <Navbar
-        query={query}
-        setQuery={setQuery}
-        handleSearch={handleSearch}
-        selectedCategory={selectedCategory}
-        setSelectedCategory={setSelectedCategory}
-        cartCount={cart.length}
-        setShowCart={setShowCart}
-        showCart={showCart}
-        handleSignInClick={handleSignInClick}
-        handleWalletClick={handleWalletClick}
-      />
+      <div className="absolute inset-0 bg-black opacity-70"></div>
+      <div className="relative z-10">
+        <Navbar
+          query={query}
+          setQuery={setQuery}
+          handleSearch={handleSearch}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          cartCount={cart.length}
+          setShowCart={setShowCart}
+          showCart={showCart}
+          handleSignInClick={handleSignInClick}
+        />
 
-      <div className="max-w-7xl mx-auto py-12 px-4 md:px-10">
-        <h2 className="text-white text-2xl font-bold mb-6">
-          Rekomendasi untukmu
-        </h2>
-        {displayedProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            {displayedProducts.map((product) => (
-              <div
-                key={product.id}
-                className="bg-white p-2 rounded-xl shadow hover:shadow-lg transition mb-20 mx-10"
-              >
-                <Link to={`/product/${product.id}`}>
-                  <img
-                    src={`https://via.placeholder.com/300x200?text=${encodeURIComponent(
-                      product.name
-                    )}`}
-                    alt={product.name}
-                    className="w-full h-32 object-cover rounded-lg mb-2"
-                  />
-                  <h3 className="text-sm font-semibold">{product.name}</h3>
-                  <p className="text-xs text-gray-500 mb-1">
-                    {product.description}
-                  </p>
-                  <span className="text-green-600 font-bold text-base block mb-2">
-                    Rp{product.price.toLocaleString()}
-                  </span>
-                </Link>
-                <button
-                  onClick={() => handleAddToCart(product)}
-                  className="w-full px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+        <div className="max-w-7xl mx-auto py-12 px-4 md:px-10">
+          <h2 className="text-white text-2xl font-bold mb-6">
+            Rekomendasi untukmu
+          </h2>
+          {displayedProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+              {displayedProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="bg-white p-2 rounded-xl shadow hover:shadow-lg transition mb-20 mx-10"
                 >
-                  Tambah ke Keranjang
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-center text-gray-500 mt-10">
-            Produk tidak ditemukan.
-          </p>
-        )}
+                  <div
+                    onClick={() => setPreviewProduct(product)}
+                    className="cursor-pointer"
+                  >
+                    <img
+                      src={`https://via.placeholder.com/300x200?text=${encodeURIComponent(
+                        product.name
+                      )}`}
+                      alt={product.name}
+                      className="w-full h-32 object-cover rounded-lg mb-2"
+                    />
+                    <h3 className="text-sm font-semibold">{product.name}</h3>
+                    <p className="text-xs text-gray-500 mb-1">
+                      {product.description}
+                    </p>
+                    <span className="text-green-600 font-bold text-base block mb-2">
+                      Rp{product.price.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-center text-gray-500 mt-10">
+              Produk tidak ditemukan.
+            </p>
+          )}
 
-        {/* Pagination */}
-        <div className="flex justify-center mt-8">
-          <button
-            onClick={handlePrevPage}
-            disabled={currentPage === 1}
-            className="px-4 py-2 mx-1 bg-white text-black rounded-md hover:bg-gray-200"
-          >
-            Prev
-          </button>
-          {/* Tombol Halaman */}
-          {getPaginationButtons().map((page) => (
+          {/* Pagination */}
+          <div className="flex justify-center mt-8">
             <button
-              key={page}
-              onClick={() => handlePageSelect(page)}
-              className={`px-4 py-2 mx-1 ${
-                currentPage === page
-                  ? "bg-white text-black"
-                  : "bg-white text-black"
-              } rounded-md hover:bg-gray-200`}
+              onClick={handlePrevPage}
+              disabled={currentPage === 1}
+              className="px-4 py-2 mx-1 bg-white text-black rounded-md hover:bg-gray-200"
             >
-              {page}
+              Prev
             </button>
-          ))}
+            {getPaginationButtons().map((page) => (
+              <button
+                key={page}
+                onClick={() => handlePageSelect(page)}
+                className={`px-4 py-2 mx-1 ${
+                  currentPage === page
+                    ? "bg-white text-black"
+                    : "bg-white text-black"
+                } rounded-md hover:bg-gray-200`}
+              >
+                {page}
+              </button>
+            ))}
+            <button
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 mx-1 bg-white text-black rounded-md hover:bg-gray-200"
+            >
+              Next
+            </button>
+          </div>
 
-          <button
-            onClick={handleNextPage}
-            disabled={currentPage === totalPages}
-            className="px-4 py-2 mx-1 bg-white text-black rounded-md hover:bg-gray-200"
-          >
-            Next
-          </button>
+          {/* Modal Preview Produk */}
+          {previewProduct && (
+            <div className="fixed inset-0 z-50 backdrop-blur-sm bg-black/30 flex items-center justify-center">
+              <div className="bg-white rounded-xl shadow-lg w-11/12 max-w-3xl p-6 relative flex flex-col md:flex-row gap-6">
+                <button
+                  className="absolute top-2 right-2 text-gray-500 hover:text-black cursor-pointer"
+                  onClick={handleCloseModal}
+                >
+                  ✕
+                </button>
+
+                <img
+                  src={`https://via.placeholder.com/400x250?text=${encodeURIComponent(
+                    previewProduct.name
+                  )}`}
+                  alt={previewProduct.name}
+                  className="w-full md:w-1/2 h-90 object-cover rounded-lg"
+                />
+
+                <div className="flex flex-col justify-between w-full md:w-1/2">
+                  <div>
+                    <h3 className="text-xl font-bold mb-2">
+                      {previewProduct.name}
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-3">
+                      {previewProduct.description}
+                    </p>
+                  </div>
+                  <div>
+                    <button
+                      onClick={() => {
+                        const wishlist =
+                          JSON.parse(localStorage.getItem("wishlist")) || [];
+                        const alreadyExists = wishlist.some(
+                          (item) => item.id === previewProduct.id
+                        );
+                        if (!alreadyExists) {
+                          const updatedWishlist = [...wishlist, previewProduct];
+                          localStorage.setItem(
+                            "wishlist",
+                            JSON.stringify(updatedWishlist)
+                          );
+                        }
+                        navigate("/wishlist");
+                      }}
+                      className="mb-4 inline-flex items-center gap-2 bg-pink-100 hover:bg-pink-200 text-pink-700 px-3 py-1 rounded-md transition"
+                    >
+                      <img src={WishlistIcon} alt="Wishlist" className="w-5" />
+                      Tambahkan ke Wishlist
+                    </button>
+
+                    <p className="text-green-600 font-bold text-lg mb-4">
+                      Rp{previewProduct.price.toLocaleString()}
+                    </p>
+                    <button
+                      onClick={() => {
+                        handleAddToCart(previewProduct);
+                        handleCloseModal();
+                      }}
+                      className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    >
+                      Tambah ke Keranjang
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
+
+        <Footer />
       </div>
 
       <Footer />

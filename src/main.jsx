@@ -1,9 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
 import RegisterPage from "./pages/Register.jsx";
-import TopupPage from "./pages/users/Topup.jsx";
-import { BrowserRouter } from "react-router-dom";
-import { Routes, Route } from "react-router-dom";
 import LoginPage from "./pages/Login.jsx";
 import Homepage from "./pages/homepage.jsx";
 import ManageUsers from "./pages/admin/ManageUsers.jsx";
@@ -11,24 +10,46 @@ import ManageProduct from "./pages/admin/ManageProduct.jsx";
 import ManageCourier from "./pages/admin/ManageCourier.jsx";
 import Dashboard from "./pages/admin/Dashboard.jsx";
 import EcommerceDashboard from "./pages/users/DashboardV1.jsx";
-import DeliveryHistory from "../src/pages/kurir/historyPengiriman.jsx";
+import PrivateRoute from "./components/PrivateRoute.jsx";
+import Wallet from "./pages/users/wallet.jsx";
+import Profil from "./pages/profil.jsx";
+import MyOrder from "./pages/myOrder.jsx";
+import Cart from "./pages/cart.jsx";
+import Checkout from "./pages/checkout.jsx";
+
 import "./index.css";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Homepage />} />
+        {/* Public Routes */}
+          <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/admin/dashboard" element={<Dashboard />} />
-        <Route path="/admin/manageUsers" element={<ManageUsers />} />
-        <Route path="/admin/manageProduct" element={<ManageProduct />} />
-        <Route path="/admin/manageCourier" element={<ManageCourier />} />
-        <Route path="/users/dashboard" element={<EcommerceDashboard />} />
-        <Route path="/historyPengiriman" element={<DeliveryHistory />} />
-        <Route path="/topup" element={<TopupPage />} />
+        <Route path="/wallet" element={<Wallet />} />
+        <Route path="/" element={<Homepage />} />
+        <Route path="/profile" element={<Profil />} />
+        <Route path="/myOrder" element={<MyOrder />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/checkout" element={<Checkout />} />
+
+        {/* Protected User Routes */}
+        <Route element={<PrivateRoute role="user" />}>
+          {/* <Route path="/" element={<Homepage />} /> */}
+          <Route path="/users/dashboard" element={<EcommerceDashboard />} />
+        </Route>
+
+        {/* Protected Admin Routes */}
+        <Route element={<PrivateRoute role="admin" />}>
+          <Route path="/admin/manageUsers" element={<ManageUsers />} />
+          <Route path="/admin/manageProduct" element={<ManageProduct />} />
+          <Route path="/admin/manageCourier" element={<ManageCourier />} />
+        </Route>
       </Routes>
     </BrowserRouter>
+  </StrictMode>
+);
+
   </StrictMode>
 );
