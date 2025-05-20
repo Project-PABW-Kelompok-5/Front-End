@@ -18,7 +18,7 @@ const data = {
       label: 'Jumlah',
       data: [123, 12, 87, 45], 
       backgroundColor: [
-        'rgba(59, 130, 246, 0.5)',  
+        'rgba(59, 130, 246, 0.5)',     
         'rgba(34, 197, 94, 0.5)',   
         'rgba(234, 179, 8, 0.5)',   
         'rgba(239, 68, 68, 0.5)',   

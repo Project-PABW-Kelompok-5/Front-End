@@ -17,8 +17,7 @@ import MyOrder from "./pages/myOrder.jsx";
 import Cart from "./pages/cart.jsx";
 import Checkout from "./pages/checkout.jsx";
 import DeliveryHistory from "./pages/kurir/historyPengiriman.jsx";
-import Wishlist
- from "./pages/wishlist.jsx";
+import Wishlist from "./pages/wishlist.jsx";
 
 import "./index.css";
 

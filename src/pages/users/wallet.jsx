@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import Navbar from "../../components/navbar1";
+import Header from "../../components/header";
 import Footer from "../../components/footer";
 
 const WalletTopUp = () => {
@@ -33,7 +33,7 @@ const WalletTopUp = () => {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      <Navbar />
+      <Header /> {/* <-- Ganti Navbar dengan Header */}
 
       <div className="max-w-7xl mx-auto py-12 px-4 md:px-10 flex gap-10">
         {/* Bagian Top Up Wallet */}
