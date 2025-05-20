@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import Navbar from "../components/navbar";
+import Header from "../components/header";
 import Footer from "../components/footer";
 import Bg from "../assets/homepage/background.svg";
 
@@ -26,7 +26,7 @@ const Wishlist = () => {
       <div className="absolute inset-0 bg-black opacity-70"></div>
 
       <div className="relative z-10 flex flex-col min-h-screen">
-        <Navbar />
+        <Header title="Wishlist" />
 
         <main className="flex-grow max-w-6xl mx-auto px-4 py-12 text-white">
           <h2 className="text-2xl font-bold mb-6">Wishlist Kamu</h2>
@@ -51,18 +51,18 @@ const Wishlist = () => {
                     Rp{item.price.toLocaleString()}
                   </p>
                   <div className="flex justify-between mt-4">
+                    <Link
+                      to="/"
+                      className="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600"
+                    >
+                      Tambah ke Keranjang
+                    </Link>
                     <button
                       onClick={() => handleRemove(item.id)}
                       className="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600"
                     >
                       Hapus
                     </button>
-                    <Link
-                      to="/"
-                      className="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600"
-                    >
-                      Tambahkan pesanan
-                    </Link>
                   </div>
                 </div>
               ))}

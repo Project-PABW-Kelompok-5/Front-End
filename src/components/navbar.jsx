@@ -18,7 +18,14 @@ const Navbar = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Menutup dropdown saat klik di luar menu
+  const isLoggedIn = !!localStorage.getItem("token"); // cek login
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setShowDropdown(false);
+    navigate("/login");
+  };
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {

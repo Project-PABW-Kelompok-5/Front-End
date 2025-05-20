@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/navbar";
+import Header from "../components/header";
 import Footer from "../components/footer";
 import Bg from "../assets/homepage/background.svg";
 
@@ -16,8 +16,7 @@ const MyOrder = () => {
     }
 
     const storedOrders = JSON.parse(localStorage.getItem("orders")) || [];
-    
-    // Validasi struktur data
+
     const validOrders = storedOrders.filter(
       (order) =>
         order &&
@@ -74,7 +73,7 @@ const MyOrder = () => {
       <div className="absolute inset-0 bg-black opacity-70"></div>
 
       <div className="relative z-10 flex flex-col min-h-screen">
-        <Navbar />
+        <Header />
 
         <main className="flex-grow max-w-6xl mx-auto px-4 py-12 text-white">
           <h2 className="text-2xl font-bold mb-8">Pesanan Saya</h2>

@@ -51,6 +51,7 @@ createRoot(document.getElementById("root")).render(
           <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/manageUsers" element={<ManageUsers />} />
           <Route path="/admin/manageProduct" element={<ManageProduct />} />
+          <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/manageCourier" element={<ManageCourier />} />
         </Route>
       </Routes>
