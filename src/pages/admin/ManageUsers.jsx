@@ -59,7 +59,7 @@ const ManageUsers = () => {
         throw new Error(result.message || "Gagal menambah pengguna");
       }
   
-      getAllUsers(); // ⬅️ Refetch user setelah tambah
+      getAllUsers(); 
       setNewUser({
         name: "",
         email: "",

@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { auth, firestore } from "../firebase"; 
 import { doc, getDoc } from "firebase/firestore";
 import { signInWithEmailAndPassword } from "firebase/auth"; 
-import { getIdToken } from "firebase/auth";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -25,6 +24,13 @@ const LoginPage = () => {
       // 1. Login dengan Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
+
+      // verifikasi email
+      if (!user.emailVerified) {
+        alert("Email belum diverifikasi. Silakan cek email Anda untuk verifikasi.");
+        setIsLoading(false);
+        return;
+      }
 
       // 2. Ambil token JWT
       const token = await user.getIdToken();
