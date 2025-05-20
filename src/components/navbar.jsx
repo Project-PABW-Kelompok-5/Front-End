@@ -78,7 +78,7 @@ const Navbar = ({
                 )}
               </button>
 
-              <button onClick={() => alert("Fitur saldo belum tersedia.")}>
+              <button onClick={() => navigate("/wallet")}>
                 <img src={SaldoIcon} alt="Saldo" className="w-8" />
               </button>
 

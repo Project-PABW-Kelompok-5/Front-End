@@ -17,6 +17,8 @@ import MyOrder from "./pages/myOrder.jsx";
 import Cart from "./pages/cart.jsx";
 import Checkout from "./pages/checkout.jsx";
 import DeliveryHistory from "./pages/kurir/historyPengiriman.jsx";
+import Wishlist
+ from "./pages/wishlist.jsx";
 
 import "./index.css";
 
@@ -35,6 +37,8 @@ createRoot(document.getElementById("root")).render(
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/historyPengiriman" element={<DeliveryHistory />} />
+        <Route path="/wishlist" element={<Wishlist />} />
+
 
         {/* Protected User Routes */}
         <Route element={<PrivateRoute role="user" />}>
