@@ -44,6 +44,7 @@ createRoot(document.getElementById("root")).render(
 
         {/* Protected Admin Routes */}
         <Route element={<PrivateRoute role="admin" />}>
+          <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/manageUsers" element={<ManageUsers />} />
           <Route path="/admin/manageProduct" element={<ManageProduct />} />
           <Route path="/admin/manageCourier" element={<ManageCourier />} />
