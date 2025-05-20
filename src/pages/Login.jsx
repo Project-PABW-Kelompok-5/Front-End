@@ -25,12 +25,12 @@ const LoginPage = () => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // verifikasi email
-      if (!user.emailVerified) {
-        alert("Email belum diverifikasi. Silakan cek email Anda untuk verifikasi.");
-        setIsLoading(false);
-        return;
-      }
+      // // verifikasi email
+      // if (!user.emailVerified) {
+      //   alert("Email belum diverifikasi. Silakan cek email Anda untuk verifikasi.");
+      //   setIsLoading(false);
+      //   return;
+      // }
 
       // 2. Ambil token JWT
       const token = await user.getIdToken();

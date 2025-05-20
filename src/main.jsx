@@ -18,6 +18,8 @@ import Cart from "./pages/cart.jsx";
 import Checkout from "./pages/checkout.jsx";
 import DeliveryHistory from "./pages/kurir/historyPengiriman.jsx";
 import Wishlist from "./pages/wishlist.jsx";
+import KurirDashboard from "./pages/kurir/KurirDashboard.jsx";
+import KurirBarang from "./pages/kurir/KurirBarang.jsx";
 
 import "./index.css";
 
@@ -37,6 +39,8 @@ createRoot(document.getElementById("root")).render(
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/historyPengiriman" element={<DeliveryHistory />} />
         <Route path="/wishlist" element={<Wishlist />} />
+        <Route path="/kurir/dashboard" element={<KurirDashboard />} />
+        <Route path="/kurir/barang" element={<KurirBarang />} />
 
 
         {/* Protected User Routes */}

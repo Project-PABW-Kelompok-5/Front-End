@@ -17,11 +17,17 @@ const Navbar = ({
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const isLoggedIn = !!localStorage.getItem("token"); // cek login
+  // Cek login saat komponen dimount
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    setIsLoggedIn(false);
     setShowDropdown(false);
     navigate("/login");
   };
@@ -94,28 +100,43 @@ const Navbar = ({
               </button>
 
               {/* Sign In Dropdown */}
+              {/* Sign In Dropdown */}
               <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={() => setShowDropdown(!showDropdown)}
-                  className="flex space-x-2"
-                >
-                  <img src={SigninIcon} alt="Sign In" className="w-8" />
-                </button>
-                {showDropdown && (
-                  <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-50">
+                {isLoggedIn ? (
+                  <>
                     <button
-                      onClick={() => navigate("/profile")}
-                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      onClick={() => setShowDropdown(!showDropdown)}
+                      className="flex space-x-2"
                     >
-                      Profil
+                      <img src={SigninIcon} alt="Sign In" className="w-8" />
                     </button>
-                    <button
-                      onClick={() => navigate("/historyPengiriman")}
-                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
-                    >
-                      Pesanan Saya
-                    </button>
-                  </div>
+                    {showDropdown && (
+                      <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-50">
+                        <button
+                          onClick={() => navigate("/profile")}
+                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        >
+                          Profil
+                        </button>
+                        <button
+                          onClick={() => navigate("/historyPengiriman")}
+                          className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                        >
+                          Pesanan Saya
+                        </button>
+                        <button
+                          onClick={handleLogout}
+                          className="block w-full text-left px-4 py-2 text-red-700 hover:bg-gray-100"
+                        >
+                          Log out
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <button onClick={() => navigate("/login")}>
+                    <img src={SigninIcon} alt="Sign In" className="w-8" />
+                  </button>
                 )}
               </div>
             </div>
@@ -144,4 +165,3 @@ const Navbar = ({
 };
 
 export default Navbar;
-
