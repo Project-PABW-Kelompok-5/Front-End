@@ -16,6 +16,7 @@ import Profil from "./pages/profil.jsx";
 import MyOrder from "./pages/myOrder.jsx";
 import Cart from "./pages/cart.jsx";
 import Checkout from "./pages/checkout.jsx";
+import DeliveryHistory from "./pages/kurir/historyPengiriman.jsx";
 
 import "./index.css";
 
@@ -24,7 +25,7 @@ createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <Routes>
         {/* Public Routes */}
-          <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/wallet" element={<Wallet />} />
@@ -33,6 +34,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/myOrder" element={<MyOrder />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
+        <Route path="/historyPengiriman" element={<DeliveryHistory />} />
 
         {/* Protected User Routes */}
         <Route element={<PrivateRoute role="user" />}>
@@ -48,8 +50,5 @@ createRoot(document.getElementById("root")).render(
         </Route>
       </Routes>
     </BrowserRouter>
-  </StrictMode>
-);
-
   </StrictMode>
 );

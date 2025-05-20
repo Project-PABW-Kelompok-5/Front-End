@@ -6,7 +6,7 @@ import Footer from "../../components/footer";
 const Topup = () => {
   const [query, setQuery] = useState("");
   const [showCart, setShowCart] = useState(false);
-  const [cart, setCart] = useState([]);
+  const [cart] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
 
   const navigate = useNavigate();
