@@ -13,6 +13,7 @@ import {
   LogOut,
   Shield,
 } from "lucide-react";
+import { FaHome } from "react-icons/fa";
 
 // Data dummy untuk profil pengguna
 const userData = {
@@ -59,6 +60,9 @@ const UserProfile = () => {
 
   const historyPengiriman = () => {
     navigate("/historyPengiriman");
+  };
+  const homepage = () => {
+    navigate("/");
   };
 
   const handlePasswordChange = (e) => {
@@ -186,6 +190,19 @@ const UserProfile = () => {
                     }`}
                   />
                   <span>History Pembelian</span>
+                </button>
+
+                <hr className="my-3 border-gray-200" />
+                <button
+                  onClick={homepage}
+                  className="w-full flex items-center px-4 py-3 rounded-md text-left text-black hover:bg-purple-300"
+                >
+                  <FaHome className="w-5 h-5 mr-3" />
+                  <span>Kembali</span>
+                </button>
+                <button className="w-full flex items-center px-4 py-3 rounded-md text-left text-red-600 hover:bg-red-200">
+                  <LogOut className="w-5 h-5 mr-3" />
+                  <span>Keluar</span>
                 </button>
               </nav>
             </div>
