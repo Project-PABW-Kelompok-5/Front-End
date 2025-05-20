@@ -19,6 +19,7 @@ import Checkout from "./pages/checkout.jsx";
 import DeliveryHistory from "./pages/kurir/historyPengiriman.jsx";
 import Wishlist from "./pages/wishlist.jsx";
 import ManageBalance from "./pages/admin/ManageBalance.jsx";
+import ManageBarang from "./pages/users/managebarang.jsx";
 
 import "./index.css";
 
@@ -38,7 +39,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/historyPengiriman" element={<DeliveryHistory />} />
         <Route path="/wishlist" element={<Wishlist />} />
-
+        <Route path="/managebarang" element={<ManageBarang />} />
 
         {/* Protected User Routes */}
         <Route element={<PrivateRoute role="user" />}>
