@@ -41,7 +41,20 @@
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^15.15.0",
     "postcss": "^8.5.3",
-    "tailwindcss": "^4.1.4",
+    "tailwindcss": "^4.1.6",
     "vite": "^6.2.0"
-  }
+  },
+  "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
+  "main": "eslint.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Project-PABW-Kelompok-5/Front-End.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Project-PABW-Kelompok-5/Front-End/issues"
+  },
+  "homepage": "https://github.com/Project-PABW-Kelompok-5/Front-End#readme"
 }
