@@ -26,7 +26,7 @@ const Wishlist = () => {
       <div className="absolute inset-0 bg-black opacity-70"></div>
 
       <div className="relative z-10 flex flex-col min-h-screen">
-        <Header />
+        <Header title="Wishlist" />
 
         <main className="flex-grow max-w-6xl mx-auto px-4 py-12 text-white">
           <h2 className="text-2xl font-bold mb-6">Wishlist Kamu</h2>

@@ -2,12 +2,25 @@ import { useNavigate, useLocation } from "react-router-dom";
 import LogoIcon from "../assets/homepage/logo.svg";
 
 const Header = () => {
-    const navigate = useNavigate();
-    const location = useLocation(); 
+  const navigate = useNavigate();
+  const location = useLocation();
 
-    // Tentukan teks berdasarkan pathname
-    const pageTitle =
-        location.pathname === "/cart" ? "Keranjang Belanja" : "Checkout";
+  let pageTitle = "";
+
+  switch (location.pathname) {
+    case "/cart":
+      pageTitle = "Keranjang Belanja";
+      break;
+    case "/wishlist":
+      pageTitle = "Wishlist";
+      break;
+    case "/checkout":
+      pageTitle = "Checkout";
+      break;
+    case "/myOrder":
+      pageTitle = "Profil Pengguna";
+      break;
+  }
 
     return (
         <div className="relative z-10">
