@@ -19,7 +19,7 @@ const products = [
   { id: 12, name: "Produk Sepatu Boots", description: "Deskripsi singkat produk sepatu boots", price: 1000000, category: "Popular" },
 ];
 
-const PRODUCTS_PER_PAGE = 8; // Menampilkan 8 produk per halaman
+const PRODUCTS_PER_PAGE = 8;
 
 const Homepage = () => {
   const [query, setQuery] = useState("");
