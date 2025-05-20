@@ -1,191 +1,118 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { auth, firestore } from "../firebase";
+import { doc, getDoc } from "firebase/firestore";
+import { signInWithEmailAndPassword } from "firebase/auth";
 import Background from "../assets/background.jpg";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log("Email:", email);
-    console.log("Password:", password);
+
+    if (!email || !password) {
+      return alert("Email dan password wajib diisi.");
+    }
+
+    setIsLoading(true);
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      const token = await user.getIdToken();
+
+      const userDocRef = doc(firestore, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        throw new Error("Data pengguna tidak ditemukan di Firestore.");
+      }
+
+      const userData = userDoc.data();
+
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify({
+        id: user.uid,
+        email: user.email,
+        role: userData.role,
+      }));
+
+      console.log("User data:", userData);
+      console.log("User ID:", user.uid);
+
+      if (userData.role === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/");
+      }
+
+    } catch (error) {
+      alert("Login gagal: " + error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div
-      style={{
-        position: "relative",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100vh",
-        flexDirection: "column",
-        backgroundImage: `url(${Background})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundRepeat: "no-repeat",
-      }}
-    >
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: "100%",
-          height: "100%",
-          backgroundColor: "rgba(0, 0, 0, 0.5)", // ubah 0.5 jadi lebih kecil/besar sesuai gelapnya
-          zIndex: 1,
-        }}
-      />
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "100vh",
-          flexDirection: "column",
-          zIndex: 2,
-        }}
-      >
-        <h1 style={{ marginBottom: "40px", color: "#fff", fontSize: "40px" }}>
-          Let’s Get Back to Shopping!
-        </h1>
-        <form
-          onSubmit={handleSubmit}
-          style={{
-            width: "400px",
-            padding: "35px",
-            border: "1px solid #ccc",
-            borderRadius: "10px",
-            backgroundColor: "#fff",
-          }}
-        >
-          <h2
-            style={{
-              textAlign: "center",
-              fontSize: "32px",
-              marginBottom: "20px",
-            }}
-          >
-            Login
-          </h2>
-          <div style={{ marginBottom: "20px" }}>
-            <label
-              htmlFor="email"
-              style={{
-                display: "block",
-                marginBottom: "8px",
-                fontSize: "16px",
-              }}
-            >
-              Email or Phone Number
-            </label>
+    <div className="relative flex items-center justify-center h-screen bg-cover bg-center" style={{ backgroundImage: `url(${Background})` }}>
+      <div className="absolute inset-0 bg-black opacity-50 z-0"></div>
+      <div className="relative z-10 flex flex-col items-center justify-center h-full">
+        <h1 className="text-white text-4xl mb-10 font-semibold text-center">Let’s Get Back to Shopping!</h1>
+        <form onSubmit={handleSubmit} className="w-[400px] bg-white p-9 rounded-xl shadow-lg">
+          <h2 className="text-center text-2xl font-semibold mb-5">Login</h2>
+
+          <div className="mb-5">
+            <label htmlFor="email" className="block mb-2 text-sm font-medium">Email</label>
             <input
               type="email"
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email or phone number"
-              style={{
-                width: "93%",
-                padding: "12px",
-                borderRadius: "12px",
-                border: "1px solid #ccc",
-                fontSize: "14px",
-              }}
+              placeholder="Enter your email"
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               required
             />
           </div>
-          <div style={{ marginBottom: "20px" }}>
-            <label
-              htmlFor="password"
-              style={{
-                display: "block",
-                marginBottom: "8px",
-                fontSize: "16px",
-              }}
-            >
-              Password
-            </label>
+
+          <div className="mb-5">
+            <label htmlFor="password" className="block mb-2 text-sm font-medium">Password</label>
             <input
               type="password"
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
-              style={{
-                width: "93%",
-                padding: "12px",
-                borderRadius: "12px",
-                border: "1px solid #ccc",
-                fontSize: "14px",
-              }}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
               required
             />
           </div>
-          <div style={{ textAlign: "left", marginBottom: "20px" }}>
-            <a
-              href="/forgot-password"
-              style={{
-                color: "#6941C6",
-                textDecoration: "none",
-                fontSize: "14px",
-              }}
-            >
-              Forgot Password?
-            </a>
+
+          <div className="text-right mb-5">
+            <a href="/forgot-password" className="text-sm text-purple-600 hover:underline">Forgot Password?</a>
           </div>
+
           <button
             type="submit"
-            style={{
-              width: "100%",
-              padding: "14px",
-              backgroundColor: "#A100ED",
-              color: "#fff",
-              border: "none",
-              borderRadius: "32px",
-              cursor: "pointer",
-              fontSize: "18px",
-              marginBottom: "12px",
-            }}
+            className="w-full py-3 bg-purple-700 text-white rounded-full hover:bg-purple-800 transition font-semibold text-lg mb-3"
           >
-            Login
+            {isLoading ? "Logging in..." : "Login"}
           </button>
-          <div
-            style={{ display: "flex", alignItems: "center", margin: "12px 0" }}
-          ></div>
+
           <button
             type="button"
-            style={{
-              width: "100%",
-              padding: "14px",
-              backgroundColor: "#FFF",
-              color: "#344054",
-              border: "1px solid #ccc",
-              borderRadius: "32px",
-              cursor: "pointer",
-              fontSize: "16px",
-              marginBottom: "12px",
-            }}
+            className="w-full py-3 bg-white text-gray-800 border border-gray-300 rounded-full hover:bg-gray-100 transition text-sm font-medium"
           >
             Continue with Google
           </button>
-          <div
-            style={{ textAlign: "center", marginTop: "12px", fontSize: "16px" }}
-          >
-            <span>Already have an account? </span>
-            <a
-              href="/"
-              style={{
-                color: "#6941C6",
-                textDecoration: "none",
-                cursor: "pointer",
-              }}
-            >
-              Register
-            </a>
-          </div>
+
+          <p className="text-center text-sm mt-4">
+            Belum punya akun?{' '}
+            <a href="/register" className="text-purple-600 hover:underline">Register</a>
+          </p>
         </form>
       </div>
     </div>

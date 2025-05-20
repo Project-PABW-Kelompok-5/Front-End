@@ -1,16 +1,63 @@
 import React, { useState } from "react";
 import Background from "../assets/background.jpg";
+import { auth } from "../firebase";
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+
 
 const RegisterPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [noTelepon, setNoTelepon] = useState("");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Handle login logic here
-    console.log("Email:", email);
-    console.log("Password:", password);
+  const isValidEmail = (email) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
   };
+  
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+  
+    if (!email || !password || !username || !noTelepon) {
+      return alert("Semua field wajib diisi.");
+    }
+  
+    if (!isValidEmail(email)) {
+      return alert("Format email tidak valid.");
+    }
+  
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+  
+      // Kirim email verifikasi
+      await sendEmailVerification(user);
+  
+      alert("Registrasi berhasil! Silakan cek email Anda untuk verifikasi.");
+  
+      // (Opsional) simpan data tambahan ke server
+      await fetch("http://localhost:3000/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          no_telepon: noTelepon,
+          uid: user.uid, // bisa juga dikirim UID Firebase
+        }),
+      });
+  
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Firebase Error:", error.message);
+      alert("Registrasi gagal: " + error.message);
+    }
+  };
+  
+  
 
   return (
     <div
@@ -34,7 +81,7 @@ const RegisterPage = () => {
           left: 0,
           width: "100%",
           height: "100%",
-          backgroundColor: "rgba(0, 0, 0, 0.5)", // ubah 0.5 jadi lebih kecil/besar sesuai gelapnya
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
           zIndex: 1,
         }}
       />
@@ -79,7 +126,7 @@ const RegisterPage = () => {
                 fontSize: "16px",
               }}
             >
-              Email or Phone Number
+              Email
             </label>
             <input
               type="email"
@@ -105,7 +152,7 @@ const RegisterPage = () => {
                 marginBottom: "8px",
                 fontSize: "16px",
               }}
-            >
+            > 
               Password
             </label>
             <input
@@ -124,6 +171,46 @@ const RegisterPage = () => {
               required
             />
           </div>
+          {/* Username */}
+          <div style={{ marginBottom: "20px" }}>
+            <label htmlFor="username">Username</label>
+            <input
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your username"
+              required
+              style={{
+                width: "93%",
+                padding: "12px",
+                borderRadius: "12px",
+                border: "1px solid #ccc",
+                fontSize: "14px",
+              }}
+            />
+          </div>
+
+          {/* No Telepon */}
+          <div style={{ marginBottom: "20px" }}>
+            <label htmlFor="phone">Phone Number</label>
+            <input
+              type="text"
+              id="phone"
+              value={noTelepon}
+              onChange={(e) => setNoTelepon(e.target.value)}
+              placeholder="Enter your phone number"
+              required
+              style={{
+                width: "93%",
+                padding: "12px",
+                borderRadius: "12px",
+                border: "1px solid #ccc",
+                fontSize: "14px",
+              }}
+            />
+          </div>
+
           <button
             type="submit"
             style={{

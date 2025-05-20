@@ -1,0 +1,307 @@
+{
+  "provinsi": "Kalimantan Timur",
+  "kota": [
+    {
+      "nama": "Balikpapan",
+      "kecamatan": [
+        {
+          "nama": "Balikpapan Barat",
+          "kode_pos": ["76131", "76132", "76133", "76134"]
+        },
+        {
+          "nama": "Balikpapan Kota",
+          "kode_pos": ["76111", "76112", "76113", "76114"]
+        },
+         {
+          "nama": "Balikpapan Selatan",
+          "kode_pos": ["76114", "76115"]
+        },
+        {
+          "nama": "Balikpapan Tengah",
+          "kode_pos": ["76121", "76122", "76123", "76124"]
+        },
+        {
+          "nama": "Balikpapan Timur",
+          "kode_pos": ["76116", "76117", "76118"]
+        },
+        {
+          "nama": "Balikpapan Utara",
+          "kode_pos": ["76125", "76126", "76127", "76128", "76129", "76130", "76131", "76132", "76133", "76134", "76135", "76136"]
+        }
+      ]
+    },
+    {
+      "nama": "Berau",
+      "kecamatan": [
+        {
+          "nama": "Batu Putih",
+          "kode_pos": ["77372", "77373"]
+        },
+        {
+          "nama": "Biatan",
+          "kode_pos": ["77372"]
+        },
+        {
+          "nama": "Biduk Biduk",
+          "kode_pos": ["77373"]
+        },
+        {
+          "nama": "Gunung Tabur",
+          "kode_pos": ["77321", "77322"]
+        },
+        {
+          "nama": "Kelay",
+          "kode_pos": ["77331", "77332"]
+        },
+        {
+          "nama": "Maratua",
+          "kode_pos": ["77331", "77332"]
+        },
+        {
+          "nama": "Pulau Derawan",
+          "kode_pos": ["77331", "77332"]
+        },
+        {
+          "nama": "Sambaliung",
+          "kode_pos": ["77331", "77332"]
+        },
+        {
+          "nama": "Segah",
+          "kode_pos": ["77331", "77332"]
+        },
+        {
+          "nama": "Tabalar",
+          "kode_pos": ["77331", "77332"]
+        },
+        {
+          "nama": "Talisayan",
+          "kode_pos": ["77331", "77332"]
+        },
+        {
+          "nama": "Tanjung Redeb",
+          "kode_pos": ["77311", "77312", "77313"]
+        },
+        {
+          "nama": "Teluk Bayur",
+          "kode_pos": ["77331", "77332"]
+        }
+      ]
+    },
+    {
+      "nama": "Bontang",
+      "kecamatan": [
+        {
+          "nama": "Bontang Barat",
+          "kode_pos": ["75311", "75312"]
+        },
+        {
+          "nama": "Bontang Selatan",
+          "kode_pos": ["75321", "75322"]
+        },
+        {
+          "nama": "Bontang Utara",
+          "kode_pos": ["75331", "75332"]
+        }
+      ]
+    },
+    {
+      "nama": "Kutai Barat",
+      "kecamatan": [
+        {
+          "nama": "Barong Tongkok",
+          "kode_pos": ["75711", "75712"]
+        },
+        {
+          "nama": "Bongan",
+          "kode_pos": ["75721", "75722"]
+        },
+        {
+          "nama": "Jempang",
+          "kode_pos": ["75731", "75732"]
+        },
+        {
+          "nama": "Kembang Janggut",
+          "kode_pos": ["75741", "75742"]
+        },
+        {
+          "nama": "Melak",
+          "kode_pos": ["75751", "75752"]
+        },
+        {
+          "nama": "Nyuatan",
+          "kode_pos": ["75761", "75762"]
+        },
+        {
+          "nama": "Sekolaq Darat",
+          "kode_pos": ["75771", "75772"]
+        },
+        {
+          "nama": "Tering",
+          "kode_pos": ["75781", "75782"]
+        }
+      ]
+    },
+    {
+      "nama": "Kutai Kartanegara",
+      "kecamatan": [
+        {
+          "nama": "Anggana",
+          "kode_pos": ["75511", "75512"]
+        },
+        {
+          "nama": "Batu Ampar",
+          "kode_pos": ["75521", "75522"]
+        },
+        {
+          "nama": "Bengalon",
+          "kode_pos": ["75531", "75532"]
+        },
+        {
+          "nama": "Loa Janan",
+          "kode_pos": ["75541", "75542"]
+        },
+        {
+          "nama": "Loa Kulu",
+          "kode_pos": ["75551", "75552"]
+        },
+        {
+          "nama": "Muara Badak",
+          "kode_pos": ["75561", "75562"]
+        },
+        {
+          "nama": "Muara Jawa",
+          "kode_pos": ["75571", "75572"]
+        },
+        {
+          "nama": "Muara Kaman",
+          "kode_pos": ["75581", "75582"]
+        },
+        {
+          "nama": "Samboja",
+          "kode_pos": ["75591", "75592"]
+        }
+      ]
+    },
+    {
+      "nama": "Kutai Timur",
+      "kecamatan": [
+        {
+          "nama": "Bengalon",
+          "kode_pos": ["75611", "75612"]
+        },
+        {
+          "nama": "Kaliorang",
+          "kode_pos": ["75621", "75622"]
+        },
+        {
+          "nama": "Karangan",
+          "kode_pos": ["75631", "75632"]
+        },
+        {
+          "nama": "Kota Bangun",
+          "kode_pos": ["75641", "75642"]
+        },
+        {
+          "nama": "Muara Ancalong",
+          "kode_pos": ["75651", "75652"]
+        },
+        {
+          "nama": "Muara Wahau",
+          "kode_pos": ["75661", "75662"]
+        },
+        {
+          "nama": "Rantau Pulung",
+          "kode_pos": ["75671", "75672"]
+        },
+        {
+          "nama": "Sandaran",
+          "kode_pos": ["75681", "75682"]
+        }
+      ]
+    },
+    {
+      "nama": "Mahakam Ulu",
+      "kecamatan": [
+        {
+          "nama": "Long Bagun",
+          "kode_pos": ["75711", "75712"]
+        },
+        {
+          "nama": "Long Hubung",
+          "kode_pos": ["75721", "75722"]
+        },
+        {
+          "nama": "Long Iram",
+          "kode_pos": ["75731", "75732"]
+        },
+        {
+          "nama": "Muara Pahu",
+          "kode_pos": ["75741", "75742"]
+        },
+        {
+          "nama": "Nyuatan",
+          "kode_pos": ["75751", "75752"]
+        }
+      ]
+    },
+    {
+      "nama": "Paser",
+      "kecamatan": [
+        {
+          "nama": "Long Ikis",
+          "kode_pos": ["76111", "76112"]
+        },
+        {
+          "nama": "Muara Samu",
+          "kode_pos": ["76121", "76122"]
+        },
+        {
+          "nama": "Pasir Belengkong",
+          "kode_pos": ["76131", "76132"]
+        },
+        {
+          "nama": "Tanah Grogot",
+          "kode_pos": ["76141", "76142"]
+        }
+      ]
+    },
+    {
+      "nama": "Penajam Paser Utara",
+      "kecamatan": [
+        {
+          "nama": "Babulu",
+          "kode_pos": ["76311", "76312"]
+        },
+        {
+          "nama": "Penajam",
+          "kode_pos": ["76321", "76322"]
+        },
+        {
+          "nama": "Sepaku",
+          "kode_pos": ["76331", "76332"]
+        }
+      ]
+    },
+    {
+      "nama": "Samarinda",
+      "kecamatan": [
+        {
+          "nama": "Samarinda Ilir",
+          "kode_pos": ["75111", "75112"]
+        },
+        {
+          "nama": "Samarinda Kota",
+          "kode_pos": ["75121", "75122"]
+        },
+        {
+          "nama": "Samarinda Seberang",
+          "kode_pos": ["75131", "75132"]
+        },
+        {
+          "nama": "Samarinda Ulu",
+          "kode_pos": ["75141", "75142"]
+        }
+      ]
+    }
+  ]
+}
