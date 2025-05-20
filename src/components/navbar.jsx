@@ -18,7 +18,14 @@ const Navbar = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
-  // Menutup dropdown saat klik di luar menu
+  const isLoggedIn = !!localStorage.getItem("token"); // cek login
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setShowDropdown(false);
+    navigate("/login");
+  };
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -86,31 +93,49 @@ const Navbar = ({
                 <img src={WishlistIcon} alt="Wishlist" className="w-8" />
               </button>
 
-              {/* Sign In Dropdown */}
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={() => setShowDropdown(!showDropdown)}
-                  className="flex space-x-2"
-                >
-                  <img src={SigninIcon} alt="Sign In" className="w-8" />
+              {/* Sign In/Out Section */}
+              {isLoggedIn ? (
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setShowDropdown(!showDropdown)}
+                    className="flex space-x-2"
+                  >
+                    <img src={SigninIcon} alt="User" className="w-8" />
+                  </button>
+                  {showDropdown && (
+                    <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-50">
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          navigate("/profile");
+                        }}
+                        className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        Profil
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowDropdown(false);
+                          navigate("/myOrder");
+                        }}
+                        className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                      >
+                        Pesanan Saya
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="block w-full text-left px-4 py-2 text-red-700 hover:bg-red-100"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button onClick={() => navigate("/login")}>
+                  <img src={SigninIcon} alt="Login" className="w-8" />
                 </button>
-                {showDropdown && (
-                  <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg z-50">
-                    <button
-                      onClick={() => navigate("/profile")}
-                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
-                    >
-                      Profil
-                    </button>
-                    <button
-                      onClick={() => navigate("/myOrder")}
-                      className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
-                    >
-                      Pesanan Saya
-                    </button>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
 

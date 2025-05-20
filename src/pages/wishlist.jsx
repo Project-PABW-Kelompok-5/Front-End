@@ -51,18 +51,18 @@ const Wishlist = () => {
                     Rp{item.price.toLocaleString()}
                   </p>
                   <div className="flex justify-between mt-4">
+                    <Link
+                      to="/"
+                      className="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600"
+                    >
+                      Tambah keKeranjang
+                    </Link>
                     <button
                       onClick={() => handleRemove(item.id)}
                       className="bg-red-500 text-white px-4 py-1 rounded hover:bg-red-600"
                     >
                       Hapus
                     </button>
-                    <Link
-                      to="/"
-                      className="bg-blue-500 text-white px-4 py-1 rounded hover:bg-blue-600"
-                    >
-                      Tambahkan pesanan
-                    </Link>
                   </div>
                 </div>
               ))}
