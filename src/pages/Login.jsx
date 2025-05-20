@@ -13,62 +13,45 @@ const LoginPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (!email || !password) {
       return alert("Email dan password wajib diisi.");
     }
-
+  
     setIsLoading(true);
-
+  
     try {
-      // 1. Login dengan Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
-      // verifikasi email
+  
       if (!user.emailVerified) {
-        alert("Email belum diverifikasi. Silakan cek email Anda untuk verifikasi.");
-        setIsLoading(false);
+        alert("Email belum diverifikasi. Silakan cek email Anda.");
         return;
       }
-
-      // 2. Ambil token JWT
+  
       const token = await user.getIdToken();
-
-      // 3. Ambil data user dari Firestore
-      const userDocRef = doc(firestore, "users", user.uid);
-      const userDoc = await getDoc(userDocRef);
-
+      const userDoc = await getDoc(doc(firestore, "users", user.uid));
+  
       if (!userDoc.exists()) {
-        throw new Error("Data pengguna tidak ditemukan di Firestore.");
+        throw new Error("Data pengguna tidak ditemukan.");
       }
-
+  
       const userData = userDoc.data();
-
-      // 4. Simpan token dan user info ke localStorage
+  
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify({
         id: user.uid,
         email: user.email,
         role: userData.role,
       }));
-
-      if (userData.role === "admin") {
-        navigate("/admin/dashboard");
-      } else if (userData.role === "user") {
-        navigate("/");
-      } else {
-        navigate("/");
-      }
-      
+  
+      navigate(userData.role === "admin" ? "/admin/dashboard" : "/");
+  
     } catch (error) {
       alert("Login gagal: " + error.message);
     } finally {
       setIsLoading(false);
     }
   };
-  
-  
 
   return (
     <div

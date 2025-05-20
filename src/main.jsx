@@ -20,7 +20,11 @@ import DeliveryHistory from "./pages/kurir/historyPengiriman.jsx";
 import Wishlist from "./pages/wishlist.jsx";
 import ManageBalance from "./pages/admin/ManageBalance.jsx";
 
+import { startTokenRefreshListener } from "./authListener"; 
+
 import "./index.css";
+
+startTokenRefreshListener();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

@@ -46,8 +46,9 @@ const AdminSidebar = ({ activePage }) => {
       />
       <SidebarItem
         icon={<Flag size={20} />}
-        text="Reporting"
-        active={activePage === "Reporting"}
+        text="Manage Balance"
+        to="/admin/manageBalance"
+        active={activePage === "Manage Balance"}
       />
       <hr className="my-3" />
       <SidebarItem
