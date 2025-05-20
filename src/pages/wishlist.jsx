@@ -45,7 +45,7 @@ const Wishlist = () => {
                     alt={item.name}
                     className="w-full h-32 object-cover rounded-md mb-3"
                   />
-                  <h3 className="font-semibold text-lg">{item.name}</h3>
+                  <h3 className="font-semibold text-lg">{item.name}</h3> 
                   <p className="text-sm text-gray-600">{item.description}</p>
                   <p className="text-green-600 font-bold mt-2">
                     Rp{item.price.toLocaleString()}
