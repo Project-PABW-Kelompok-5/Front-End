@@ -5,12 +5,18 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import RegisterPage from './pages/Register.jsx';
 import LoginPage from './pages/Login.jsx';
 import Homepage from './pages/homepage.jsx';
+import Wishlist from './pages/wishlist.jsx';
 import ManageUsers from './pages/admin/ManageUsers.jsx';
 import ManageProduct from './pages/admin/ManageProduct.jsx';
 import ManageCourier from './pages/admin/ManageCourier.jsx';
 import Dashboard from './pages/admin/Dashboard.jsx';
+import Cart from './pages/cart.jsx';
 import EcommerceDashboard from './pages/users/DashboardV1.jsx';
 import PrivateRoute from './components/PrivateRoute.jsx';
+import MyOrder from './pages/myOrder.jsx';
+import Profil from './pages/profil.jsx';
+
+
 
 import './index.css';
 
@@ -19,20 +25,25 @@ createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <Routes>
         {/* Public Routes */}
+          <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
-        
+        <Route path="/" element={<Homepage />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/wishlist" element={<Wishlist />} />
+        <Route path="/myOrder" element={<MyOrder />} />
+        <Route path="/profile" element={<Profil />} />
+
+
 
         {/* Protected User Routes */}
         <Route element={<PrivateRoute role="user" />}>
           {/* <Route path="/" element={<Homepage />} /> */}
-          <Route path="/" element={<Homepage />} />
           <Route path="/users/dashboard" element={<EcommerceDashboard />} />
         </Route>
 
         {/* Protected Admin Routes */}
         <Route element={<PrivateRoute role="admin" />}>
-          <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/manageUsers" element={<ManageUsers />} />
           <Route path="/admin/manageProduct" element={<ManageProduct />} />
           <Route path="/admin/manageCourier" element={<ManageCourier />} />
