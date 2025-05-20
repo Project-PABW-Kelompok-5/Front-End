@@ -137,8 +137,6 @@ const Homepage = () => {
     currentPage * PRODUCTS_PER_PAGE
   );
 
-  const handlePageChange = (page) => setCurrentPage(page);
-
   const handleNextPage = () => {
     if (currentPage < totalPages) {
       setCurrentPage(currentPage + 1);
@@ -167,7 +165,7 @@ const Homepage = () => {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center relative"
+      className="min-h-screen bg-cover bg-center"
       style={{ backgroundImage: `url(${Bg})` }}
     >
       <div className="absolute inset-0 bg-black opacity-70"></div>
@@ -326,6 +324,8 @@ const Homepage = () => {
 
         <Footer />
       </div>
+
+      <Footer />
     </div>
   );
 };

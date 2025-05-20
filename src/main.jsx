@@ -16,9 +16,9 @@ import Profil from "./pages/profil.jsx";
 import MyOrder from "./pages/myOrder.jsx";
 import Cart from "./pages/cart.jsx";
 import Checkout from "./pages/checkout.jsx";
-import Wishlist from "./pages/wishlist.jsx";
-import KurirDashboard from "./pages/kurir/KurirDashboard.jsx";
-import KurirBarang from "./pages/kurir/KurirBarang.jsx";
+import DeliveryHistory from "./pages/kurir/historyPengiriman.jsx";
+import Wishlist
+ from "./pages/wishlist.jsx";
 
 import "./index.css";
 
@@ -27,7 +27,7 @@ createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <Routes>
         {/* Public Routes */}
-          <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/wallet" element={<Wallet />} />
@@ -36,9 +36,9 @@ createRoot(document.getElementById("root")).render(
         <Route path="/myOrder" element={<MyOrder />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
+        <Route path="/historyPengiriman" element={<DeliveryHistory />} />
         <Route path="/wishlist" element={<Wishlist />} />
-        <Route path="/kurir/dashboard" element={<KurirDashboard />} />
-        <Route path="/kurir/barang" element={<KurirBarang />} />
+
 
         {/* Protected User Routes */}
         <Route element={<PrivateRoute role="user" />}>
@@ -48,6 +48,7 @@ createRoot(document.getElementById("root")).render(
 
         {/* Protected Admin Routes */}
         <Route element={<PrivateRoute role="admin" />}>
+          <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/manageUsers" element={<ManageUsers />} />
           <Route path="/admin/manageProduct" element={<ManageProduct />} />
           <Route path="/admin/dashboard" element={<Dashboard />} />

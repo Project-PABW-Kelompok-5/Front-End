@@ -7,9 +7,15 @@ const Footer = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-gray-600 pb-6">
           <h2 className="text-xl font-bold mb-4 md:mb-0">Blessing Store</h2>
           <div className="flex space-x-4">
-            <a href="#"><i className="fab fa-facebook text-xl"></i></a>
-            <a href="#"><i className="fab fa-instagram text-xl"></i></a>
-            <a href="#"><i className="fab fa-twitter text-xl"></i></a>
+            <a href="#">
+              <i className="fab fa-facebook text-xl"></i>
+            </a>
+            <a href="#">
+              <i className="fab fa-instagram text-xl"></i>
+            </a>
+            <a href="#">
+              <i className="fab fa-twitter text-xl"></i>
+            </a>
           </div>
         </div>
 
@@ -17,10 +23,18 @@ const Footer = () => {
           <div className="mb-6 md:mb-0">
             <h3 className="text-gray-400 font-semibold mb-2">Company Info</h3>
             <ul className="space-y-1 text-sm text-gray-300">
-              <li><a href="#">About Us</a></li>
-              <li><a href="#">Carrier</a></li>
-              <li><a href="#">We are hiring</a></li>
-              <li><a href="#">Blog</a></li>
+              <li>
+                <a href="#">About Us</a>
+              </li>
+              <li>
+                <a href="#">Carrier</a>
+              </li>
+              <li>
+                <a href="#">We are hiring</a>
+              </li>
+              <li>
+                <a href="#">Blog</a>
+              </li>
             </ul>
           </div>
 
