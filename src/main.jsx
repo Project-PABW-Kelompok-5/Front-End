@@ -19,6 +19,9 @@ import Checkout from "./pages/checkout.jsx";
 import DeliveryHistory from "./pages/kurir/historyPengiriman.jsx";
 import Wishlist from "./pages/wishlist.jsx";
 import ManageBalance from "./pages/admin/ManageBalance.jsx";
+import ManageBarang from "./pages/users/managebarang.jsx";
+import DashboardKurir from "./pages/Kurir/KurirDashboard.jsx";
+import KurirBarang from "./pages/Kurir/KurirBarang.jsx";
 
 import { startTokenRefreshListener } from "./authListener"; 
 
@@ -42,6 +45,10 @@ createRoot(document.getElementById("root")).render(
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/historyPengiriman" element={<DeliveryHistory />} />
         <Route path="/wishlist" element={<Wishlist />} />
+        <Route path="/managebarang" element={<ManageBarang />} />
+        <Route path="/kurir/dashboard" element={<DashboardKurir />} />
+        <Route path="/kurir/barang" element={<KurirBarang />} />
+
 
         {/* Protected User Routes */}
         <Route element={<PrivateRoute role="user" />}>
