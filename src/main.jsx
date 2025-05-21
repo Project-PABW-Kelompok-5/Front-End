@@ -22,8 +22,9 @@ import ManageBalance from "./pages/admin/ManageBalance.jsx";
 import ManageBarang from "./pages/users/managebarang.jsx";
 import DashboardKurir from "./pages/Kurir/KurirDashboard.jsx";
 import KurirBarang from "./pages/kurir/KurirBarang.jsx";
+import Addresses from "./pages/Addressses.jsx";
 
-import { startTokenRefreshListener } from "./authListener"; 
+import { startTokenRefreshListener } from "./authListener";
 
 import "./index.css";
 
@@ -48,7 +49,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/managebarang" element={<ManageBarang />} />
         <Route path="/kurir/dashboard" element={<DashboardKurir />} />
         <Route path="/kurir/barang" element={<KurirBarang />} />
-
+        <Route path="/addresses" element={<Addresses />} />
 
         {/* Protected User Routes */}
         <Route element={<PrivateRoute role="user" />}>

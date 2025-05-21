@@ -14,6 +14,7 @@ import {
   Shield,
 } from "lucide-react";
 import { FaHome } from "react-icons/fa";
+import Addresses from "./Addressses";
 
 // Data dummy untuk profil pengguna
 const userData = {
@@ -68,6 +69,9 @@ const UserProfile = () => {
     navigate("/");
   };
 
+  const Addresses = () => {
+    navigate("/addresses");
+  };
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
     setPasswordData((prev) => ({
@@ -216,6 +220,29 @@ const UserProfile = () => {
                     }`}
                   />
                   <span>Produk Saya</span>
+                </button>
+                <button
+                  onClick={Addresses}
+                  className={`group w-full flex items-center px-4 py-3 rounded-md text-left ${
+                    activeTab === "addresses"
+                      ? "text-white"
+                      : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
+                  }`}
+                  style={{
+                    backgroundColor:
+                      activeTab === "addresses" ? "#753799" : "transparent",
+                    color: activeTab === "addresses" ? "#ffffff" : "#100428",
+                    transition: "all 0.3s ease",
+                  }}
+                >
+                  <MapPin
+                    className={`w-5 h-5 mr-3 ${
+                      activeTab === "addresses"
+                        ? "text-white"
+                        : "text-[#753799] group-hover:text-white"
+                    }`}
+                  />
+                  <span>Alamat</span>
                 </button>
 
                 <hr className="my-3 border-gray-200" />
