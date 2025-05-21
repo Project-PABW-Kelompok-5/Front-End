@@ -104,7 +104,7 @@ const DeliveryHistory = () => {
   const navigate = useNavigate();
 
   const homepage = () => {
-    navigate("/");
+    navigate("/profile");
   };
 
   const filteredDeliveries = deliveryHistory.filter((delivery) => {
@@ -187,89 +187,57 @@ const DeliveryHistory = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="flex items-center mb-6">
-        <HomeIcon onClick={homepage} className="h-6 cursor-pointer w-6 mr-2" />
-        <p className="text-xl cursor-pointer font-bold">Kembali</p>
+    <div
+      className="container rounded-2xl mx-auto px-4 py-8 max-w-4xl"
+      style={{
+        background: "linear-gradient(to bottom, #4a2362, #08001a)",
+        color: "#ffffff",
+      }}
+    >
+      <div onClick={homepage} className="flex items-center mb-6">
+        <HomeIcon className="h-6 cursor-pointer w-6 mr-2 text-white" />
+        <p className="text-xl cursor-pointer font-bold text-white">Kembali</p>
       </div>
       <div className="flex items-center mb-6">
-        <Package className="h-6 w-6 mr-2" />
-        <h1 className="text-2xl font-bold">History Pengiriman</h1>
+        <Package className="h-6 w-6 mr-2 text-white" />
+        <h1 className="text-2xl font-bold text-white">History Pengiriman</h1>
       </div>
 
-      {/* Custom Tabs */}
       <div className="mb-6">
-        <div className="grid w-full grid-cols-5 bg-gray-100 p-1 rounded-lg">
-          <button
-            className={`py-2 cursor-pointer text-sm font-medium rounded-md transition-colors ${
-              activeTab === "all" ? "bg-white shadow" : "hover:bg-gray-200"
-            }`}
-            onClick={() => {
-              setStatusFilter("all");
-              setActiveTab("all");
-            }}
-          >
-            Semua Pesanan
-          </button>
-          <button
-            className={`py-2 cursor-pointer text-sm font-medium rounded-md transition-colors ${
-              activeTab === "Processing"
-                ? "bg-white shadow"
-                : "hover:bg-gray-200"
-            }`}
-            onClick={() => {
-              setStatusFilter("Processing");
-              setActiveTab("Processing");
-            }}
-          >
-            Proses Pengiriman
-          </button>
-          <button
-            className={`py-2 cursor-pointer text-sm font-medium rounded-md transition-colors ${
-              activeTab === "In Transit"
-                ? "bg-white shadow"
-                : "hover:bg-gray-200"
-            }`}
-            onClick={() => {
-              setStatusFilter("In Transit");
-              setActiveTab("In Transit");
-            }}
-          >
-            Dalam Perjalanan
-          </button>
-          <button
-            className={`py-2 cursor-pointer text-sm font-medium rounded-md transition-colors ${
-              activeTab === "delivered"
-                ? "bg-white shadow"
-                : "hover:bg-gray-200"
-            }`}
-            onClick={() => {
-              setStatusFilter("delivered");
-              setActiveTab("delivered");
-            }}
-          >
-            Dikirim
-          </button>
-          <button
-            className={`py-2 cursor-pointer text-sm font-medium rounded-md transition-colors ${
-              activeTab === "Cancelled"
-                ? "bg-white shadow"
-                : "hover:bg-gray-200"
-            }`}
-            onClick={() => {
-              setStatusFilter("Cancelled");
-              setActiveTab("Cancelled");
-            }}
-          >
-            Dibatalkan
-          </button>
+        <div className="grid w-full grid-cols-5 bg-[#ffffff22] p-1 rounded-lg">
+          {["all", "Processing", "In Transit", "delivered", "Cancelled"].map(
+            (tab) => (
+              <button
+                key={tab}
+                className={`py-2 cursor-pointer text-sm font-medium rounded-md transition-colors text-white ${
+                  activeTab === tab
+                    ? "bg-black text-[#753799] shadow"
+                    : "hover:bg-[#ffffff33]"
+                }`}
+                onClick={() => {
+                  setStatusFilter(tab);
+                  setActiveTab(tab);
+                }}
+              >
+                {tab === "all"
+                  ? "Semua Pesanan"
+                  : tab === "Processing"
+                  ? "Proses Pengiriman"
+                  : tab === "In Transit"
+                  ? "Dalam Perjalanan"
+                  : tab === "delivered"
+                  ? "Dikirim"
+                  : "Dibatalkan"}
+              </button>
+            )
+          )}
         </div>
 
-        <div className="mt-4 bg-white border rounded-lg p-4">
+        <div className="mt-4 bg-white border border-[#75379944] rounded-lg p-4 text-[#100428]">
           {activeTab === "all" && (
             <div>
               <h2 className="text-lg font-semibold">Semua Pesanan</h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-600">
                 Lihat semua pesanan Anda di masa lalu dan saat ini
               </p>
             </div>
@@ -277,7 +245,7 @@ const DeliveryHistory = () => {
           {activeTab === "Processing" && (
             <div>
               <h2 className="text-lg font-semibold">Proses Pengiriman</h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-600">
                 Barang telah diproses dan siap untuk dikirim
               </p>
             </div>
@@ -285,7 +253,7 @@ const DeliveryHistory = () => {
           {activeTab === "In Transit" && (
             <div>
               <h2 className="text-lg font-semibold">Dalam Perjalanan</h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-600">
                 Pesanan sedang dalam perjalanan
               </p>
             </div>
@@ -293,7 +261,7 @@ const DeliveryHistory = () => {
           {activeTab === "delivered" && (
             <div>
               <h2 className="text-lg font-semibold">Dikirim</h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-600">
                 Pesanan telah berhasil dikirim
               </p>
             </div>
@@ -301,7 +269,7 @@ const DeliveryHistory = () => {
           {activeTab === "Cancelled" && (
             <div>
               <h2 className="text-lg font-semibold">Pesanan Dibatalkan</h2>
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-600">
                 Pesanan yang telah dibatalkan
               </p>
             </div>
@@ -311,11 +279,11 @@ const DeliveryHistory = () => {
 
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white" />
           <input
             type="text"
             placeholder="Search by order ID or item name"
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-10 pr-4 py-2 border border-[#ffffff33] rounded-md bg-[#ffffff22] text-white placeholder-white focus:outline-none focus:ring-2 focus:ring-[#753799] focus:border-[#753799]"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -324,9 +292,9 @@ const DeliveryHistory = () => {
 
       {filteredDeliveries.length === 0 ? (
         <div className="text-center py-12">
-          <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+          <Package className="h-12 w-12 mx-auto text-white mb-4" />
           <h3 className="text-lg font-medium mb-2">No deliveries found</h3>
-          <p className="text-gray-500">
+          <p className="text-white">
             Try adjusting your search or filter to find what you're looking for.
           </p>
         </div>
@@ -335,10 +303,10 @@ const DeliveryHistory = () => {
           {filteredDeliveries.map((delivery) => (
             <div
               key={delivery.id}
-              className="border rounded-lg overflow-hidden shadow-sm"
+              className="border border-[#ffffff33] rounded-lg overflow-hidden shadow-sm bg-white text-[#100428]"
             >
               <div
-                className="p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                className="p-4 cursor-pointer hover:bg-[#75379911] transition-colors"
                 onClick={() => toggleOrderDetails(delivery.id)}
               >
                 <div className="flex items-center justify-between">
@@ -352,9 +320,9 @@ const DeliveryHistory = () => {
                   <div className="flex items-center gap-4">
                     {getStatusBadge(delivery.status)}
                     {expandedOrder === delivery.id ? (
-                      <ChevronUp className="h-5 w-5 text-gray-400" />
+                      <ChevronUp className="h-5 w-5 text-[#753799]" />
                     ) : (
-                      <ChevronDown className="h-5 w-5 text-gray-400" />
+                      <ChevronDown className="h-5 w-5 text-[#753799]" />
                     )}
                   </div>
                 </div>
@@ -363,7 +331,6 @@ const DeliveryHistory = () => {
               {expandedOrder === delivery.id && (
                 <div className="px-4 pb-4 pt-0">
                   <hr className="mb-4 border-gray-200" />
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div>
                       <h4 className="text-sm font-medium mb-2 flex items-center">
@@ -373,7 +340,6 @@ const DeliveryHistory = () => {
                         {delivery.address}
                       </p>
                     </div>
-
                     <div>
                       <h4 className="text-sm font-medium mb-2 flex items-center">
                         <Calendar className="h-4 w-4 mr-1" /> Delivery Details
@@ -403,16 +369,15 @@ const DeliveryHistory = () => {
                       )}
                     </div>
                   </div>
-
                   <h4 className="text-sm font-medium mb-2 flex items-center">
                     <Box className="h-4 w-4 mr-1" /> Items
                   </h4>
-                  <div className="bg-gray-50 rounded-md p-3 mb-4">
+                  <div className="bg-[#75379911] rounded-md p-3 mb-4">
                     {delivery.items.map((item, index) => (
                       <div key={index} className="flex justify-between py-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-gray-200 rounded-md flex items-center justify-center">
-                            <Package className="h-4 w-4 text-gray-500" />
+                          <div className="w-8 h-8 bg-[#75379933] rounded-md flex items-center justify-center">
+                            <Package className="h-4 w-4 text-[#753799]" />
                           </div>
                           <span className="text-sm">
                             {item.name} × {item.quantity}
@@ -436,7 +401,7 @@ const DeliveryHistory = () => {
                     delivery.status === "In Transit") && (
                     <div className="mb-4">
                       <div className="flex items-center gap-2">
-                        <button className="ml-auto px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
+                        <button className="ml-auto px-3 py-1 text-sm border border-[#753799] text-[#753799] rounded-md hover:bg-[#75379922] transition-colors">
                           Track Package
                         </button>
                       </div>
@@ -444,11 +409,11 @@ const DeliveryHistory = () => {
                   )}
 
                   <div className="flex justify-end gap-2 mt-4">
-                    <button className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
+                    <button className="px-3 py-1 text-sm border border-[#753799] text-[#753799] rounded-md hover:bg-[#75379922] transition-colors">
                       Order Details
                     </button>
                     {delivery.status !== "Cancelled" && (
-                      <button className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
+                      <button className="px-3 py-1 text-sm border border-[#753799] text-[#753799] rounded-md hover:bg-[#75379922] transition-colors">
                         Get Help
                       </button>
                     )}
