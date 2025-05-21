@@ -7,7 +7,7 @@ import {
   deleteDoc,
   doc,
 } from "firebase/firestore";
-import Navbar from "../../components/navbar";
+import Navbar from "../../components/header";
 import { firestore } from "../../firebase"; // sesuaikan path jika perlu
 
 // Modal component for adding/editing product
@@ -261,7 +261,6 @@ export default function ProductManagement() {
           <table className="min-w-full border border-gray-200 rounded-md">
             <thead className="bg-gray-100">
               <tr>
-                <th className="px-4 py-2 border-b text-left">Gambar</th>
                 <th className="px-4 py-2 border-b text-left">Nama Produk</th>
                 <th className="px-4 py-2 border-b text-left">Kategori</th>
                 <th className="px-4 py-2 border-b text-left">Harga</th>
@@ -290,12 +289,6 @@ export default function ProductManagement() {
                     key={product.id}
                     className="hover:bg-gray-50 transition-colors"
                   >
-                    <td className="px-4 py-3 border-b">
-                      {/* Placeholder gambar */}
-                      <div className="w-12 h-12 bg-gray-200 rounded-md flex items-center justify-center text-gray-400 text-sm">
-                        Img
-                      </div>
-                    </td>
                     <td className="px-4 py-3 border-b font-semibold">
                       {product.nama_barang}
                     </td>

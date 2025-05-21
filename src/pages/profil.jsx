@@ -61,6 +61,9 @@ const UserProfile = () => {
   const historyPengiriman = () => {
     navigate("/historyPengiriman");
   };
+  const manageBarang = () => {
+    navigate("/managebarang");
+  };
   const homepage = () => {
     navigate("/");
   };
@@ -190,6 +193,29 @@ const UserProfile = () => {
                     }`}
                   />
                   <span>History Pembelian</span>
+                </button>
+                <button
+                  onClick={manageBarang}
+                  className={`group w-full flex items-center px-4 py-3 rounded-md text-left ${
+                    activeTab === "orders"
+                      ? "text-white"
+                      : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
+                  }`}
+                  style={{
+                    backgroundColor:
+                      activeTab === "orders" ? "#753799" : "transparent",
+                    color: activeTab === "orders" ? "#ffffff" : "#100428",
+                    transition: "all 0.3s ease",
+                  }}
+                >
+                  <ShoppingBag
+                    className={`w-5 h-5 mr-3 ${
+                      activeTab === "orders"
+                        ? "text-white"
+                        : "text-[#753799] group-hover:text-white"
+                    }`}
+                  />
+                  <span>Produk Saya</span>
                 </button>
 
                 <hr className="my-3 border-gray-200" />
