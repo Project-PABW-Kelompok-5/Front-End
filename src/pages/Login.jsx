@@ -1,9 +1,18 @@
-import Background from "../assets/background.jpg";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { auth, firestore } from "../firebase"; 
-import { doc, getDoc } from "firebase/firestore";
-import { signInWithEmailAndPassword } from "firebase/auth"; 
+import { auth, firestore } from "../firebase";
+import {
+  signInWithEmailAndPassword
+} from "firebase/auth";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs
+} from "firebase/firestore";
+import Background from "../assets/background.jpg";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -16,36 +25,58 @@ const LoginPage = () => {
     if (!email || !password) {
       return alert("Email dan password wajib diisi.");
     }
-  
+
     setIsLoading(true);
-  
+
     try {
+      // Coba login sebagai kurir terlebih dahulu
+      const kurirQuery = query(
+        collection(firestore, "kurir"),
+        where("email", "==", email),
+        where("password", "==", password) // asumsi password belum di-hash
+      );
+      const kurirSnapshot = await getDocs(kurirQuery);
+
+      if (!kurirSnapshot.empty) {
+        const kurirDoc = kurirSnapshot.docs[0];
+        const kurirData = kurirDoc.data();
+
+        localStorage.setItem("user", JSON.stringify({
+          id: kurirDoc.id,
+          email: kurirData.email,
+          role: "kurir",
+        }));
+
+        navigate("/kurir/dashboard");
+        return;
+      }
+
+      // Jika bukan kurir, coba login sebagai user biasa via Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-  
+
       if (!user.emailVerified) {
         alert("Email belum diverifikasi. Silakan cek email Anda.");
         return;
       }
-  
+
       const token = await user.getIdToken();
       const userDoc = await getDoc(doc(firestore, "users", user.uid));
-  
+
       if (!userDoc.exists()) {
         throw new Error("Data pengguna tidak ditemukan.");
       }
-  
+
       const userData = userDoc.data();
-  
+
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify({
         id: user.uid,
         email: user.email,
         role: userData.role,
       }));
-  
+
       navigate(userData.role === "admin" ? "/admin/dashboard" : "/");
-  
     } catch (error) {
       alert("Login gagal: " + error.message);
     } finally {
@@ -75,7 +106,7 @@ const LoginPage = () => {
           left: 0,
           width: "100%",
           height: "100%",
-          backgroundColor: "rgba(0, 0, 0, 0.5)", // ubah 0.5 jadi lebih kecil/besar sesuai gelapnya
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
           zIndex: 1,
         }}
       />
@@ -178,7 +209,6 @@ const LoginPage = () => {
             </a>
           </div>
           <button
-            href="/"
             type="submit"
             style={{
               width: "100%",
@@ -192,12 +222,10 @@ const LoginPage = () => {
               marginBottom: "12px",
             }}
           >
-            Login
+            {isLoading ? "Logging in..." : "Login"}
           </button>
-          <div
-            style={{ display: "flex", alignItems: "center", margin: "12px 0" }}
-          ></div>
-          <button
+          {/* Optional Google login button, disable if not used */}
+          {/* <button
             type="button"
             style={{
               width: "100%",
@@ -212,11 +240,11 @@ const LoginPage = () => {
             }}
           >
             Continue with Google
-          </button>
+          </button> */}
           <div
             style={{ textAlign: "center", marginTop: "12px", fontSize: "16px" }}
           >
-            <span>Already have an account? </span>
+            <span>Belum punya akun? </span>
             <a
               href="/register"
               style={{
