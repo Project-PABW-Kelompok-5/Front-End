@@ -21,7 +21,7 @@ import Wishlist from "./pages/wishlist.jsx";
 import ManageBalance from "./pages/admin/ManageBalance.jsx";
 import ManageBarang from "./pages/users/managebarang.jsx";
 import DashboardKurir from "./pages/Kurir/KurirDashboard.jsx";
-import KurirBarang from "./pages/Kurir/KurirBarang.jsx";
+import KurirBarang from "./pages/kurir/KurirBarang.jsx";
 
 import { startTokenRefreshListener } from "./authListener"; 
 
@@ -61,7 +61,6 @@ createRoot(document.getElementById("root")).render(
           <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/manageUsers" element={<ManageUsers />} />
           <Route path="/admin/manageProduct" element={<ManageProduct />} />
-          <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/manageCourier" element={<ManageCourier />} />
           <Route path="/admin/manageBalance" element={<ManageBalance />} />
         </Route>
