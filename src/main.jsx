@@ -44,7 +44,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/myOrder" element={<MyOrder />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
-        <Route path="/historyPengiriman" element={<DeliveryHistory />} />
+        <Route path="/history" element={<DeliveryHistory />} />
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/managebarang" element={<ManageBarang />} />
         <Route path="/kurir/dashboard" element={<DashboardKurir />} />
