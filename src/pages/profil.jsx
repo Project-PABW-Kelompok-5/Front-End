@@ -25,12 +25,10 @@ import {
   doc,
   setDoc,
   deleteDoc,
-  serverTimestamp,
 } from "firebase/firestore";
-import { firestore } from "../firebase"; // Pastikan path ini benar
-import DropdownAlamatKaltim from "../components/DropdownAlamatKaltim"; // Pastikan path ini benar
+import { firestore } from "../firebase";
+import DropdownAlamatKaltim from "../components/DropdownAlamatKaltim";
 
-// Data dummy untuk profil pengguna (bisa diganti dengan data dari Firestore jika diperlukan)
 const initialUserData = {
   name: "Pengguna Baru",
   email: "pengguna@example.com",
@@ -45,16 +43,19 @@ const UserProfile = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("profile");
 
-  // USER DATA (ambil dari localStorage atau Firestore)
   const loggedInUser = JSON.parse(localStorage.getItem("user"));
-  const userId = loggedInUser?.id;
-  const [userData, setUserData] = useState(initialUserData); // Akan di-override jika ada data Firestore
+  const userId = loggedInUser?.uid || loggedInUser?.id;
 
-  // State untuk form edit profil
+  const [userData, setUserData] = useState(initialUserData);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profileFormData, setProfileFormData] = useState(userData);
+  // Inisialisasi profileFormData dengan struktur yang sama tapi bisa kosong atau dari initialUserData
+  const [profileFormData, setProfileFormData] = useState({
+    name: initialUserData.name,
+    email: initialUserData.email,
+    phone: initialUserData.phone,
+    username: initialUserData.username,
+  });
 
-  // State untuk form ubah kata sandi
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -62,10 +63,9 @@ const UserProfile = () => {
     confirmPassword: "",
   });
 
-  /* ────────────────────────── ALAMAT STATE & LOGIC ───────────────────────── */
   const [addressList, setAddressList] = useState([]);
   const [showAddressModal, setShowAddressModal] = useState(false);
-  const [editingAddressId, setEditingAddressId] = useState(null); // null untuk add, id untuk edit
+  const [editingAddressId, setEditingAddressId] = useState(null);
   const [currentAddressForm, setCurrentAddressForm] = useState({
     name: "",
     phone: "",
@@ -76,51 +76,121 @@ const UserProfile = () => {
     kodePos: "",
   });
 
-  // Muat data user & alamat dari Firestore
+  // 1. useEffect untuk memuat data pengguna utama
   useEffect(() => {
     if (!userId) {
-      // alert("Anda belum login. Mengarahkan ke halaman login...");
-      // navigate("/login"); // Contoh redirect jika belum login
+      console.warn("User ID tidak ditemukan. Tidak dapat memuat data pengguna.");
       return;
     }
 
     const fetchUserData = async () => {
-      const userDocRef = doc(firestore, "users", userId);
-      const userSnap = await getDoc(userDocRef);
-      if (userSnap.exists()) {
-        const fetchedData = userSnap.data();
-        setUserData({ // Gabungkan dengan initialUserData sebagai fallback
-          name: fetchedData.nama || initialUserData.name,
-          email: fetchedData.email || initialUserData.email, // Email biasanya dari auth
-          phone: fetchedData.telepon || initialUserData.phone,
-          username: fetchedData.username || loggedInUser?.displayName || initialUserData.username,
-          profilePicture: fetchedData.profilePicture || initialUserData.profilePicture,
-          isEmailVerified: loggedInUser?.emailVerified || initialUserData.isEmailVerified,
-          isPhoneVerified: !!fetchedData.telepon, // Anggap terverifikasi jika ada nomor telepon
-        });
-        setProfileFormData({
-          name: fetchedData.nama || initialUserData.name,
-          email: fetchedData.email || initialUserData.email,
-          phone: fetchedData.telepon || initialUserData.phone,
-          username: fetchedData.username || loggedInUser?.displayName || initialUserData.username,
-        });
-      } else {
-        console.log("No such user document!");
-        // Mungkin perlu membuat dokumen user jika belum ada
+      try {
+        const userDocRef = doc(firestore, "users", userId);
+        const userSnap = await getDoc(userDocRef);
+
+        if (userSnap.exists()) {
+          const fetchedDbData = userSnap.data();
+          const newUserData = {
+            name: fetchedDbData.nama || initialUserData.name,
+            email: loggedInUser?.email || fetchedDbData.email || initialUserData.email,
+            phone: fetchedDbData.no_telepon || initialUserData.phone,
+            username: fetchedDbData.username || loggedInUser?.displayName || initialUserData.username,
+            profilePicture: fetchedDbData.profilePicture || initialUserData.profilePicture,
+            isEmailVerified: loggedInUser?.emailVerified || false,
+            isPhoneVerified: !!fetchedDbData.no_telepon,
+          };
+          setUserData(newUserData);
+          // JANGAN setProfileFormData di sini lagi untuk menghindari reset saat mengetik
+        } else {
+          console.log("Dokumen pengguna tidak ditemukan di Firestore. Menggunakan initial data.");
+          setUserData(initialUserData); // Set ke initial jika tidak ditemukan
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        setUserData(initialUserData); // Fallback ke initial jika error
       }
     };
 
     const fetchAddresses = async () => {
-      const alamatCol = collection(firestore, `users/${userId}/alamat`);
-      const snap = await getDocs(alamatCol);
-      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setAddressList(data);
+      // ... (logika fetchAddresses tetap sama)
+      try {
+        const alamatCol = collection(firestore, `users/${userId}/alamat`);
+        const snap = await getDocs(alamatCol);
+        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setAddressList(data);
+      } catch (error) {
+        console.error("Error fetching addresses:", error);
+      }
     };
 
     fetchUserData();
     fetchAddresses();
-  }, [userId, navigate, loggedInUser]);
+  }, [userId, loggedInUser]); // Perhatikan loggedInUser di sini, jika objeknya sering ganti referensi, bisa jadi masalah
 
+  // 2. useEffect untuk menginisialisasi/menyinkronkan profileFormData dari userData
+  //    HANYA jika tidak sedang dalam mode edit.
+  useEffect(() => {
+    if (!isEditingProfile) {
+      setProfileFormData({
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone,
+        username: userData.username,
+      });
+    }
+  }, [userData, isEditingProfile]); // Jalankan ketika userData atau isEditingProfile berubah
+
+  const handleProfileInputChange = (e) => {
+    const { name, value } = e.target;
+    setProfileFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // 3. Saat tombol "Edit" diklik, salin userData ke profileFormData
+  const handleStartEditingProfile = () => {
+    setProfileFormData({ // Salin dari userData saat ini untuk memulai edit
+      name: userData.name,
+      email: userData.email,
+      phone: userData.phone,
+      username: userData.username,
+    });
+    setIsEditingProfile(true);
+  };
+
+  const handleCancelEditProfile = () => {
+    setIsEditingProfile(false);
+    // profileFormData akan otomatis di-reset oleh useEffect di atas karena isEditingProfile menjadi false
+  };
+
+  const handleProfileSubmit = async () => {
+    if (!userId) return alert("User tidak ditemukan.");
+    try {
+      const userDocRef = doc(firestore, "users", userId);
+      const dataToUpdate = {
+        nama: profileFormData.name,
+        no_telepon: profileFormData.phone,
+        username: profileFormData.username,
+      };
+      await setDoc(userDocRef, dataToUpdate, { merge: true });
+
+      // Update userData lokal agar UI langsung berubah (ini akan memicu useEffect no.2)
+      setUserData(prev => ({
+        ...prev,
+        name: profileFormData.name,
+        phone: profileFormData.phone,
+        username: profileFormData.username,
+      }));
+      setIsEditingProfile(false); // Ini juga akan memicu useEffect no.2
+      alert("Profil berhasil diperbarui.");
+    } catch (error) {
+      console.error("Error updating profile: ", error);
+      alert("Gagal memperbarui profil: " + error.message);
+    }
+  };
+
+  // ... (sisa fungsi handleAddress, password, navigasi, dll tetap sama)
   const handleAddressFormChange = (e) => {
     setCurrentAddressForm({
       ...currentAddressForm,
@@ -140,8 +210,8 @@ const UserProfile = () => {
 
   const handleOpenAddModal = () => {
     setCurrentAddressForm({
-      name: userData.name || "", // Pre-fill nama dari profil
-      phone: userData.phone || "", // Pre-fill telepon dari profil
+      name: userData.name || "", 
+      phone: userData.phone || "", 
       addressDetail: "",
       provinsi: "Kalimantan Timur",
       kota: "",
@@ -162,11 +232,6 @@ const UserProfile = () => {
       kecamatan: address.kecamatan,
       kodePos: address.kodePos,
     });
-    // Jika DropdownAlamatKaltim perlu di-reset atau di-set nilainya secara eksplisit saat edit,
-    // Anda mungkin perlu state tambahan atau cara untuk memberitahu DropdownAlamatKaltim
-    // nilai awal dari `kota`, `kecamatan`, `kodePos` yang diedit.
-    // Untuk kesederhanaan, saat ini kita mengandalkan DropdownAlamatKaltim untuk memilih ulang.
-    // Atau, modifikasi DropdownAlamatKaltim untuk menerima initialValue.
     setEditingAddressId(address.id);
     setShowAddressModal(true);
   };
@@ -174,22 +239,20 @@ const UserProfile = () => {
   const handleSaveAddress = async (e) => {
     e.preventDefault();
     if (!userId) return alert("User tidak ditemukan.");
-
     const payload = {
       ...currentAddressForm,
-      address: `${currentAddressForm.addressDetail}, ${currentAddressForm.kecamatan}, ${currentAddressForm.kota}, ${currentAddressForm.provinsi}, ${currentAddressForm.kodePos}`,
-      // createdAt: serverTimestamp(), // Opsional
-      // updatedAt: serverTimestamp(), // Opsional
+      address: [
+        currentAddressForm.addressDetail,
+        currentAddressForm.kecamatan,
+        currentAddressForm.kota,
+        currentAddressForm.provinsi,
+        currentAddressForm.kodePos,
+      ].filter(Boolean).join(', '),
     };
-
     try {
       if (editingAddressId) {
-        // Update
-        const addressDocRef = doc(
-          firestore,
-          `users/${userId}/alamat/${editingAddressId}`
-        );
-        await setDoc(addressDocRef, payload, { merge: true }); // merge: true agar tidak menghapus field lain jika ada
+        const addressDocRef = doc(firestore, `users/${userId}/alamat/${editingAddressId}`);
+        await setDoc(addressDocRef, payload, { merge: true });
         setAddressList((prevList) =>
           prevList.map((addr) =>
             addr.id === editingAddressId ? { ...payload, id: editingAddressId } : addr
@@ -197,13 +260,9 @@ const UserProfile = () => {
         );
         alert("Alamat berhasil diperbarui.");
       } else {
-        // Add new
         const alamatCol = collection(firestore, `users/${userId}/alamat`);
         const docRef = await addDoc(alamatCol, payload);
-        setAddressList((prevList) => [
-          ...prevList,
-          { ...payload, id: docRef.id },
-        ]);
+        setAddressList((prevList) => [...prevList, { ...payload, id: docRef.id }]);
         alert("Alamat baru berhasil disimpan.");
       }
       setShowAddressModal(false);
@@ -218,14 +277,9 @@ const UserProfile = () => {
     if (!userId || !addressIdToDelete) return;
     if (window.confirm("Apakah Anda yakin ingin menghapus alamat ini?")) {
       try {
-        const addressDocRef = doc(
-          firestore,
-          `users/${userId}/alamat/${addressIdToDelete}`
-        );
+        const addressDocRef = doc(firestore, `users/${userId}/alamat/${addressIdToDelete}`);
         await deleteDoc(addressDocRef);
-        setAddressList((prevList) =>
-          prevList.filter((addr) => addr.id !== addressIdToDelete)
-        );
+        setAddressList((prevList) => prevList.filter((addr) => addr.id !== addressIdToDelete));
         alert("Alamat berhasil dihapus.");
       } catch (error) {
         console.error("Error deleting address: ", error);
@@ -233,62 +287,33 @@ const UserProfile = () => {
       }
     }
   };
-
-  /* ────────────────────────── OTHER FUNCTIONS ────────────────────────── */
-
-  const handleProfileInputChange = (e) => {
-    const { name, value } = e.target;
-    setProfileFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleProfileSubmit = async () => {
-    if (!userId) return alert("User tidak ditemukan.");
-    try {
-      const userDocRef = doc(firestore, "users", userId);
-      // Hanya update field yang relevan, jangan timpa semua
-      await setDoc(userDocRef, {
-        nama: profileFormData.name,
-        telepon: profileFormData.phone,
-        username: profileFormData.username,
-        // email biasanya tidak diubah di sini, tapi melalui proses verifikasi email terpisah
-      }, { merge: true });
-
-      setUserData(prev => ({...prev, ...profileFormData})); // Update local state
-      setIsEditingProfile(false);
-      alert("Profil berhasil diperbarui.");
-    } catch (error) {
-      console.error("Error updating profile: ", error);
-      alert("Gagal memperbarui profil: " + error.message);
-    }
-  };
-
+  
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
-    setPasswordData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setPasswordData((prev) => ({ ...prev, [name]: value }));
   };
   
   const handlePasswordSubmit = () => {
-    // Implementasi logika ubah password dengan Firebase Auth
     console.log("Password change submitted:", passwordData);
-    alert("Fitur ubah kata sandi belum diimplementasikan.");
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+        alert("Kata sandi baru dan konfirmasi kata sandi tidak cocok.");
+        return;
+    }
+    alert("Fitur ubah kata sandi belum diimplementasikan sepenuhnya dengan backend Firebase Auth.");
     setIsChangingPassword(false);
   };
+  
+  const handleChangeProfilePicture = () => {
+    alert("Fitur ganti foto profil belum diimplementasikan.");
+  };
 
-  const historyPengiriman = () => navigate("/history"); // Sesuaikan path jika beda
+  const historyPengiriman = () => navigate("/history");
   const manageBarang = () => navigate("/managebarang");
   const homepage = () => navigate("/");
   const handleLogout = () => {
     localStorage.removeItem("user");
-    // Firebase signOut() jika menggunakan Firebase Auth
     navigate("/login");
   }
-
 
   return (
     <div
@@ -302,22 +327,20 @@ const UserProfile = () => {
           {/* Sidebar */}
           <div className="w-full md:w-1/4">
             <div className="rounded-lg shadow p-6 mb-6" style={{ backgroundColor: "#ffffff" }}>
+              {/* ... Bagian Foto Profil & Navigasi Sidebar ... */}
               <div className="flex flex-col items-center mb-6">
                 <div className="relative mb-4">
                   <img
-                    src={userData.profilePicture || "/placeholder.svg"}
+                    src={userData.profilePicture || "https://via.placeholder.com/150"}
                     alt="Profile"
                     className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
                   />
                   <button
                     className="absolute bottom-0 right-0 p-2 rounded-full transition"
-                    style={{
-                      backgroundColor: "#753799",
-                      color: "#ffffff",
-                    }}
+                    style={{ backgroundColor: "#753799", color: "#ffffff" }}
                     onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#5a2d7a")}
                     onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#753799")}
-                    // onClick={() => alert("Fitur ganti foto profil belum ada")}
+                    onClick={handleChangeProfilePicture}
                   >
                     <Camera className="w-4 h-4" />
                   </button>
@@ -329,60 +352,37 @@ const UserProfile = () => {
                   @{userData.username}
                 </p>
               </div>
-
               <nav className="space-y-1">
-                {/* Nav items */}
                 <button
                   onClick={() => setActiveTab("profile")}
                   className={`group w-full flex items-center px-4 py-3 rounded-md text-left ${
-                    activeTab === "profile"
-                      ? "text-white"
-                      : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
+                    activeTab === "profile" ? "text-white" : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
                   }`}
-                  style={{
-                    backgroundColor: activeTab === "profile" ? "#753799" : "transparent",
-                    color: activeTab === "profile" ? "#ffffff" : "#100428",
-                    transition: "all 0.3s ease",
-                  }}
+                  style={{ backgroundColor: activeTab === "profile" ? "#753799" : "transparent", color: activeTab === "profile" ? "#ffffff" : "#100428", transition: "all 0.3s ease" }}
                 >
                   <User className={`w-5 h-5 mr-3 ${activeTab === "profile" ? "text-white" : "text-[#753799] group-hover:text-white"}`} />
                   <span>Profil Saya</span>
                 </button>
-
                 <button
                   onClick={() => setActiveTab("addresses")}
                   className={`group w-full flex items-center px-4 py-3 rounded-md text-left ${
-                    activeTab === "addresses"
-                      ? "text-white"
-                      : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
+                    activeTab === "addresses" ? "text-white" : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
                   }`}
-                  style={{
-                    backgroundColor: activeTab === "addresses" ? "#753799" : "transparent",
-                    color: activeTab === "addresses" ? "#ffffff" : "#100428",
-                    transition: "all 0.3s ease",
-                  }}
+                  style={{ backgroundColor: activeTab === "addresses" ? "#753799" : "transparent", color: activeTab === "addresses" ? "#ffffff" : "#100428", transition: "all 0.3s ease" }}
                 >
                   <MapPin className={`w-5 h-5 mr-3 ${activeTab === "addresses" ? "text-white" : "text-[#753799] group-hover:text-white"}`} />
                   <span>Alamat Saya</span>
                 </button>
-
                 <button
                   onClick={() => setActiveTab("security")}
                   className={`group w-full flex items-center px-4 py-3 rounded-md text-left ${
-                    activeTab === "security"
-                      ? "text-white"
-                      : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
+                    activeTab === "security" ? "text-white" : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
                   }`}
-                  style={{
-                    backgroundColor: activeTab === "security" ? "#753799" : "transparent",
-                    color: activeTab === "security" ? "#ffffff" : "#100428",
-                    transition: "all 0.3s ease",
-                  }}
+                  style={{ backgroundColor: activeTab === "security" ? "#753799" : "transparent", color: activeTab === "security" ? "#ffffff" : "#100428", transition: "all 0.3s ease" }}
                 >
                   <Shield className={`w-5 h-5 mr-3 ${activeTab === "security" ? "text-white" : "text-[#753799] group-hover:text-white"}`} />
                   <span>Keamanan</span>
                 </button>
-
                 <button
                   onClick={historyPengiriman}
                   className="group w-full flex items-center px-4 py-3 rounded-md text-left text-[#100428] hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
@@ -390,7 +390,6 @@ const UserProfile = () => {
                   <ShoppingBag className="w-5 h-5 mr-3 text-[#753799] group-hover:text-white" />
                   <span>History Pembelian</span>
                 </button>
-
                 <button
                   onClick={manageBarang}
                   className="group w-full flex items-center px-4 py-3 rounded-md text-left text-[#100428] hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
@@ -398,7 +397,6 @@ const UserProfile = () => {
                   <ShoppingBag className="w-5 h-5 mr-3 text-[#753799] group-hover:text-white" />
                   <span>Produk Saya</span>
                 </button>
-
                 <hr className="my-3 border-gray-200" />
                 <button
                   onClick={homepage}
@@ -426,7 +424,8 @@ const UserProfile = () => {
                   <div className="flex justify-between items-center">
                     <h2 className="text-xl font-bold text-white">Informasi Profil</h2>
                     {!isEditingProfile && (
-                      <button onClick={() => setIsEditingProfile(true)} className="flex items-center text-white hover:text-[#d6b3ff]">
+                      // Ganti setIsEditingProfile(true) dengan handleStartEditingProfile
+                      <button onClick={handleStartEditingProfile} className="flex items-center text-white hover:text-[#d6b3ff]">
                         <Edit className="w-4 h-4 mr-1" /> Edit
                       </button>
                     )}
@@ -434,6 +433,7 @@ const UserProfile = () => {
                 </div>
                 <div className="p-6">
                   {!isEditingProfile ? (
+                    // Tampilkan data dari userData
                     <div className="space-y-4">
                       <div className="flex items-start">
                         <User className="w-5 h-5 text-[#753799] mt-0.5 mr-3" />
@@ -460,7 +460,7 @@ const UserProfile = () => {
                           <h3 className="text-sm font-medium text-[#100428]">Nomor Telepon</h3>
                           <p className="flex items-center">
                             {userData.phone || "-"}
-                            {userData.isPhoneVerified ? (
+                            {userData.isPhoneVerified && userData.phone ? (
                               <span className="ml-2 px-2 py-0.5 text-xs bg-[#753799] text-white rounded-full">Terverifikasi</span>
                             ) : (
                               userData.phone && <button className="ml-2 px-2 py-0.5 text-xs bg-[#100428] text-white rounded-full hover:bg-[#753799] transition">Verifikasi</button>
@@ -477,6 +477,7 @@ const UserProfile = () => {
                       </div>
                     </div>
                   ) : (
+                    // Form menggunakan profileFormData
                     <form onSubmit={(e) => { e.preventDefault(); handleProfileSubmit(); }} className="space-y-4">
                       <div>
                         <label htmlFor="name" className="block text-sm font-medium text-[#100428] mb-1">Nama Lengkap</label>
@@ -495,7 +496,8 @@ const UserProfile = () => {
                         <input type="text" id="username" name="username" value={profileFormData.username} onChange={handleProfileInputChange} className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]" />
                       </div>
                       <div className="flex justify-end space-x-3 pt-4">
-                        <button type="button" onClick={() => setIsEditingProfile(false)} className="px-4 py-2 border border-[#753799] rounded-md text-[#753799] hover:bg-[#100428] hover:text-white transition">Batal</button>
+                        {/* Panggil handleCancelEditProfile untuk tombol Batal */}
+                        <button type="button" onClick={handleCancelEditProfile} className="px-4 py-2 border border-[#753799] rounded-md text-[#753799] hover:bg-[#100428] hover:text-white transition">Batal</button>
                         <button type="submit" className="px-4 py-2 bg-gradient-to-r from-[#753799] to-[#100428] text-white rounded-md hover:from-[#632f86] hover:to-[#0d041f] transition">Simpan Perubahan</button>
                       </div>
                     </form>
@@ -507,7 +509,8 @@ const UserProfile = () => {
             {/* Addresses Tab */}
             {activeTab === "addresses" && (
               <div className="bg-white rounded-lg shadow">
-                <div className="p-6 border-b" style={{ borderColor: "#753799", background: "linear-gradient(90deg, #753799 0%, #100428 100%)" }}>
+                 {/* ... Konten Addresses Tab ... */}
+                 <div className="p-6 border-b" style={{ borderColor: "#753799", background: "linear-gradient(90deg, #753799 0%, #100428 100%)" }}>
                   <h2 className="text-xl font-bold text-white">Alamat Saya</h2>
                 </div>
                 <div className="p-6">
@@ -546,6 +549,7 @@ const UserProfile = () => {
              {/* Security Tab */}
             {activeTab === "security" && (
               <div className="bg-white rounded-lg shadow">
+                {/* ... Konten Security Tab ... */}
                 <div className="p-6 border-b" style={{ borderColor: "#753799", background: "linear-gradient(90deg, #753799 0%, #100428 100%)" }}>
                   <h2 className="text-xl font-bold text-white">Pengaturan Keamanan</h2>
                 </div>
@@ -561,7 +565,6 @@ const UserProfile = () => {
                     </div>
                     {isChangingPassword && (
                       <form onSubmit={(e) => {e.preventDefault(); handlePasswordSubmit();}} className="space-y-4">
-                        {/* Password fields */}
                         <div>
                           <label htmlFor="currentPassword" className="block text-sm font-medium text-[#100428] mb-1">Kata Sandi Saat Ini</label>
                           <input type="password" id="currentPassword" name="currentPassword" value={passwordData.currentPassword} onChange={handlePasswordChange} className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]" required />
@@ -581,7 +584,6 @@ const UserProfile = () => {
                       </form>
                     )}
                   </div>
-                  {/* Verification sections */}
                 </div>
               </div>
             )}
@@ -592,7 +594,8 @@ const UserProfile = () => {
       {/* Modal Tambah/Edit Alamat */}
       {showAddressModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="fixed inset-0 bg-black opacity-30" onClick={() => setShowAddressModal(false)}/>
+           {/* ... Konten Modal Alamat ... */}
+           <div className="fixed inset-0 bg-black opacity-30" onClick={() => setShowAddressModal(false)}/>
           <div className="bg-white p-6 w-[560px] rounded-lg shadow-xl relative max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-[#100428]">
@@ -624,16 +627,14 @@ const UserProfile = () => {
                   className="w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
-
               <DropdownAlamatKaltim 
                 onChange={handleAlamatKaltimChange} 
-                initialData={editingAddressId ? { // Kirim data awal jika sedang edit
+                initialData={editingAddressId ? { 
                     kota: currentAddressForm.kota,
                     kecamatan: currentAddressForm.kecamatan,
                     kodePos: currentAddressForm.kodePos,
                 } : undefined}
               />
-
               <textarea
                 name="addressDetail"
                 value={currentAddressForm.addressDetail}
@@ -643,7 +644,6 @@ const UserProfile = () => {
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
               />
-
               <div className="flex justify-end space-x-3 pt-2">
                 <button
                   type="button"

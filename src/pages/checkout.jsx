@@ -24,8 +24,8 @@ const Checkout = () => {
 
   /* ──────────────────────────  ALAMAT STATE  ───────────────────────── */
   const [form, setForm] = useState({
-    name: user?.displayName || "", // Pre-fill dari info user jika ada
-    phone: "", // Mungkin bisa diambil dari data user di Firestore juga
+    name: user?.displayName || "",
+    phone: "",
     addressDetail: "",
     provinsi: "Kalimantan Timur",
     kota: "",
@@ -46,34 +46,78 @@ const Checkout = () => {
   const [addressList, setAddressList] = useState([]);
   const [selectedAddressIndex, setSelectedAddressIndex] = useState(null);
 
-  const [showAddressModal, setShowAddressModal] = useState(false); // Untuk modal tambah/edit alamat
-  const [showSelectModal, setShowSelectModal] = useState(false); // Untuk modal pilih alamat
-  const [editIndex, setEditIndex] = useState(null); // Indeks alamat yang diedit dari addressList
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [showSelectModal, setShowSelectModal] = useState(false);
+  const [editIndex, setEditIndex] = useState(null);
 
-  /* ────────────────────  MUAT ALAMAT DARI FIRESTORE  ───────────────── */
+  /* ────────────────────  MUAT ALAMAT DARI FIRESTORE (REVISED) ───────────────── */
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      setAddressList([]);
+      setSelectedAddressIndex(null); // Kosongkan jika tidak ada user
+      return;
+    }
 
+    let isMounted = true; // Flag untuk mencegah update state jika komponen unmount
     const fetchAddresses = async () => {
       const alamatCol = collection(firestore, `users/${userId}/alamat`);
-      const snap = await getDocs(alamatCol);
-      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setAddressList(data);
-      if (data.length > 0 && selectedAddressIndex === null) { // Otomatis pilih alamat pertama jika belum ada yg dipilih
-        setSelectedAddressIndex(0); 
-      } else if (data.length === 0) {
-        setSelectedAddressIndex(null);
+      try {
+        const snap = await getDocs(alamatCol);
+        if (isMounted) {
+          const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+          setAddressList(data);
+          // Logika pemilihan otomatis akan ditangani oleh useEffect di bawah
+        }
+      } catch (error) {
+        console.error("Error fetching addresses:", error);
+        if (isMounted) {
+          setAddressList([]); // Kosongkan list jika ada error
+        }
       }
     };
+
     fetchAddresses();
-  }, [userId, selectedAddressIndex]); // tambahkan selectedAddressIndex agar re-fetch jika ada perubahan dari modal
+
+    return () => {
+      isMounted = false; // Set flag ke false saat komponen unmount
+    };
+  }, [userId]); // Hanya bergantung pada userId
+
+  /* ───────────────── SINKRONISASI SELECTEDADDRESSINDEX DENGAN ADDRESSLIST ───────────────── */
+  useEffect(() => {
+    console.log("SYNC EFFECT: Mulai. selectedAddressIndex awal:", selectedAddressIndex, "Panjang addressList:", addressList.length);
+    let newSelectedAddressIndex = selectedAddressIndex;
+    let selectionChanged = false;
+
+    if (addressList.length > 0) {
+      // Jika ada alamat di list
+      if (selectedAddressIndex === null || selectedAddressIndex >= addressList.length) {
+        // Jika tidak ada yang dipilih, atau pilihan keluar dari batas (misal setelah delete)
+        newSelectedAddressIndex = 0; // Pilih alamat pertama
+        if (selectedAddressIndex !== newSelectedAddressIndex) {
+          selectionChanged = true;
+        }
+      }
+      // Jika selectedAddressIndex sudah valid (0 s/d addressList.length - 1), biarkan saja.
+    } else {
+      // Jika addressList kosong
+      if (selectedAddressIndex !== null) {
+        newSelectedAddressIndex = null; // Kosongkan pilihan
+        selectionChanged = true;
+      }
+    }
+
+    if (selectionChanged) {
+      setSelectedAddressIndex(newSelectedAddressIndex);
+    }
+  }, [addressList, selectedAddressIndex, setSelectedAddressIndex]); // Dependensi
+
 
   /* ─────────────────────────  DATA PRODUK  ─────────────────────────── */
-  const { state } = useLocation(); // datang dari Cart
+  const { state } = useLocation();
   const navigate = useNavigate();
   const selectedItems = state?.items || [];
 
-  /*  hitung subtotal & total  */
   const shippingCost = 8000;
   const subtotal = selectedItems.reduce(
     (acc, item) => acc + (item.harga || 0) * item.jumlah,
@@ -83,25 +127,25 @@ const Checkout = () => {
   const totalQty = selectedItems.reduce((acc, it) => acc + it.jumlah, 0);
 
   /* ─────────────────────────  ALAMAT MODAL HANDLERS  ───────────────── */
-  const handleFormInputChange = (e) => // Ganti nama dari handleChange agar tidak konflik jika ada global handleChange
+  const handleFormInputChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleOpenAddNewAddressModal = () => { // Handler untuk tombol "Tambah Alamat" di UI utama
-    setForm({ // Reset form atau prefill dengan data user
+  const handleOpenAddNewAddressModal = () => {
+    setForm({
       name: user?.displayName || "",
-      phone: "", // Atau ambil dari data user di Firestore jika ada
+      phone: "",
       addressDetail: "",
       provinsi: "Kalimantan Timur",
       kota: "",
       kecamatan: "",
       kodePos: "",
     });
-    setEditIndex(null); // Pastikan mode tambah
+    setEditIndex(null);
     setShowAddressModal(true);
-    setShowSelectModal(false); // Tutup modal pilih alamat jika terbuka
+    setShowSelectModal(false);
   };
   
-  const handleOpenEditAddressInModal = (indexToEdit) => { // Dipanggil dari AddressSelectModal
+  const handleOpenEditAddressInModal = (indexToEdit) => {
     const addressToEdit = addressList[indexToEdit];
     setForm({
         name: addressToEdit.name,
@@ -114,32 +158,39 @@ const Checkout = () => {
     });
     setEditIndex(indexToEdit);
     setShowAddressModal(true);
-    setShowSelectModal(false); // Tutup modal pilih alamat
+    setShowSelectModal(false);
   };
 
-
+  // REVISED saveNewAddressToFirestore
   const saveNewAddressToFirestore = async (addrData) => {
     const alamatCol = collection(firestore, `users/${userId}/alamat`);
     const docRef = await addDoc(alamatCol, addrData);
     const newAddress = { ...addrData, id: docRef.id };
-    setAddressList((prev) => [...prev, newAddress]);
-    setSelectedAddressIndex(addressList.length); // Otomatis pilih alamat yang baru ditambahkan
+    
+    setAddressList((prevList) => {
+      const newList = [...prevList, newAddress];
+      // Langsung pilih alamat yang baru ditambahkan
+      setSelectedAddressIndex(newList.length - 1); 
+      return newList;
+    });
     return newAddress;
   };
 
+  // REVISED updateExistingAddressInFirestore
   const updateExistingAddressInFirestore = async (addrData, addressId, indexInList) => {
     const ref = doc(firestore, `users/${userId}/alamat/${addressId}`);
     await setDoc(ref, addrData, { merge: true });
     const updatedAddress = { ...addrData, id: addressId };
-    setAddressList((prev) =>
-      prev.map((a, i) => (i === indexInList ? updatedAddress : a))
+
+    setAddressList((prevList) =>
+      prevList.map((a, i) => (i === indexInList ? updatedAddress : a))
     );
-    setSelectedAddressIndex(indexInList); // Tetap pada alamat yang diedit
+    // Pastikan alamat yang diedit tetap terpilih
+    setSelectedAddressIndex(indexInList); 
     return updatedAddress;
-  }
+  };
 
-
-  const handleSubmitAddressForm = async (e) => { // Untuk form di dalam modal tambah/edit
+  const handleSubmitAddressForm = async (e) => {
     e.preventDefault();
     const payload = {
       ...form,
@@ -147,22 +198,21 @@ const Checkout = () => {
     };
 
     try {
-      if (editIndex !== null) { // Mode Edit
+      if (editIndex !== null) {
         const addressToUpdate = addressList[editIndex];
         await updateExistingAddressInFirestore(payload, addressToUpdate.id, editIndex);
         alert("Alamat berhasil diperbarui.");
-      } else { // Mode Tambah Baru
+      } else {
         await saveNewAddressToFirestore(payload);
         alert("Alamat baru berhasil disimpan.");
       }
       setShowAddressModal(false);
-      setEditIndex(null); // Reset editIndex
+      setEditIndex(null);
     } catch (error) {
         console.error("Gagal menyimpan alamat:", error);
         alert("Terjadi kesalahan saat menyimpan alamat.");
     }
   };
-
 
   /* ─────────────────────────  SUBMIT CHECKOUT  ─────────────────────── */
   const [submitted, setSubmitted] = useState(false);
@@ -171,10 +221,9 @@ const Checkout = () => {
     if (!userId) return alert("Silakan login.");
     if (selectedItems.length === 0)
       return alert("Tidak ada produk yang dipesan.");
-    if (selectedAddressIndex === null || !addressList[selectedAddressIndex]) // Periksa juga apakah addressList[selectedAddressIndex] valid
+    if (selectedAddressIndex === null || !addressList[selectedAddressIndex])
       return alert("Pilih atau tambah alamat pengiriman dulu.");
     
-    // Ambil data saldo user
     const userSnap = await getDoc(doc(firestore, `users/${userId}`));
     const userData = userSnap.data();
     if (!userData || userData.saldo < grandTotal) {
@@ -183,7 +232,6 @@ const Checkout = () => {
     }
 
     try {
-      /* 1. Persiapkan data order */
       const alamat = addressList[selectedAddressIndex];
       const orderData = {
         userId,
@@ -194,11 +242,11 @@ const Checkout = () => {
           qty: it.jumlah,
           subtotal: it.harga * it.jumlah,
         })),
-        alamat: { // Pastikan field ini sesuai dengan kebutuhan Anda
-          namaPenerima: alamat.name, // ganti dari nama ke namaPenerima jika perlu
-          teleponPenerima: alamat.phone, // ganti dari phone ke teleponPenerima jika perlu
+        alamat: {
+          namaPenerima: alamat.name,
+          teleponPenerima: alamat.phone,
           detailAlamat: alamat.addressDetail,
-          alamatLengkap: alamat.address, // ini adalah string gabungan
+          alamatLengkap: alamat.address,
           kota: alamat.kota,
           kecamatan: alamat.kecamatan,
           provinsi: alamat.provinsi,
@@ -211,11 +259,9 @@ const Checkout = () => {
         createdAt: serverTimestamp(),
       };
 
-      /* 2. Simpan ke history/{userId}/orders */
       const historyCol = collection(firestore, `history/${userId}/orders`);
       await addDoc(historyCol, orderData);
 
-      /* 3. Hapus item ter‑checkout dari carts/{userId}/items */
       const batch = writeBatch(firestore);
       selectedItems.forEach((item) => {
         const cartRef = doc(firestore, `carts/${userId}/items/${item.id}`);
@@ -233,7 +279,6 @@ const Checkout = () => {
 
       setSubmitted(true);
       alert("Checkout berhasil! Pesanan menunggu penjual.");
-      // opsional: navigate("/history");
     } catch (err) {
       console.error("Checkout gagal:", err);
       alert("Terjadi kesalahan saat checkout.");
@@ -255,17 +300,22 @@ const Checkout = () => {
       </div>
     );
     
-  const currentSelectedAddress = addressList[selectedAddressIndex];
+  // TAMBAHKAN LOGS DI SINI SEBELUM RETURN ATAU DEFINISI currentSelectedAddress
+  console.log("CHECKOUT RENDER: selectedAddressIndex state:", selectedAddressIndex);
+  console.log("CHECKOUT RENDER: addressList state:", addressList);
+  const currentSelectedAddress = addressList[selectedAddressIndex]; // Pastikan ini didefinisikan setelah addressList dan selectedAddressIndex di-log
+  console.log("CHECKOUT RENDER: currentSelectedAddress (hasil dari addressList[selectedAddressIndex]):", currentSelectedAddress);
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 relative">
       <Header />
       <div className="flex flex-col items-center">
 
-        {/*  ─── Alamat Pengiriman  ───  */}
+        {/* ─── Alamat Pengiriman  ───  */}
         <div className="w-full max-w-3xl mt-7 p-7 border border-gray-200 rounded-lg bg-white shadow">
           <h2 className="text-xl font-semibold mb-6">Alamat Pengiriman</h2>
 
+          {/* Kondisi ini seharusnya sekarang bekerja dengan benar */}
           {selectedAddressIndex === null || !currentSelectedAddress ? (
             <div className="text-center">
               <p className="mb-5">Belum ada alamat pengiriman atau alamat belum dipilih.</p>
@@ -286,11 +336,11 @@ const Checkout = () => {
             </div>
           ) : (
             <div className="flex mb-4 justify-between items-start">
-              <div className="w-2/5"> {/* Disesuaikan agar lebih responsif */}
+              <div className="w-2/5">
                 <p className="font-bold">{currentSelectedAddress?.name}</p>
                 <p>{currentSelectedAddress?.phone}</p>
               </div>
-              <div className="w-3/5 pr-4"> {/* Disesuaikan agar lebih responsif */}
+              <div className="w-3/5 pr-4">
                 <p>{currentSelectedAddress?.addressDetail}</p>
                 <p>{`${currentSelectedAddress?.kecamatan}, ${currentSelectedAddress?.kota}, ${currentSelectedAddress?.provinsi}, ${currentSelectedAddress?.kodePos}`}</p>
               </div>
@@ -304,7 +354,7 @@ const Checkout = () => {
           )}
         </div>
 
-        {/*  ─── Produk Dipesan  ───  */}
+        {/* ─── Produk Dipesan  ───  */}
         <div className="w-full max-w-3xl mt-4 p-7 border-1 border-gray-200 rounded-t-lg bg-white shadow flex flex-col">
           <div className="flex justify-between">
             <h1 className="text-xl font-semibold mb-6">Produk Dipesan</h1>
@@ -348,7 +398,7 @@ const Checkout = () => {
           </div>
         </div>
 
-        {/*  Total Pesanan ringkas  */}
+        {/* Total Pesanan ringkas  */}
         <div className="w-full max-w-3xl py-4 border border-gray-200 rounded-b-lg bg-white shadow flex flex-col">
           <div className="flex items-center justify-end px-6 md:px-7">
             <p className="text-gray-500">
@@ -360,7 +410,7 @@ const Checkout = () => {
           </div>
         </div>
 
-        {/*  Ringkasan Pembayaran  */}
+        {/* Ringkasan Pembayaran  */}
         <div className="w-full max-w-3xl mt-4 p-7 mb-8 border border-gray-200 rounded-lg bg-white shadow flex flex-col">
           <div className="flex justify-end mb-4 items-center">
             <p className="w-auto md:w-35 text-left">Subtotal Pesanan</p>
@@ -391,26 +441,32 @@ const Checkout = () => {
           </div>
         </div>
 
-        {/*  Modal Pilih Alamat  */}
+        {/* Modal Pilih Alamat  */}
         {showSelectModal && (
           <AddressSelectModal
             addressList={addressList}
             selectedAddressIndex={selectedAddressIndex}
-            setSelectedAddressIndex={setSelectedAddressIndex}
-            handleEditAddress={handleOpenEditAddressInModal} // Pass index
+            setSelectedAddressIndex={setSelectedAddressIndex} // <--- KEMBALIKAN BARIS INI
+            handleEditAddress={handleOpenEditAddressInModal}
             onClose={() => setShowSelectModal(false)}
-            onAddNew={() => { // Handler untuk "Tambah Alamat Baru" dari AddressSelectModal
-                setShowSelectModal(false); // Tutup modal pilih
-                handleOpenAddNewAddressModal(); // Buka modal tambah/edit
+            onAddNew={() => {
+                setShowSelectModal(false);
+                handleOpenAddNewAddressModal();
             }}
             onConfirm={(selectedIndex) => {
+                // Memanggil setSelectedAddressIndex di sini memastikan
+                // indeks yang dikonfirmasi dari modal benar-benar diterapkan.
+                // Ini mungkin redundan jika klik item di modal sudah memanggilnya,
+                // tapi aman untuk dipertahankan.
+                console.log("MODAL ONCONFIRM: Index dari modal:", selectedIndex); //
+                console.log("MODAL ONCONFIRM: addressList saat ini:", addressList); //
                 setSelectedAddressIndex(selectedIndex);
                 setShowSelectModal(false);
             }}
           />
         )}
 
-        {/*  Modal Tambah / Edit Alamat  */}
+        {/* Modal Tambah / Edit Alamat  */}
         {showAddressModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
             <div className="fixed inset-0 bg-black opacity-30" />
@@ -447,7 +503,7 @@ const Checkout = () => {
 
                 <DropdownAlamatKaltim 
                     onChange={handleAlamatChange} 
-                    initialData={editIndex !== null ? { // Kirim data awal jika sedang edit
+                    initialData={editIndex !== null ? {
                         kota: form.kota,
                         kecamatan: form.kecamatan,
                         kodePos: form.kodePos,
