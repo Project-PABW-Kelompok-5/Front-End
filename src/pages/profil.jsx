@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   User,
@@ -12,73 +12,308 @@ import {
   Edit,
   LogOut,
   Shield,
+  Plus,
+  PenSquare,
+  Trash2,
 } from "lucide-react";
 import { FaHome } from "react-icons/fa";
-import Addresses from "./Addressses";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  getDoc,
+  doc,
+  setDoc,
+  deleteDoc,
+} from "firebase/firestore";
+import { firestore } from "../firebase";
+import DropdownAlamatKaltim from "../components/DropdownAlamatKaltim";
 
-// Data dummy untuk profil pengguna
-const userData = {
-  name: "John Doe",
-  email: "johndoe@example.com",
-  phone: "+62 812 3456 7890",
-  username: "johndoe",
-  address: "Jl. Sudirman No. 123, Jakarta Pusat, DKI Jakarta, 10220",
-  profilePicture: "https://randomuser.me/api/portraits/men/32.jpg",
-  isEmailVerified: true,
+const initialUserData = {
+  name: "Pengguna Baru",
+  email: "pengguna@example.com",
+  phone: "+62 800 0000 0000",
+  username: "pengguna_baru",
+  profilePicture: "https://via.placeholder.com/150",
+  isEmailVerified: false,
   isPhoneVerified: false,
 };
 
 const UserProfile = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("profile");
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
-  // State untuk form edit profil
-  const [formData, setFormData] = useState({
-    name: userData.name,
-    email: userData.email,
-    phone: userData.phone,
-    username: userData.username,
-    address: userData.address,
+  const loggedInUser = JSON.parse(localStorage.getItem("user"));
+  const userId = loggedInUser?.uid || loggedInUser?.id;
+
+  const [userData, setUserData] = useState(initialUserData);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  // Inisialisasi profileFormData dengan struktur yang sama tapi bisa kosong atau dari initialUserData
+  const [profileFormData, setProfileFormData] = useState({
+    name: initialUserData.name,
+    email: initialUserData.email,
+    phone: initialUserData.phone,
+    username: initialUserData.username,
   });
 
-  // State untuk form ubah kata sandi
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
 
-  const handleInputChange = (e) => {
+  const [addressList, setAddressList] = useState([]);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState(null);
+  const [currentAddressForm, setCurrentAddressForm] = useState({
+    name: "",
+    phone: "",
+    addressDetail: "",
+    provinsi: "Kalimantan Timur",
+    kota: "",
+    kecamatan: "",
+    kodePos: "",
+  });
+
+  // 1. useEffect untuk memuat data pengguna utama
+  useEffect(() => {
+    if (!userId) {
+      console.warn("User ID tidak ditemukan. Tidak dapat memuat data pengguna.");
+      return;
+    }
+
+    const fetchUserData = async () => {
+      try {
+        const userDocRef = doc(firestore, "users", userId);
+        const userSnap = await getDoc(userDocRef);
+
+        if (userSnap.exists()) {
+          const fetchedDbData = userSnap.data();
+          const newUserData = {
+            name: fetchedDbData.nama || initialUserData.name,
+            email: loggedInUser?.email || fetchedDbData.email || initialUserData.email,
+            phone: fetchedDbData.no_telepon || initialUserData.phone,
+            username: fetchedDbData.username || loggedInUser?.displayName || initialUserData.username,
+            profilePicture: fetchedDbData.profilePicture || initialUserData.profilePicture,
+            isEmailVerified: loggedInUser?.emailVerified || false,
+            isPhoneVerified: !!fetchedDbData.no_telepon,
+          };
+          setUserData(newUserData);
+          // JANGAN setProfileFormData di sini lagi untuk menghindari reset saat mengetik
+        } else {
+          console.log("Dokumen pengguna tidak ditemukan di Firestore. Menggunakan initial data.");
+          setUserData(initialUserData); // Set ke initial jika tidak ditemukan
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        setUserData(initialUserData); // Fallback ke initial jika error
+      }
+    };
+
+    const fetchAddresses = async () => {
+      // ... (logika fetchAddresses tetap sama)
+      try {
+        const alamatCol = collection(firestore, `users/${userId}/alamat`);
+        const snap = await getDocs(alamatCol);
+        const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        setAddressList(data);
+      } catch (error) {
+        console.error("Error fetching addresses:", error);
+      }
+    };
+
+    fetchUserData();
+    fetchAddresses();
+  }, [userId, loggedInUser]); // Perhatikan loggedInUser di sini, jika objeknya sering ganti referensi, bisa jadi masalah
+
+  // 2. useEffect untuk menginisialisasi/menyinkronkan profileFormData dari userData
+  //    HANYA jika tidak sedang dalam mode edit.
+  useEffect(() => {
+    if (!isEditingProfile) {
+      setProfileFormData({
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone,
+        username: userData.username,
+      });
+    }
+  }, [userData, isEditingProfile]); // Jalankan ketika userData atau isEditingProfile berubah
+
+  const handleProfileInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setProfileFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  const navigate = useNavigate();
+  // 3. Saat tombol "Edit" diklik, salin userData ke profileFormData
+  const handleStartEditingProfile = () => {
+    setProfileFormData({ // Salin dari userData saat ini untuk memulai edit
+      name: userData.name,
+      email: userData.email,
+      phone: userData.phone,
+      username: userData.username,
+    });
+    setIsEditingProfile(true);
+  };
 
-  const historyPengiriman = () => {
-    navigate("/historyPengiriman");
-  };
-  const manageBarang = () => {
-    navigate("/managebarang");
-  };
-  const homepage = () => {
-    navigate("/");
+  const handleCancelEditProfile = () => {
+    setIsEditingProfile(false);
+    // profileFormData akan otomatis di-reset oleh useEffect di atas karena isEditingProfile menjadi false
   };
 
-  const Addresses = () => {
-    navigate("/addresses");
+  const handleProfileSubmit = async () => {
+    if (!userId) return alert("User tidak ditemukan.");
+    try {
+      const userDocRef = doc(firestore, "users", userId);
+      const dataToUpdate = {
+        nama: profileFormData.name,
+        no_telepon: profileFormData.phone,
+        username: profileFormData.username,
+      };
+      await setDoc(userDocRef, dataToUpdate, { merge: true });
+
+      // Update userData lokal agar UI langsung berubah (ini akan memicu useEffect no.2)
+      setUserData(prev => ({
+        ...prev,
+        name: profileFormData.name,
+        phone: profileFormData.phone,
+        username: profileFormData.username,
+      }));
+      setIsEditingProfile(false); // Ini juga akan memicu useEffect no.2
+      alert("Profil berhasil diperbarui.");
+    } catch (error) {
+      console.error("Error updating profile: ", error);
+      alert("Gagal memperbarui profil: " + error.message);
+    }
   };
+
+  // ... (sisa fungsi handleAddress, password, navigasi, dll tetap sama)
+  const handleAddressFormChange = (e) => {
+    setCurrentAddressForm({
+      ...currentAddressForm,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleAlamatKaltimChange = ({ kota, kecamatan, kodePos }) => {
+    setCurrentAddressForm((prev) => ({
+      ...prev,
+      provinsi: "Kalimantan Timur",
+      kota,
+      kecamatan,
+      kodePos,
+    }));
+  };
+
+  const handleOpenAddModal = () => {
+    setCurrentAddressForm({
+      name: userData.name || "", 
+      phone: userData.phone || "", 
+      addressDetail: "",
+      provinsi: "Kalimantan Timur",
+      kota: "",
+      kecamatan: "",
+      kodePos: "",
+    });
+    setEditingAddressId(null);
+    setShowAddressModal(true);
+  };
+
+  const handleOpenEditModal = (address) => {
+    setCurrentAddressForm({
+      name: address.name,
+      phone: address.phone,
+      addressDetail: address.addressDetail,
+      provinsi: address.provinsi || "Kalimantan Timur",
+      kota: address.kota,
+      kecamatan: address.kecamatan,
+      kodePos: address.kodePos,
+    });
+    setEditingAddressId(address.id);
+    setShowAddressModal(true);
+  };
+
+  const handleSaveAddress = async (e) => {
+    e.preventDefault();
+    if (!userId) return alert("User tidak ditemukan.");
+    const payload = {
+      ...currentAddressForm,
+      address: [
+        currentAddressForm.addressDetail,
+        currentAddressForm.kecamatan,
+        currentAddressForm.kota,
+        currentAddressForm.provinsi,
+        currentAddressForm.kodePos,
+      ].filter(Boolean).join(', '),
+    };
+    try {
+      if (editingAddressId) {
+        const addressDocRef = doc(firestore, `users/${userId}/alamat/${editingAddressId}`);
+        await setDoc(addressDocRef, payload, { merge: true });
+        setAddressList((prevList) =>
+          prevList.map((addr) =>
+            addr.id === editingAddressId ? { ...payload, id: editingAddressId } : addr
+          )
+        );
+        alert("Alamat berhasil diperbarui.");
+      } else {
+        const alamatCol = collection(firestore, `users/${userId}/alamat`);
+        const docRef = await addDoc(alamatCol, payload);
+        setAddressList((prevList) => [...prevList, { ...payload, id: docRef.id }]);
+        alert("Alamat baru berhasil disimpan.");
+      }
+      setShowAddressModal(false);
+      setEditingAddressId(null);
+    } catch (error) {
+      console.error("Error saving address: ", error);
+      alert("Gagal menyimpan alamat: " + error.message);
+    }
+  };
+
+  const handleDeleteAddress = async (addressIdToDelete) => {
+    if (!userId || !addressIdToDelete) return;
+    if (window.confirm("Apakah Anda yakin ingin menghapus alamat ini?")) {
+      try {
+        const addressDocRef = doc(firestore, `users/${userId}/alamat/${addressIdToDelete}`);
+        await deleteDoc(addressDocRef);
+        setAddressList((prevList) => prevList.filter((addr) => addr.id !== addressIdToDelete));
+        alert("Alamat berhasil dihapus.");
+      } catch (error) {
+        console.error("Error deleting address: ", error);
+        alert("Gagal menghapus alamat: " + error.message);
+      }
+    }
+  };
+  
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
-    setPasswordData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setPasswordData((prev) => ({ ...prev, [name]: value }));
   };
+  
+  const handlePasswordSubmit = () => {
+    console.log("Password change submitted:", passwordData);
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+        alert("Kata sandi baru dan konfirmasi kata sandi tidak cocok.");
+        return;
+    }
+    alert("Fitur ubah kata sandi belum diimplementasikan sepenuhnya dengan backend Firebase Auth.");
+    setIsChangingPassword(false);
+  };
+  
+  const handleChangeProfilePicture = () => {
+    alert("Fitur ganti foto profil belum diimplementasikan.");
+  };
+
+  const historyPengiriman = () => navigate("/history");
+  const manageBarang = () => navigate("/managebarang");
+  const homepage = () => navigate("/");
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    navigate("/login");
+  }
 
   return (
     <div
@@ -91,29 +326,21 @@ const UserProfile = () => {
         <div className="flex flex-col md:flex-row gap-6">
           {/* Sidebar */}
           <div className="w-full md:w-1/4">
-            <div
-              className="rounded-lg shadow p-6 mb-6"
-              style={{ backgroundColor: "#ffffff" }}
-            >
+            <div className="rounded-lg shadow p-6 mb-6" style={{ backgroundColor: "#ffffff" }}>
+              {/* ... Bagian Foto Profil & Navigasi Sidebar ... */}
               <div className="flex flex-col items-center mb-6">
                 <div className="relative mb-4">
                   <img
-                    src={userData.profilePicture || "/placeholder.svg"}
+                    src={userData.profilePicture || "https://via.placeholder.com/150"}
                     alt="Profile"
                     className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
                   />
                   <button
                     className="absolute bottom-0 right-0 p-2 rounded-full transition"
-                    style={{
-                      backgroundColor: "#753799",
-                      color: "#ffffff",
-                    }}
-                    onMouseOver={(e) =>
-                      (e.currentTarget.style.backgroundColor = "#5a2d7a")
-                    }
-                    onMouseOut={(e) =>
-                      (e.currentTarget.style.backgroundColor = "#753799")
-                    }
+                    style={{ backgroundColor: "#753799", color: "#ffffff" }}
+                    onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#5a2d7a")}
+                    onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#753799")}
+                    onClick={handleChangeProfilePicture}
                   >
                     <Camera className="w-4 h-4" />
                   </button>
@@ -122,138 +349,65 @@ const UserProfile = () => {
                   {userData.name}
                 </h2>
                 <p className="text-sm" style={{ color: "#753799" }}>
-                  {userData.username}
+                  @{userData.username}
                 </p>
               </div>
-
               <nav className="space-y-1">
                 <button
                   onClick={() => setActiveTab("profile")}
                   className={`group w-full flex items-center px-4 py-3 rounded-md text-left ${
-                    activeTab === "profile"
-                      ? "text-white"
-                      : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
+                    activeTab === "profile" ? "text-white" : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
                   }`}
-                  style={{
-                    backgroundColor:
-                      activeTab === "profile" ? "#753799" : "transparent",
-                    color: activeTab === "profile" ? "#ffffff" : "#100428",
-                    transition: "all 0.3s ease",
-                  }}
+                  style={{ backgroundColor: activeTab === "profile" ? "#753799" : "transparent", color: activeTab === "profile" ? "#ffffff" : "#100428", transition: "all 0.3s ease" }}
                 >
-                  <User
-                    className={`w-5 h-5 mr-3 ${
-                      activeTab === "profile"
-                        ? "text-white"
-                        : "text-[#753799] group-hover:text-white"
-                    }`}
-                  />
-                  <span>{`Profil Saya`}</span>
+                  <User className={`w-5 h-5 mr-3 ${activeTab === "profile" ? "text-white" : "text-[#753799] group-hover:text-white"}`} />
+                  <span>Profil Saya</span>
                 </button>
-
+                <button
+                  onClick={() => setActiveTab("addresses")}
+                  className={`group w-full flex items-center px-4 py-3 rounded-md text-left ${
+                    activeTab === "addresses" ? "text-white" : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
+                  }`}
+                  style={{ backgroundColor: activeTab === "addresses" ? "#753799" : "transparent", color: activeTab === "addresses" ? "#ffffff" : "#100428", transition: "all 0.3s ease" }}
+                >
+                  <MapPin className={`w-5 h-5 mr-3 ${activeTab === "addresses" ? "text-white" : "text-[#753799] group-hover:text-white"}`} />
+                  <span>Alamat Saya</span>
+                </button>
                 <button
                   onClick={() => setActiveTab("security")}
                   className={`group w-full flex items-center px-4 py-3 rounded-md text-left ${
-                    activeTab === "security"
-                      ? "text-white"
-                      : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
+                    activeTab === "security" ? "text-white" : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
                   }`}
-                  style={{
-                    backgroundColor:
-                      activeTab === "security" ? "#753799" : "transparent",
-                    color: activeTab === "security" ? "#ffffff" : "#100428",
-                    transition: "all 0.3s ease",
-                  }}
+                  style={{ backgroundColor: activeTab === "security" ? "#753799" : "transparent", color: activeTab === "security" ? "#ffffff" : "#100428", transition: "all 0.3s ease" }}
                 >
-                  <Shield
-                    className={`w-5 h-5 mr-3 ${
-                      activeTab === "security"
-                        ? "text-white"
-                        : "text-[#753799] group-hover:text-white"
-                    }`}
-                  />
+                  <Shield className={`w-5 h-5 mr-3 ${activeTab === "security" ? "text-white" : "text-[#753799] group-hover:text-white"}`} />
                   <span>Keamanan</span>
                 </button>
-
                 <button
                   onClick={historyPengiriman}
-                  className={`group w-full flex items-center px-4 py-3 rounded-md text-left ${
-                    activeTab === "orders"
-                      ? "text-white"
-                      : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
-                  }`}
-                  style={{
-                    backgroundColor:
-                      activeTab === "orders" ? "#753799" : "transparent",
-                    color: activeTab === "orders" ? "#ffffff" : "#100428",
-                    transition: "all 0.3s ease",
-                  }}
+                  className="group w-full flex items-center px-4 py-3 rounded-md text-left text-[#100428] hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
                 >
-                  <ShoppingBag
-                    className={`w-5 h-5 mr-3 ${
-                      activeTab === "orders"
-                        ? "text-white"
-                        : "text-[#753799] group-hover:text-white"
-                    }`}
-                  />
+                  <ShoppingBag className="w-5 h-5 mr-3 text-[#753799] group-hover:text-white" />
                   <span>History Pembelian</span>
                 </button>
                 <button
                   onClick={manageBarang}
-                  className={`group w-full flex items-center px-4 py-3 rounded-md text-left ${
-                    activeTab === "orders"
-                      ? "text-white"
-                      : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
-                  }`}
-                  style={{
-                    backgroundColor:
-                      activeTab === "orders" ? "#753799" : "transparent",
-                    color: activeTab === "orders" ? "#ffffff" : "#100428",
-                    transition: "all 0.3s ease",
-                  }}
+                  className="group w-full flex items-center px-4 py-3 rounded-md text-left text-[#100428] hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
                 >
-                  <ShoppingBag
-                    className={`w-5 h-5 mr-3 ${
-                      activeTab === "orders"
-                        ? "text-white"
-                        : "text-[#753799] group-hover:text-white"
-                    }`}
-                  />
+                  <ShoppingBag className="w-5 h-5 mr-3 text-[#753799] group-hover:text-white" />
                   <span>Produk Saya</span>
                 </button>
-                <button
-                  onClick={Addresses}
-                  className={`group w-full flex items-center px-4 py-3 rounded-md text-left ${
-                    activeTab === "addresses"
-                      ? "text-white"
-                      : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
-                  }`}
-                  style={{
-                    backgroundColor:
-                      activeTab === "addresses" ? "#753799" : "transparent",
-                    color: activeTab === "addresses" ? "#ffffff" : "#100428",
-                    transition: "all 0.3s ease",
-                  }}
-                >
-                  <MapPin
-                    className={`w-5 h-5 mr-3 ${
-                      activeTab === "addresses"
-                        ? "text-white"
-                        : "text-[#753799] group-hover:text-white"
-                    }`}
-                  />
-                  <span>Alamat</span>
-                </button>
-
                 <hr className="my-3 border-gray-200" />
                 <button
                   onClick={homepage}
                   className="w-full flex items-center px-4 py-3 rounded-md text-left text-black hover:bg-purple-300"
                 >
-                  <FaHome className="w-5 h-5 mr-3" />
-                  <span>Kembali</span>
+                  <FaHome className="w-5 h-5 mr-3 text-[#753799]" />
+                  <span>Kembali ke Beranda</span>
                 </button>
-                <button className="w-full flex items-center px-4 py-3 rounded-md text-left text-red-600 hover:bg-red-200">
+                <button 
+                  onClick={handleLogout}
+                  className="w-full flex items-center px-4 py-3 rounded-md text-left text-red-600 hover:bg-red-200">
                   <LogOut className="w-5 h-5 mr-3" />
                   <span>Keluar</span>
                 </button>
@@ -266,205 +420,85 @@ const UserProfile = () => {
             {/* Profile Tab */}
             {activeTab === "profile" && (
               <div className="bg-white rounded-lg shadow">
-                <div
-                  className="p-6 border-b"
-                  style={{
-                    borderColor: "#753799",
-                    background:
-                      "linear-gradient(90deg, #753799 0%, #100428 100%)",
-                  }}
-                >
+                <div className="p-6 border-b" style={{ borderColor: "#753799", background: "linear-gradient(90deg, #753799 0%, #100428 100%)" }}>
                   <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-white">
-                      Informasi Profil
-                    </h2>
+                    <h2 className="text-xl font-bold text-white">Informasi Profil</h2>
                     {!isEditingProfile && (
-                      <button
-                        onClick={() => setIsEditingProfile(true)}
-                        className="flex items-center text-white hover:text-[#d6b3ff]"
-                      >
-                        <Edit className="w-4 h-4 mr-1" />
-                        <span>Edit</span>
+                      // Ganti setIsEditingProfile(true) dengan handleStartEditingProfile
+                      <button onClick={handleStartEditingProfile} className="flex items-center text-white hover:text-[#d6b3ff]">
+                        <Edit className="w-4 h-4 mr-1" /> Edit
                       </button>
                     )}
                   </div>
                 </div>
-
                 <div className="p-6">
                   {!isEditingProfile ? (
+                    // Tampilkan data dari userData
                     <div className="space-y-4">
-                      {/* Item */}
                       <div className="flex items-start">
                         <User className="w-5 h-5 text-[#753799] mt-0.5 mr-3" />
                         <div>
-                          <h3 className="text-sm font-medium text-[#100428]">
-                            Nama Lengkap
-                          </h3>
+                          <h3 className="text-sm font-medium text-[#100428]">Nama Lengkap</h3>
                           <p>{userData.name}</p>
                         </div>
                       </div>
-
                       <div className="flex items-start">
                         <Mail className="w-5 h-5 text-[#753799] mt-0.5 mr-3" />
                         <div>
-                          <h3 className="text-sm font-medium text-[#100428]">
-                            Email
-                          </h3>
+                          <h3 className="text-sm font-medium text-[#100428]">Email</h3>
                           <p className="flex items-center">
                             {userData.email}
                             {userData.isEmailVerified && (
-                              <span className="ml-2 px-2 py-0.5 text-xs bg-[#753799] text-white rounded-full">
-                                Terverifikasi
-                              </span>
+                              <span className="ml-2 px-2 py-0.5 text-xs bg-[#753799] text-white rounded-full">Terverifikasi</span>
                             )}
                           </p>
                         </div>
                       </div>
-
                       <div className="flex items-start">
                         <Phone className="w-5 h-5 text-[#753799] mt-0.5 mr-3" />
                         <div>
-                          <h3 className="text-sm font-medium text-[#100428]">
-                            Nomor Telepon
-                          </h3>
+                          <h3 className="text-sm font-medium text-[#100428]">Nomor Telepon</h3>
                           <p className="flex items-center">
-                            {userData.phone}
-                            {userData.isPhoneVerified ? (
-                              <span className="ml-2 px-2 py-0.5 text-xs bg-[#753799] text-white rounded-full">
-                                Terverifikasi
-                              </span>
+                            {userData.phone || "-"}
+                            {userData.isPhoneVerified && userData.phone ? (
+                              <span className="ml-2 px-2 py-0.5 text-xs bg-[#753799] text-white rounded-full">Terverifikasi</span>
                             ) : (
-                              <button className="ml-2 px-2 py-0.5 text-xs bg-[#100428] text-white rounded-full hover:bg-[#753799] transition">
-                                Verifikasi Sekarang
-                              </button>
+                              userData.phone && <button className="ml-2 px-2 py-0.5 text-xs bg-[#100428] text-white rounded-full hover:bg-[#753799] transition">Verifikasi</button>
                             )}
                           </p>
                         </div>
                       </div>
-
                       <div className="flex items-start">
                         <User className="w-5 h-5 text-[#753799] mt-0.5 mr-3" />
                         <div>
-                          <h3 className="text-sm font-medium text-[#100428]">
-                            Username
-                          </h3>
+                          <h3 className="text-sm font-medium text-[#100428]">Username</h3>
                           <p>{userData.username}</p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-start">
-                        <MapPin className="w-5 h-5 text-[#753799] mt-0.5 mr-3" />
-                        <div>
-                          <h3 className="text-sm font-medium text-[#100428]">
-                            Alamat Pengiriman
-                          </h3>
-                          <p>{userData.address}</p>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <form className="space-y-4">
-                      {/* Inputs */}
+                    // Form menggunakan profileFormData
+                    <form onSubmit={(e) => { e.preventDefault(); handleProfileSubmit(); }} className="space-y-4">
                       <div>
-                        <label
-                          htmlFor="name"
-                          className="block text-sm font-medium text-[#100428] mb-1"
-                        >
-                          Nama Lengkap
-                        </label>
-                        <input
-                          type="text"
-                          id="name"
-                          name="name"
-                          value={formData.name}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799] focus:border-[#100428]"
-                        />
+                        <label htmlFor="name" className="block text-sm font-medium text-[#100428] mb-1">Nama Lengkap</label>
+                        <input type="text" id="name" name="name" value={profileFormData.name} onChange={handleProfileInputChange} className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]" />
                       </div>
-
                       <div>
-                        <label
-                          htmlFor="email"
-                          className="block text-sm font-medium text-[#100428] mb-1"
-                        >
-                          Email
-                        </label>
-                        <input
-                          type="email"
-                          id="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799] focus:border-[#100428]"
-                        />
+                        <label htmlFor="email" className="block text-sm font-medium text-[#100428] mb-1">Email (Tidak bisa diubah)</label>
+                        <input type="email" id="email" name="email" value={profileFormData.email} readOnly className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100" />
                       </div>
-
                       <div>
-                        <label
-                          htmlFor="phone"
-                          className="block text-sm font-medium text-[#100428] mb-1"
-                        >
-                          Nomor Telepon
-                        </label>
-                        <input
-                          type="tel"
-                          id="phone"
-                          name="phone"
-                          value={formData.phone}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799] focus:border-[#100428]"
-                        />
+                        <label htmlFor="phone" className="block text-sm font-medium text-[#100428] mb-1">Nomor Telepon</label>
+                        <input type="tel" id="phone" name="phone" value={profileFormData.phone} onChange={handleProfileInputChange} className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]" />
                       </div>
-
                       <div>
-                        <label
-                          htmlFor="username"
-                          className="block text-sm font-medium text-[#100428] mb-1"
-                        >
-                          Username
-                        </label>
-                        <input
-                          type="text"
-                          id="username"
-                          name="username"
-                          value={formData.username}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799] focus:border-[#100428]"
-                        />
+                        <label htmlFor="username" className="block text-sm font-medium text-[#100428] mb-1">Username</label>
+                        <input type="text" id="username" name="username" value={profileFormData.username} onChange={handleProfileInputChange} className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]" />
                       </div>
-
-                      <div>
-                        <label
-                          htmlFor="address"
-                          className="block text-sm font-medium text-[#100428] mb-1"
-                        >
-                          Alamat Pengiriman
-                        </label>
-                        <textarea
-                          id="address"
-                          name="address"
-                          rows={3}
-                          value={formData.address}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799] focus:border-[#100428]"
-                        />
-                      </div>
-
                       <div className="flex justify-end space-x-3 pt-4">
-                        <button
-                          type="button"
-                          onClick={() => setIsEditingProfile(false)}
-                          className="px-4 py-2 border border-[#753799] rounded-md text-[#753799] hover:bg-[#100428] hover:text-white transition"
-                        >
-                          Batal
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setIsEditingProfile(false)}
-                          className="px-4 py-2 bg-gradient-to-r from-[#753799] to-[#100428] text-white rounded-md hover:from-[#632f86] hover:to-[#0d041f] transition"
-                        >
-                          Simpan Perubahan
-                        </button>
+                        {/* Panggil handleCancelEditProfile untuk tombol Batal */}
+                        <button type="button" onClick={handleCancelEditProfile} className="px-4 py-2 border border-[#753799] rounded-md text-[#753799] hover:bg-[#100428] hover:text-white transition">Batal</button>
+                        <button type="submit" className="px-4 py-2 bg-gradient-to-r from-[#753799] to-[#100428] text-white rounded-md hover:from-[#632f86] hover:to-[#0d041f] transition">Simpan Perubahan</button>
                       </div>
                     </form>
                   )}
@@ -472,162 +506,83 @@ const UserProfile = () => {
               </div>
             )}
 
-            {/* Security Tab */}
+            {/* Addresses Tab */}
+            {activeTab === "addresses" && (
+              <div className="bg-white rounded-lg shadow">
+                 {/* ... Konten Addresses Tab ... */}
+                 <div className="p-6 border-b" style={{ borderColor: "#753799", background: "linear-gradient(90deg, #753799 0%, #100428 100%)" }}>
+                  <h2 className="text-xl font-bold text-white">Alamat Saya</h2>
+                </div>
+                <div className="p-6">
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-semibold text-[#100428]">Daftar Alamat</h2>
+                    <button onClick={handleOpenAddModal} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#753799] to-[#100428] text-white rounded-md hover:from-[#632f86] hover:to-[#0d041f] transition">
+                      <Plus className="w-4 h-4" /> Tambah Alamat
+                    </button>
+                  </div>
+                  {addressList.length === 0 ? (
+                     <p className="text-gray-500">Anda belum menambahkan alamat.</p>
+                  ) : (
+                    addressList.map((address) => (
+                      <div key={address.id} className="border border-[#753799] rounded-lg p-4 mb-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-semibold text-[#100428]">{address.name} ({address.phone})</h3>
+                            <p className="text-gray-600">{address.addressDetail}</p>
+                            <p className="text-gray-600">{`${address.kecamatan}, ${address.kota}, ${address.provinsi}, ${address.kodePos}`}</p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button onClick={() => handleOpenEditModal(address)} className="text-[#753799] hover:text-[#100428] p-1">
+                              <PenSquare className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => handleDeleteAddress(address.id)} className="text-red-500 hover:text-red-700 p-1">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+             {/* Security Tab */}
             {activeTab === "security" && (
               <div className="bg-white rounded-lg shadow">
-                <div
-                  className="p-6 border-b"
-                  style={{
-                    borderColor: "#753799",
-                    background:
-                      "linear-gradient(90deg, #753799 0%, #100428 100%)",
-                  }}
-                >
-                  <h2 className="text-xl font-bold text-white">
-                    Pengaturan Keamanan
-                  </h2>
+                {/* ... Konten Security Tab ... */}
+                <div className="p-6 border-b" style={{ borderColor: "#753799", background: "linear-gradient(90deg, #753799 0%, #100428 100%)" }}>
+                  <h2 className="text-xl font-bold text-white">Pengaturan Keamanan</h2>
                 </div>
-
                 <div className="p-6">
                   <div className="mb-8">
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-medium text-[#100428]">
-                        Ubah Kata Sandi
-                      </h3>
+                      <h3 className="text-lg font-medium text-[#100428]">Ubah Kata Sandi</h3>
                       {!isChangingPassword && (
-                        <button
-                          onClick={() => setIsChangingPassword(true)}
-                          className="flex items-center text-[#753799] hover:text-[#100428]"
-                        >
-                          <Edit className="w-4 h-4 mr-1" />
-                          <span>Ubah</span>
+                        <button onClick={() => setIsChangingPassword(true)} className="flex items-center text-[#753799] hover:text-[#100428]">
+                          <Edit className="w-4 h-4 mr-1" /> Ubah
                         </button>
                       )}
                     </div>
-
                     {isChangingPassword && (
-                      <form className="space-y-4">
+                      <form onSubmit={(e) => {e.preventDefault(); handlePasswordSubmit();}} className="space-y-4">
                         <div>
-                          <label
-                            htmlFor="currentPassword"
-                            className="block text-sm font-medium text-[#100428] mb-1"
-                          >
-                            Kata Sandi Saat Ini
-                          </label>
-                          <input
-                            type="password"
-                            id="currentPassword"
-                            name="currentPassword"
-                            value={passwordData.currentPassword}
-                            onChange={handlePasswordChange}
-                            className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799] focus:border-[#100428]"
-                          />
+                          <label htmlFor="currentPassword" className="block text-sm font-medium text-[#100428] mb-1">Kata Sandi Saat Ini</label>
+                          <input type="password" id="currentPassword" name="currentPassword" value={passwordData.currentPassword} onChange={handlePasswordChange} className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]" required />
                         </div>
-
                         <div>
-                          <label
-                            htmlFor="newPassword"
-                            className="block text-sm font-medium text-[#100428] mb-1"
-                          >
-                            Kata Sandi Baru
-                          </label>
-                          <input
-                            type="password"
-                            id="newPassword"
-                            name="newPassword"
-                            value={passwordData.newPassword}
-                            onChange={handlePasswordChange}
-                            className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799] focus:border-[#100428]"
-                          />
+                          <label htmlFor="newPassword" className="block text-sm font-medium text-[#100428] mb-1">Kata Sandi Baru</label>
+                          <input type="password" id="newPassword" name="newPassword" value={passwordData.newPassword} onChange={handlePasswordChange} className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]" required />
                         </div>
-
                         <div>
-                          <label
-                            htmlFor="confirmPassword"
-                            className="block text-sm font-medium text-[#100428] mb-1"
-                          >
-                            Konfirmasi Kata Sandi Baru
-                          </label>
-                          <input
-                            type="password"
-                            id="confirmPassword"
-                            name="confirmPassword"
-                            value={passwordData.confirmPassword}
-                            onChange={handlePasswordChange}
-                            className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799] focus:border-[#100428]"
-                          />
+                          <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#100428] mb-1">Konfirmasi Kata Sandi Baru</label>
+                          <input type="password" id="confirmPassword" name="confirmPassword" value={passwordData.confirmPassword} onChange={handlePasswordChange} className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]" required />
                         </div>
-
                         <div className="flex justify-end space-x-3 pt-4">
-                          <button
-                            type="button"
-                            onClick={() => setIsChangingPassword(false)}
-                            className="px-4 py-2 border border-[#753799] rounded-md text-[#753799] hover:bg-[#100428] hover:text-white transition"
-                          >
-                            Batal
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setIsChangingPassword(false)}
-                            className="px-4 py-2 bg-gradient-to-r from-[#753799] to-[#100428] text-white rounded-md hover:from-[#632f86] hover:to-[#0d041f] transition"
-                          >
-                            Perbarui Kata Sandi
-                          </button>
+                          <button type="button" onClick={() => setIsChangingPassword(false)} className="px-4 py-2 border border-[#753799] rounded-md text-[#753799] hover:bg-[#100428] hover:text-white transition">Batal</button>
+                          <button type="submit" className="px-4 py-2 bg-gradient-to-r from-[#753799] to-[#100428] text-white rounded-md hover:from-[#632f86] hover:to-[#0d041f] transition">Perbarui Kata Sandi</button>
                         </div>
                       </form>
                     )}
-                  </div>
-
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium mb-4 text-[#100428]">
-                      Verifikasi
-                    </h3>
-
-                    <div className="flex items-center justify-between p-4 border border-[#753799] rounded-lg">
-                      <div className="flex items-center">
-                        <Mail className="w-5 h-5 text-[#753799] mr-3" />
-                        <div>
-                          <p className="font-medium text-[#100428]">
-                            Verifikasi Email
-                          </p>
-                          <p className="text-sm text-[#100428]">
-                            {userData.email}
-                          </p>
-                        </div>
-                      </div>
-                      {userData.isEmailVerified ? (
-                        <span className="px-3 py-1 bg-[#753799] text-white rounded-full text-sm">
-                          Terverifikasi
-                        </span>
-                      ) : (
-                        <button className="px-3 py-1 bg-gradient-to-r from-[#753799] to-[#100428] text-white rounded-md text-sm hover:from-[#632f86] hover:to-[#0d041f] transition">
-                          Verifikasi
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 border border-[#753799] rounded-lg">
-                      <div className="flex items-center">
-                        <Phone className="w-5 h-5 text-[#753799] mr-3" />
-                        <div>
-                          <p className="font-medium text-[#100428]">
-                            Verifikasi Nomor Telepon
-                          </p>
-                          <p className="text-sm text-[#100428]">
-                            {userData.phone}
-                          </p>
-                        </div>
-                      </div>
-                      {userData.isPhoneVerified ? (
-                        <span className="px-3 py-1 bg-[#753799] text-white rounded-full text-sm">
-                          Terverifikasi
-                        </span>
-                      ) : (
-                        <button className="px-3 py-1 bg-gradient-to-r from-[#753799] to-[#100428] text-white rounded-md text-sm hover:from-[#632f86] hover:to-[#0d041f] transition">
-                          Verifikasi
-                        </button>
-                      )}
-                    </div>
                   </div>
                 </div>
               </div>
@@ -635,6 +590,79 @@ const UserProfile = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal Tambah/Edit Alamat */}
+      {showAddressModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+           {/* ... Konten Modal Alamat ... */}
+           <div className="fixed inset-0 bg-black opacity-30" onClick={() => setShowAddressModal(false)}/>
+          <div className="bg-white p-6 w-[560px] rounded-lg shadow-xl relative max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-[#100428]">
+                {editingAddressId ? "Edit Alamat" : "Tambah Alamat Baru"}
+              </h3>
+              <button
+                onClick={() => setShowAddressModal(false)}
+                className="text-xl text-gray-500 hover:text-gray-700"
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleSaveAddress} className="space-y-3">
+              <div className="flex gap-4">
+                <input
+                  name="name"
+                  value={currentAddressForm.name}
+                  onChange={handleAddressFormChange}
+                  placeholder="Nama Lengkap Penerima"
+                  required
+                  className="w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                />
+                <input
+                  name="phone"
+                  value={currentAddressForm.phone}
+                  onChange={handleAddressFormChange}
+                  placeholder="No. Telepon Penerima"
+                  required
+                  className="w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                />
+              </div>
+              <DropdownAlamatKaltim 
+                onChange={handleAlamatKaltimChange} 
+                initialData={editingAddressId ? { 
+                    kota: currentAddressForm.kota,
+                    kecamatan: currentAddressForm.kecamatan,
+                    kodePos: currentAddressForm.kodePos,
+                } : undefined}
+              />
+              <textarea
+                name="addressDetail"
+                value={currentAddressForm.addressDetail}
+                onChange={handleAddressFormChange}
+                placeholder="Nama Jalan, Gedung, No. Rumah, Detail Patokan (Contoh: RT 01/RW 02, Sebelah Masjid)"
+                required
+                rows={3}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+              />
+              <div className="flex justify-end space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddressModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-gradient-to-r from-[#753799] to-[#100428] text-white rounded-md hover:from-[#632f86] hover:to-[#0d041f] transition"
+                >
+                  Simpan Alamat
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
