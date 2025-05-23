@@ -23,107 +23,126 @@ import {
   Camera,
   Tablet,
   Cable,
+  Coffee,
+  Package,
+  CheckCircle,
+  AlertCircle
 } from "lucide-react";
 import Navbar1 from "../components/navbar1";
+import { firestore } from "../firebase";
+import {
+  collection,
+  getDocs,
+  doc,
+  setDoc,
+  updateDoc,
+  arrayUnion,
+} from "firebase/firestore";
 
 import LogoIcon from "../assets/homepage/logo.svg";
 
 // Data dummy untuk produk
-const productsData = [
-  {
-    id: 1,
-    name: "Smartphone Galaxy S23 Ultra",
-    description:
-      "Smartphone flagship dengan kamera 108MP dan S Pen terintegrasi.",
-    price: 18999000,
-    category: "Elektronik",
-    rating: 4.8,
-    reviewCount: 1243,
-    icon: "smartphone",
-  },
-  {
-    id: 2,
-    name: "Laptop MacBook Pro M2",
-    description:
-      "Laptop dengan chip M2, layar Retina XDR, dan baterai tahan hingga 17 jam.",
-    price: 24999000,
-    category: "Elektronik",
-    rating: 4.9,
-    reviewCount: 856,
-    icon: "laptop",
-  },
-  {
-    id: 3,
-    name: "Headphone Sony WH-1000XM5",
-    description:
-      "Headphone nirkabel dengan noise cancelling terbaik di kelasnya.",
-    price: 4999000,
-    category: "Elektronik",
-    rating: 4.7,
-    reviewCount: 1102,
-    icon: "headphones",
-  },
-  {
-    id: 4,
-    name: "Kamera Mirrorless Sony A7 IV",
-    description:
-      "Kamera mirrorless full-frame dengan sensor 33MP dan kemampuan video 4K 60fps.",
-    price: 32999000,
-    category: "Elektronik",
-    rating: 4.9,
-    reviewCount: 432,
-    icon: "camera",
-  },
-  {
-    id: 5,
-    name: "Jam Tangan Seiko Presage",
-    description:
-      "Jam tangan mekanikal dengan desain elegan dan gerakan otomatis presisi tinggi.",
-    price: 8499000,
-    category: "Fashion",
-    rating: 4.7,
-    reviewCount: 321,
-    icon: "watch",
-  },
-  {
-    id: 6,
-    name: "iPad Pro 12.9 inch",
-    description:
-      "Tablet premium dengan layar Liquid Retina XDR dan chip M2 yang powerful.",
-    price: 19999000,
-    category: "Elektronik",
-    rating: 4.8,
-    reviewCount: 567,
-    icon: "tablet",
-  },
-  {
-    id: 7,
-    name: "Blender Philips HR3868",
-    description:
-      "Blender dengan teknologi ProBlend untuk hasil yang halus dan cepat.",
-    price: 1299000,
-    category: "Rumah Tangga",
-    rating: 4.5,
-    reviewCount: 234,
-    icon: "cable",
-  },
-];
+// const productsData = [
+//   {
+//     id: 1,
+//     nama_barang: "Smartphone Galaxy S23 Ultra",
+//     deskripsi:
+//       "Smartphone flagship dengan kamera 108MP dan S Pen terintegrasi.",
+//     harga: 18999000,
+//     kategori: "Elektronik",
+//     rating: 4.8,
+//     reviewCount: 1243,
+//     icon: "smartphone",
+//   },
+//   {
+//     id: 2,
+//     nama_barang: "Laptop MacBook Pro M2",
+//     deskripsi:
+//       "Laptop dengan chip M2, layar Retina XDR, dan baterai tahan hingga 17 jam.",
+//     harga: 24999000,
+//     kategori: "Elektronik",
+//     rating: 4.9,
+//     reviewCount: 856,
+//     icon: "laptop",
+//   },
+//   {
+//     id: 3,
+//     nama_barang: "Headphone Sony WH-1000XM5",
+//     deskripsi:
+//       "Headphone nirkabel dengan noise cancelling terbaik di kelasnya.",
+//     harga: 4999000,
+//     kategori: "Elektronik",
+//     rating: 4.7,
+//     reviewCount: 1102,
+//     icon: "headphones",
+//   },
+//   {
+//     id: 4,
+//     nama_barang: "Kamera Mirrorless Sony A7 IV",
+//     deskripsi:
+//       "Kamera mirrorless full-frame dengan sensor 33MP dan kemampuan video 4K 60fps.",
+//     harga: 32999000,
+//     kategori: "Elektronik",
+//     rating: 4.9,
+//     reviewCount: 432,
+//     icon: "camera",
+//   },
+//   {
+//     id: 5,
+//     nama_barang: "Jam Tangan Seiko Presage",
+//     deskripsi:
+//       "Jam tangan mekanikal dengan desain elegan dan gerakan otomatis presisi tinggi.",
+//     harga: 8499000,
+//     kategori: "Fashion",
+//     rating: 4.7,
+//     reviewCount: 321,
+//     icon: "watch",
+//   },
+//   {
+//     id: 6,
+//     nama_barang: "iPad Pro 12.9 inch",
+//     deskripsi:
+//       "Tablet premium dengan layar Liquid Retina XDR dan chip M2 yang powerful.",
+//     harga: 19999000,
+//     kategori: "Elektronik",
+//     rating: 4.8,
+//     reviewCount: 567,
+//     icon: "tablet",
+//   },
+//   {
+//     id: 7,
+//     nama_barang: "Blender Philips HR3868",
+//     deskripsi:
+//       "Blender dengan teknologi ProBlend untuk hasil yang halus dan cepat.",
+//     harga: 1299000,
+//     kategori: "Rumah Tangga",
+//     rating: 4.5,
+//     reviewCount: 234,
+//     icon: "cable",
+//   },
+// ];
 
 export default function HomePage() {
+  const storedUser = JSON.parse(localStorage.getItem("user"));
+  const uid = storedUser?.id;
+  console.log("User ID:", uid);
   const [currentPage, setCurrentPage] = useState(1);
   const [previewProduct, setPreviewProduct] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cartItems, setCartItems] = useState([]);
+  console.table(cartItems);
+  console.log("Cart Items:", cartItems);
+  const [productsData, setproductsData] = useState([]);
 
   const productsPerPage = 8;
   const filteredProducts = productsData.filter((product) => {
-    const matchesSearch = product.name
+    const matchesSearch = product.nama_barang
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
     const matchesCategory =
-      filterCategory === "all" || product.category === filterCategory;
+      filterCategory === "all" || product.kategori === filterCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -167,6 +186,10 @@ export default function HomePage() {
         return <Tablet className="h-8 w-8 text-[#753799]" />;
       case "cable":
         return <Cable className="h-8 w-8 text-[#753799]" />;
+      case "coffee":
+        return <Coffee className="h-8 w-8 text-[#753799]" />;
+      default:
+        return <Package className="h-8 w-8 text-[#753799]" />;
     }
   };
 
@@ -190,6 +213,8 @@ export default function HomePage() {
         return <Tablet className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
       case "cable":
         return <Cable className="h-8 w-8 text-[#753799]" />;
+      case "coffee":
+        return <Coffee className="h-20 w-20 text-[#753799]" />;
       default:
         return <Package className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
     }
@@ -226,19 +251,92 @@ export default function HomePage() {
     setPreviewProduct(null);
   };
 
-  const handleAddToCart = (product) => {
-    setCartItems((prevItems) => {
-      const existingItem = prevItems.find((item) => item.id === product.id);
-      if (existingItem) {
-        return prevItems.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      } else {
-        return [...prevItems, { ...product, quantity: 1 }];
-      }
+  const addToCartFirestore = async (productId) => {
+    if (!uid) {
+      alert("Silakan login terlebih dahulu.");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      // Referensi dokumen barang
+      const productRef = doc(firestore, "barang", productId);
+
+      // Tambahkan uid ke array id_cart_user (tidak duplikat)
+      await updateDoc(productRef, {
+        id_cart_user: arrayUnion(uid),
+      });
+    } catch (err) {
+      console.error("Gagal menambah ke cart di Firestore:", err);
+      alert("Terjadi kesalahan saat menambah ke keranjang.");
+    }
+  };
+
+  const getCartItems = async (uid) => {
+    if (!uid) return [];
+
+    try {
+      const snapshot = await getDocs(collection(firestore, `carts/${uid}/items`));
+      return snapshot.docs.map(doc => ({
+        id: doc.id, // penting agar tiap item bisa dibedakan
+        ...doc.data(),
+      }));
+    } catch (error) {
+      console.error("Gagal mengambil data cart:", error);
+      return [];
+    }
+  };
+
+  // Fungsi untuk load cart items dari Firestore dan update state
+  const loadCartItems = async () => {
+    if (!uid) return;
+    try {
+      const items = await getCartItems(uid);
+      setCartItems(items);
+    } catch (error) {
+      console.error("Gagal load cart items:", error);
+    }
+  };
+
+  // Panggil loadCartItems saat mount atau uid berubah
+  useEffect(() => {
+    loadCartItems();
+  }, [uid]);
+
+  const handleAddToCart = async (product) => {
+    if (!uid) {
+      alert("Silakan login terlebih dahulu.");
+      navigate("/login");
+      return;
+    }
+
+    try {
+    // 1. Update Firestore ke dalam koleksi carts/{uid}/items/{productId}
+    const cartItemRef = doc(firestore, "carts", uid, "items", product.id);
+    await setDoc(cartItemRef, {
+      qty: product.jumlah, // jumlah dari state
+      productId: product.id,
     });
+
+
+    // 2. Update local state
+    // setCartItems((prev) => {
+    //   const exists = prev.find((item) => item.id === product.id);
+    //   return exists
+    //     ? prev.map((item) =>
+    //         item.id === product.id
+    //           ? { ...item, quantity: product.jumlah }
+    //           : item
+    //       )
+    //     : [...prev, { ...product, quantity: product.jumlah }];
+    // });
+      await loadCartItems();
+      alert("Berhasil menambahkan ke keranjang!");
+    } catch (err) {
+      console.error("Gagal menambah ke cart di Firestore:", err);
+      alert("Terjadi kesalahan saat menambah ke keranjang.");
+    }
+    await addToCartFirestore(product.id);
   };
 
   const addToWishlist = (product) => {
@@ -267,10 +365,47 @@ export default function HomePage() {
     window.scrollTo(0, 0);
   }, [currentPage]);
 
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(firestore, "barang"));
+        const fetchedProducts = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          status_stok: doc.data().stok > 0 ? "Stok Tersedia" : "Stok Kosong",
+        }));
+        setproductsData(fetchedProducts.map((p) => ({
+          ...p,
+          jumlah: p.jumlah || 1 
+        })));
+      } catch (error) {
+        console.error("Gagal mengambil data barang:", error);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
+  const tambahJumlah = () => {
+    setPreviewProduct((prev) =>
+      prev && prev.jumlah < prev.stok
+        ? { ...prev, jumlah: prev.jumlah + 1 }
+        : prev
+    );
+  };
+
+  const kurangJumlah = () => {
+    setPreviewProduct((prev) =>
+      prev && prev.jumlah > 1
+        ? { ...prev, jumlah: prev.jumlah - 1 }
+        : prev
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-        <Navbar1/>
+        <Navbar1 cartItems={cartItems}/>
       {/* Mobile Menu */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 bg-gray-800 bg-opacity-75 z-20 md:hidden">
@@ -437,13 +572,13 @@ export default function HomePage() {
                       <div className="p-4">
                         <div className="flex items-center mb-1">
                           <span className="text-xs text-gray-500">
-                            {product.category}
+                            {product.kategori}
                           </span>
                         </div>
                         <h3 className="font-medium text-gray-900 mb-1 line-clamp-2 h-12">
-                          {product.name}
+                          {product.nama_barang}
                         </h3>
-                        <div className="flex items-center mb-2">
+                        {/* <div className="flex items-center mb-2">
                           <div className="flex items-center">
                             <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
                             <span className="ml-1 text-sm font-medium">
@@ -454,10 +589,22 @@ export default function HomePage() {
                           <span className="text-xs text-gray-500">
                             {product.reviewCount} ulasan
                           </span>
-                        </div>
-                        <span className="text-[#753799] font-bold text-base block">
-                          Rp{product.price.toLocaleString()}
+                        </div> */}
+                        <span className="text-[#753799] font-bold text-base block mb-2">
+                          Rp{product.harga.toLocaleString()}
                         </span>
+                        <p
+                          className={`flex items-center gap-1 text-xs ${
+                            product.status_stok === "Stok Tersedia" ? "text-green-500" : "text-red-500"
+                          }`}
+                        >
+                          {product.status_stok === "Stok Tersedia" ? (
+                            <CheckCircle size={14} />
+                          ) : (
+                            <AlertCircle size={14} />
+                          )}
+                          {product.status_stok}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -539,7 +686,7 @@ export default function HomePage() {
                     {previewProduct.category}
                   </span>
                   <h3 className="text-xl font-bold mb-2">
-                    {previewProduct.name}
+                    {previewProduct.nama_barang}
                   </h3>
                   <div className="flex items-center mb-3">
                     <div className="flex items-center">
@@ -554,7 +701,7 @@ export default function HomePage() {
                     </span>
                   </div>
                   <p className="text-sm text-gray-600 mb-6">
-                    {previewProduct.description}
+                    {previewProduct.deskripsi}
                   </p>
                 </div>
                 <div>
@@ -565,10 +712,38 @@ export default function HomePage() {
                     <Heart className="h-4 w-4" />
                     Tambahkan ke Wishlist
                   </button>
-
-                  <p className="text-[#753799] font-bold text-2xl mb-4">
-                    Rp{previewProduct.price.toLocaleString()}
-                  </p>
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-[#753799] font-bold text-2xl">
+                      Rp{previewProduct.harga.toLocaleString()}
+                    </p>
+                    {/* <p className="text-xs text-gray-500 mr-1">
+                      Jumlah Stok: {previewProduct.stok}
+                    </p> */}
+                  </div>
+                  <div className="flex justify-between items-center mb-4">
+                    <p className="text-gray-500 mr-1">
+                      Kuantitas
+                    </p>
+                    <div className="flex items-center justify-around w-22 gap-2 border-purple-700 border-1 rounded-2xl p-1">
+                      <button
+                        onClick={kurangJumlah}
+                        className="text-black w-6 h-6 rounded cursor-pointer"
+                      >
+                        -
+                      </button>
+                      <span className="text-black">{previewProduct.jumlah}</span>
+                      <button
+                        onClick={tambahJumlah}
+                        className="text-black w-6 h-6 rounded cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+                    <p className="text-gray-500 mr-1">
+                      tersisa {previewProduct.stok} buah
+                    </p>
+                  </div>
+                  {previewProduct.stok > 0 ? (
                   <button
                     onClick={() => {
                       handleAddToCart(previewProduct);
@@ -579,6 +754,14 @@ export default function HomePage() {
                     <ShoppingCart className="h-5 w-5 mr-2" /> Tambah ke
                     Keranjang
                   </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="w-full py-3 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed flex items-center justify-center"
+                    >
+                      Stok Habis
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

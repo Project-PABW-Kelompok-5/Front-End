@@ -4,6 +4,7 @@ import { auth } from "../firebase";
 import {
   HeartIcon,
   ShoppingBagIcon,
+  ShoppingCartIcon,
   UserIcon,
   Bars3Icon,
   XMarkIcon,
@@ -11,11 +12,13 @@ import {
 } from "@heroicons/react/24/outline";
 import LogoIcon from "../assets/homepage/logo.svg"; // pastikan file ini ada
 
-export default function Navbar1() {
+export default function Navbar1({cartItems = []}) {
+  const totalItems = cartItems.length;
+  console.log("Total items in cart:", totalItems);
+  // console.table(cartItems);
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [cartItems, setCartItems] = useState([]); // Dummy array
 
   const handleLogout = () => {
     auth.signOut();
@@ -27,7 +30,7 @@ export default function Navbar1() {
   const wishlist = () => {
     navigate("/wishlist");
   };
-  const cart = () => {
+  const handleToCart = () => {
     navigate("/cart");
   };
 
@@ -70,11 +73,11 @@ export default function Navbar1() {
             <HeartIcon className="h-6 w-6" />
           </button>
 
-          <button onClick={cart} className="relative cursor-pointer md:block">
-            <ShoppingBagIcon className="h-6 w-6" />
-            {cartItems.length > 0 && (
+          <button onClick={handleToCart} className="relative cursor-pointer md:block">
+            <ShoppingCartIcon className="h-6 w-6" />
+            {totalItems > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {cartItems.length}
+                {totalItems}
               </span>
             )}
           </button>
