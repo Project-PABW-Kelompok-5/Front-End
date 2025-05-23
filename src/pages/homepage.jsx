@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Heart,
@@ -9,13 +9,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Star,
-  Home,
   ShoppingBag,
-  User,
-  Menu,
   X,
-  Bell,
-  LogOut,
   Laptop,
   Headphones,
   Watch,
@@ -26,7 +21,7 @@ import {
   Coffee,
   Package,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 import Navbar1 from "../components/navbar1";
 import { firestore } from "../firebase";
@@ -39,101 +34,14 @@ import {
   arrayUnion,
 } from "firebase/firestore";
 
-import LogoIcon from "../assets/homepage/logo.svg";
-
-// Data dummy untuk produk
-// const productsData = [
-//   {
-//     id: 1,
-//     nama_barang: "Smartphone Galaxy S23 Ultra",
-//     deskripsi:
-//       "Smartphone flagship dengan kamera 108MP dan S Pen terintegrasi.",
-//     harga: 18999000,
-//     kategori: "Elektronik",
-//     rating: 4.8,
-//     reviewCount: 1243,
-//     icon: "smartphone",
-//   },
-//   {
-//     id: 2,
-//     nama_barang: "Laptop MacBook Pro M2",
-//     deskripsi:
-//       "Laptop dengan chip M2, layar Retina XDR, dan baterai tahan hingga 17 jam.",
-//     harga: 24999000,
-//     kategori: "Elektronik",
-//     rating: 4.9,
-//     reviewCount: 856,
-//     icon: "laptop",
-//   },
-//   {
-//     id: 3,
-//     nama_barang: "Headphone Sony WH-1000XM5",
-//     deskripsi:
-//       "Headphone nirkabel dengan noise cancelling terbaik di kelasnya.",
-//     harga: 4999000,
-//     kategori: "Elektronik",
-//     rating: 4.7,
-//     reviewCount: 1102,
-//     icon: "headphones",
-//   },
-//   {
-//     id: 4,
-//     nama_barang: "Kamera Mirrorless Sony A7 IV",
-//     deskripsi:
-//       "Kamera mirrorless full-frame dengan sensor 33MP dan kemampuan video 4K 60fps.",
-//     harga: 32999000,
-//     kategori: "Elektronik",
-//     rating: 4.9,
-//     reviewCount: 432,
-//     icon: "camera",
-//   },
-//   {
-//     id: 5,
-//     nama_barang: "Jam Tangan Seiko Presage",
-//     deskripsi:
-//       "Jam tangan mekanikal dengan desain elegan dan gerakan otomatis presisi tinggi.",
-//     harga: 8499000,
-//     kategori: "Fashion",
-//     rating: 4.7,
-//     reviewCount: 321,
-//     icon: "watch",
-//   },
-//   {
-//     id: 6,
-//     nama_barang: "iPad Pro 12.9 inch",
-//     deskripsi:
-//       "Tablet premium dengan layar Liquid Retina XDR dan chip M2 yang powerful.",
-//     harga: 19999000,
-//     kategori: "Elektronik",
-//     rating: 4.8,
-//     reviewCount: 567,
-//     icon: "tablet",
-//   },
-//   {
-//     id: 7,
-//     nama_barang: "Blender Philips HR3868",
-//     deskripsi:
-//       "Blender dengan teknologi ProBlend untuk hasil yang halus dan cepat.",
-//     harga: 1299000,
-//     kategori: "Rumah Tangga",
-//     rating: 4.5,
-//     reviewCount: 234,
-//     icon: "cable",
-//   },
-// ];
-
 export default function HomePage() {
   const storedUser = JSON.parse(localStorage.getItem("user"));
   const uid = storedUser?.id;
-  console.log("User ID:", uid);
   const [currentPage, setCurrentPage] = useState(1);
   const [previewProduct, setPreviewProduct] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cartItems, setCartItems] = useState([]);
-  console.table(cartItems);
-  console.log("Cart Items:", cartItems);
   const [productsData, setproductsData] = useState([]);
 
   const productsPerPage = 8;
@@ -276,9 +184,11 @@ export default function HomePage() {
     if (!uid) return [];
 
     try {
-      const snapshot = await getDocs(collection(firestore, `carts/${uid}/items`));
-      return snapshot.docs.map(doc => ({
-        id: doc.id, // penting agar tiap item bisa dibedakan
+      const snapshot = await getDocs(
+        collection(firestore, `carts/${uid}/items`)
+      );
+      return snapshot.docs.map((doc) => ({
+        id: doc.id,
         ...doc.data(),
       }));
     } catch (error) {
@@ -288,7 +198,7 @@ export default function HomePage() {
   };
 
   // Fungsi untuk load cart items dari Firestore dan update state
-  const loadCartItems = async () => {
+  const loadCartItems = useCallback(async () => {
     if (!uid) return;
     try {
       const items = await getCartItems(uid);
@@ -296,12 +206,11 @@ export default function HomePage() {
     } catch (error) {
       console.error("Gagal load cart items:", error);
     }
-  };
+  }, [uid]);
 
-  // Panggil loadCartItems saat mount atau uid berubah
   useEffect(() => {
     loadCartItems();
-  }, [uid]);
+  }, [loadCartItems]);
 
   const handleAddToCart = async (product) => {
     if (!uid) {
@@ -311,25 +220,13 @@ export default function HomePage() {
     }
 
     try {
-    // 1. Update Firestore ke dalam koleksi carts/{uid}/items/{productId}
-    const cartItemRef = doc(firestore, "carts", uid, "items", product.id);
-    await setDoc(cartItemRef, {
-      qty: product.jumlah, // jumlah dari state
-      productId: product.id,
-    });
+      // 1. Update Firestore ke dalam koleksi carts/{uid}/items/{productId}
+      const cartItemRef = doc(firestore, "carts", uid, "items", product.id);
+      await setDoc(cartItemRef, {
+        qty: product.jumlah, // jumlah dari state
+        productId: product.id,
+      });
 
-
-    // 2. Update local state
-    // setCartItems((prev) => {
-    //   const exists = prev.find((item) => item.id === product.id);
-    //   return exists
-    //     ? prev.map((item) =>
-    //         item.id === product.id
-    //           ? { ...item, quantity: product.jumlah }
-    //           : item
-    //       )
-    //     : [...prev, { ...product, quantity: product.jumlah }];
-    // });
       await loadCartItems();
       alert("Berhasil menambahkan ke keranjang!");
     } catch (err) {
@@ -353,12 +250,6 @@ export default function HomePage() {
   };
 
   const navigate = useNavigate();
-  const profile = () => {
-    navigate("/profile");
-  };
-  const wishlist = () => {
-    navigate("/wishlist");
-  };
 
   // Scroll to top when page changes
   useEffect(() => {
@@ -374,10 +265,12 @@ export default function HomePage() {
           ...doc.data(),
           status_stok: doc.data().stok > 0 ? "Stok Tersedia" : "Stok Kosong",
         }));
-        setproductsData(fetchedProducts.map((p) => ({
-          ...p,
-          jumlah: p.jumlah || 1 
-        })));
+        setproductsData(
+          fetchedProducts.map((p) => ({
+            ...p,
+            jumlah: p.jumlah || 1,
+          }))
+        );
       } catch (error) {
         console.error("Gagal mengambil data barang:", error);
       }
@@ -396,83 +289,18 @@ export default function HomePage() {
 
   const kurangJumlah = () => {
     setPreviewProduct((prev) =>
-      prev && prev.jumlah > 1
-        ? { ...prev, jumlah: prev.jumlah - 1 }
-        : prev
+      prev && prev.jumlah > 1 ? { ...prev, jumlah: prev.jumlah - 1 } : prev
     );
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-        <Navbar1 cartItems={cartItems}/>
-      {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 bg-gray-800 bg-opacity-75 z-20 md:hidden">
-          <div className="bg-white h-full w-3/4 max-w-xs p-4 flex flex-col">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold">Menu</h2>
-              <button onClick={() => setMobileMenuOpen(false)}>
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-            <div className="mb-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <input
-                  type="text"
-                  placeholder="Cari produk..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799] text-sm"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-            <nav className="flex flex-col space-y-4">
-              <a
-                href="/"
-                className="flex items-center space-x-2 p-2 bg-purple-50 text-[#753799] rounded-md"
-              >
-                <Home className="h-5 w-5 text-[#753799]" />
-                <span>Beranda</span>
-              </a>
-              <a
-                href="/profile"
-                className="flex items-center space-x-2 p-2 hover:bg-purple-50 rounded-md"
-              >
-                <User className="h-5 w-5 text-[#753799]" />
-                <span>Profil</span>
-              </a>
-              <a
-                href="/orders"
-                className="flex items-center space-x-2 p-2 hover:bg-purple-50 rounded-md"
-              >
-                <ShoppingBag className="h-5 w-5 text-[#753799]" />
-                <span>Pesanan</span>
-              </a>
-              <a
-                href="/wishlist"
-                className="flex items-center space-x-2 p-2 hover:bg-purple-50 rounded-md"
-              >
-                <Heart className="h-5 w-5 text-[#753799]" />
-                <span>Wishlist</span>
-              </a>
-              <a
-                href="/notifications"
-                className="flex items-center space-x-2 p-2 hover:bg-purple-50 rounded-md"
-              >
-                <Bell className="h-5 w-5 text-[#753799]" />
-                <span>Notifikasi</span>
-              </a>
-              <hr className="border-gray-200" />
-              <button className="flex items-center space-x-2 p-2 text-red-600 hover:bg-red-50 rounded-md">
-                <LogOut className="h-5 w-5" />
-                <span>Keluar</span>
-              </button>
-            </nav>
-          </div>
-        </div>
-      )}
+      <Navbar1
+        cartItems={cartItems}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+      />
 
       {/* Hero Banner */}
       <div className="bg-gradient-to-r from-[#753799] to-[#100428] text-white py-12 px-4">
@@ -595,7 +423,9 @@ export default function HomePage() {
                         </span>
                         <p
                           className={`flex items-center gap-1 text-xs ${
-                            product.status_stok === "Stok Tersedia" ? "text-green-500" : "text-red-500"
+                            product.status_stok === "Stok Tersedia"
+                              ? "text-green-500"
+                              : "text-red-500"
                           }`}
                         >
                           {product.status_stok === "Stok Tersedia" ? (
@@ -716,14 +546,9 @@ export default function HomePage() {
                     <p className="text-[#753799] font-bold text-2xl">
                       Rp{previewProduct.harga.toLocaleString()}
                     </p>
-                    {/* <p className="text-xs text-gray-500 mr-1">
-                      Jumlah Stok: {previewProduct.stok}
-                    </p> */}
                   </div>
                   <div className="flex justify-between items-center mb-4">
-                    <p className="text-gray-500 mr-1">
-                      Kuantitas
-                    </p>
+                    <p className="text-gray-500 mr-1">Kuantitas</p>
                     <div className="flex items-center justify-around w-22 gap-2 border-purple-700 border-1 rounded-2xl p-1">
                       <button
                         onClick={kurangJumlah}
@@ -731,7 +556,9 @@ export default function HomePage() {
                       >
                         -
                       </button>
-                      <span className="text-black">{previewProduct.jumlah}</span>
+                      <span className="text-black">
+                        {previewProduct.jumlah}
+                      </span>
                       <button
                         onClick={tambahJumlah}
                         className="text-black w-6 h-6 rounded cursor-pointer"
@@ -744,16 +571,16 @@ export default function HomePage() {
                     </p>
                   </div>
                   {previewProduct.stok > 0 ? (
-                  <button
-                    onClick={() => {
-                      handleAddToCart(previewProduct);
-                      handleCloseModal();
-                    }}
-                    className="w-full py-3 bg-[#753799] text-white rounded-lg hover:bg-[#5d2c7a] transition-colors flex items-center justify-center"
-                  >
-                    <ShoppingCart className="h-5 w-5 mr-2" /> Tambah ke
-                    Keranjang
-                  </button>
+                    <button
+                      onClick={() => {
+                        handleAddToCart(previewProduct);
+                        handleCloseModal();
+                      }}
+                      className="w-full py-3 bg-[#753799] text-white rounded-lg hover:bg-[#5d2c7a] transition-colors flex items-center justify-center"
+                    >
+                      <ShoppingCart className="h-5 w-5 mr-2" /> Tambah ke
+                      Keranjang
+                    </button>
                   ) : (
                     <button
                       disabled
