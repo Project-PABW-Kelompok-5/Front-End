@@ -35,25 +35,29 @@ createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <Routes>
         {/* Public Routes */}
-        <Route path="/dashboard" element={<Dashboard />} />
+        {/* Hapus atau ubah rute ini jika Dashboard hanya untuk Admin. */}
+        {/* <Route path="/dashboard" element={<Dashboard />} /> */}
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/wallet" element={<Wallet />} />
         <Route path="/" element={<Homepage />} />
+        <Route path="/wallet" element={<Wallet />} />
         <Route path="/profile" element={<Profil />} />
         <Route path="/myOrder" element={<MyOrder />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
-        <Route path="/history" element={<DeliveryHistory />} />
+        {/* Rute ini dipindahkan ke Protected Kurir Routes */}
+        {/* <Route path="/history" element={<DeliveryHistory />} /> */}
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/managebarang" element={<ManageBarang />} />
-        <Route path="/kurir/dashboard" element={<DashboardKurir />} />
-        <Route path="/kurir/barang" element={<KurirBarang />} />
+        {/* Rute ini dipindahkan ke Protected Kurir Routes */}
+        {/* <Route path="/kurir/dashboard" element={<DashboardKurir />} /> */}
+        {/* Rute ini dipindahkan ke Protected Kurir Routes */}
+        {/* <Route path="/kurir/barang" element={<KurirBarang />} /> */}
         <Route path="/addresses" element={<Addresses />} />
+        <Route path="/history" element={<DeliveryHistory />} />
 
         {/* Protected User Routes */}
         <Route element={<PrivateRoute role="user" />}>
-          {/* <Route path="/" element={<Homepage />} /> */}
           <Route path="/users/dashboard" element={<EcommerceDashboard />} />
         </Route>
 
@@ -64,6 +68,12 @@ createRoot(document.getElementById("root")).render(
           <Route path="/admin/manageProduct" element={<ManageProduct />} />
           <Route path="/admin/manageCourier" element={<ManageCourier />} />
           <Route path="/admin/manageBalance" element={<ManageBalance />} />
+        </Route>
+
+        {/* --- Protected Kurir Routes --- */}
+        <Route element={<PrivateRoute role="kurir" />}>
+          <Route path="/kurir/dashboard" element={<DashboardKurir />} />
+          <Route path="/kurir/barang" element={<KurirBarang />} />
         </Route>
       </Routes>
     </BrowserRouter>
