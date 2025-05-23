@@ -188,12 +188,12 @@ const DeliveryHistory = () => {
 
   return (
     <div
-      className="container rounded-2xl mx-auto px-4 py-8 max-w-4xl"
+      className="min-h-screen"
       style={{
-        background: "linear-gradient(to bottom, #4a2362, #08001a)",
-        color: "#ffffff",
+        background: "linear-gradient(135deg, #4a2362 0%, #08001a 100%)",
       }}
     >
+      <div className="container rounded-2xl mx-auto px-4 py-8 max-w-4xl shadow-2xl">
       <div onClick={homepage} className="flex items-center mb-6">
         <HomeIcon className="h-6 cursor-pointer w-6 mr-2 text-white" />
         <p className="text-xl cursor-pointer font-bold text-white">Kembali</p>
@@ -424,6 +424,7 @@ const DeliveryHistory = () => {
           ))}
         </div>
       )}
+    </div>
     </div>
   );
 };
