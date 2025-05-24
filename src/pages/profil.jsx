@@ -1,5 +1,6 @@
 "use client";
 
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -15,6 +16,8 @@ import {
   Plus,
   PenSquare,
   Trash2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { FaHome } from "react-icons/fa";
 import {
@@ -29,6 +32,13 @@ import {
 import { firestore } from "../firebase";
 import DropdownAlamatKaltim from "../components/DropdownAlamatKaltim";
 
+import { 
+  getAuth, 
+  updatePassword, 
+  reauthenticateWithCredential, 
+  EmailAuthProvider 
+} from "firebase/auth";
+
 const initialUserData = {
   name: "Pengguna Baru",
   email: "pengguna@example.com",
@@ -38,6 +48,7 @@ const initialUserData = {
   isEmailVerified: false,
   isPhoneVerified: false,
 };
+
 
 const UserProfile = () => {
   const navigate = useNavigate();
@@ -74,6 +85,12 @@ const UserProfile = () => {
     kota: "",
     kecamatan: "",
     kodePos: "",
+  });
+
+  const [passwordVisibility, setPasswordVisibility] = useState({
+    currentPassword: false,
+    newPassword: false,
+    confirmPassword: false,
   });
 
   // 1. useEffect untuk memuat data pengguna utama
@@ -288,20 +305,168 @@ const UserProfile = () => {
     }
   };
   
+  //Enhanced handlePasswordChange dengan validasi real-time
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
     setPasswordData((prev) => ({ ...prev, [name]: value }));
-  };
-  
-  const handlePasswordSubmit = () => {
-    console.log("Password change submitted:", passwordData);
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-        alert("Kata sandi baru dan konfirmasi kata sandi tidak cocok.");
-        return;
+
+    // Real-time validation untuk new password
+    if (name === 'newPassword') {
+      const validation = validatePasswordStrength(value);
+      // Bisa set state untuk menampilkan indikator kekuatan password
+      // setPasswordStrength(validation);
     }
-    alert("Fitur ubah kata sandi belum diimplementasikan sepenuhnya dengan backend Firebase Auth.");
+  };
+
+  const togglePasswordVisibility = (field) => {
+    setPasswordVisibility(prev => ({
+      ...prev,
+      [field]: !prev[field]
+    }));
+  };
+
+  const handleCancelPasswordChange = () => {
+    setPasswordData({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
+    setPasswordVisibility({
+      currentPassword: false,
+      newPassword: false,
+      confirmPassword: false,
+    });
     setIsChangingPassword(false);
   };
+  const handlePasswordSubmit = async () => {
+    const { currentPassword, newPassword, confirmPassword } = passwordData;
+
+    // Validasi input
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      alert("Semua field harus diisi.");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      alert("Kata sandi baru dan konfirmasi kata sandi tidak cocok.");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      alert("Kata sandi baru harus minimal 6 karakter.");
+      return;
+    }
+
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+
+      if (!user) {
+        alert("User tidak ditemukan. Silakan login ulang.");
+        return;
+      }
+
+      // Re-authenticate user dengan password lama
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      await reauthenticateWithCredential(user, credential);
+
+      // Update password
+      await updatePassword(user, newPassword);
+
+      // Reset form dan state
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setPasswordVisibility({
+        currentPassword: false,
+        newPassword: false,
+        confirmPassword: false,
+      });
+      setIsChangingPassword(false);
+
+      alert("Kata sandi berhasil diperbarui!");
+
+    } catch (error) {
+      console.error("Error updating password:", error);
+
+      // Handle specific error codes
+      switch (error.code) {
+        case 'auth/wrong-password':
+          alert("Kata sandi saat ini salah.");
+          break;
+        case 'auth/weak-password':
+          alert("Kata sandi baru terlalu lemah. Gunakan minimal 6 karakter.");
+          break;
+        case 'auth/requires-recent-login':
+          alert("Untuk keamanan, silakan logout dan login ulang sebelum mengubah kata sandi.");
+          break;
+        case 'auth/too-many-requests':
+          alert("Terlalu banyak percobaan. Silakan coba lagi nanti.");
+          break;
+        default:
+          alert("Gagal mengubah kata sandi: " + error.message);
+      }
+    }
+  };
+
+  //Fungsi untuk logout dan redirect ke login (opsional untuk keamanan ekstra)
+  const handleLogoutAfterPasswordChange = () => {
+    const auth = getAuth();
+    auth.signOut().then(() => {
+      localStorage.removeItem("user");
+      navigate("/login");
+      alert("Kata sandi berhasil diubah. Silakan login ulang untuk keamanan.");
+    });
+  };
+
+  //Fungsi untuk validasi password strength (opsional)
+  const validatePasswordStrength = (password) => {
+    const minLength = password.length >= 6;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    return {
+      isValid: minLength,
+      strength: [minLength, hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar].filter(Boolean).length,
+      suggestions: [
+        !minLength && "Minimal 6 karakter",
+        !hasUpperCase && "Tambahkan huruf besar",
+        !hasLowerCase && "Tambahkan huruf kecil",
+        !hasNumbers && "Tambahkan angka",
+        !hasSpecialChar && "Tambahkan karakter khusus"
+      ].filter(Boolean)
+    };
+  };
+
+// Komponen untuk menampilkan kekuatan password (opsional)
+const PasswordStrengthIndicator = ({ password }) => {
+  const validation = validatePasswordStrength(password);
+  const colors = ['red', 'orange', 'yellow', 'lightgreen', 'green'];
+  
+  return (
+    <div className="mt-2">
+      <div className="flex space-x-1 mb-1">
+        {[1,2,3,4,5].map(i => (
+          <div 
+            key={i}
+            className={`h-1 flex-1 rounded ${
+              i <= validation.strength ? `bg-${colors[validation.strength-1]}-500` : 'bg-gray-200'
+            }`}
+          />
+        ))}
+      </div>
+      {validation.suggestions.length > 0 && (
+        <p className="text-xs text-gray-600">
+          Saran: {validation.suggestions.join(', ')}
+        </p>
+      )}
+    </div>
+  );
+};
   
   const handleChangeProfilePicture = () => {
     alert("Fitur ganti foto profil belum diimplementasikan.");
@@ -564,22 +729,97 @@ const UserProfile = () => {
                       )}
                     </div>
                     {isChangingPassword && (
-                      <form onSubmit={(e) => {e.preventDefault(); handlePasswordSubmit();}} className="space-y-4">
+                      <form onSubmit={(e) => { e.preventDefault(); handlePasswordSubmit(); }} className="space-y-4">
+                        {/* Current Password Field */}
                         <div>
-                          <label htmlFor="currentPassword" className="block text-sm font-medium text-[#100428] mb-1">Kata Sandi Saat Ini</label>
-                          <input type="password" id="currentPassword" name="currentPassword" value={passwordData.currentPassword} onChange={handlePasswordChange} className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]" required />
+                          <label htmlFor="currentPassword" className="block text-sm font-medium text-[#100428] mb-1">
+                            Kata Sandi Saat Ini
+                          </label>
+                          <div className="relative">
+                            <input
+                              type={passwordVisibility.currentPassword ? "text" : "password"}
+                              id="currentPassword"
+                              name="currentPassword"
+                              value={passwordData.currentPassword}
+                              onChange={handlePasswordChange}
+                              className="w-full px-4 py-2 pr-12 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]"
+                              required
+                            />
+                            <button
+                              type="button"
+                              onClick={() => togglePasswordVisibility('currentPassword')}
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#753799] hover:text-[#100428] transition-colors"
+                            >
+                              {passwordVisibility.currentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
+                          </div>
                         </div>
+
+                        {/* New Password Field */}
                         <div>
-                          <label htmlFor="newPassword" className="block text-sm font-medium text-[#100428] mb-1">Kata Sandi Baru</label>
-                          <input type="password" id="newPassword" name="newPassword" value={passwordData.newPassword} onChange={handlePasswordChange} className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]" required />
+                          <label htmlFor="newPassword" className="block text-sm font-medium text-[#100428] mb-1">
+                            Kata Sandi Baru
+                          </label>
+                          <div className="relative">
+                            <input
+                              type={passwordVisibility.newPassword ? "text" : "password"}
+                              id="newPassword"
+                              name="newPassword"
+                              value={passwordData.newPassword}
+                              onChange={handlePasswordChange}
+                              className="w-full px-4 py-2 pr-12 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]"
+                              required
+                            />
+                            <button
+                              type="button"
+                              onClick={() => togglePasswordVisibility('newPassword')}
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#753799] hover:text-[#100428] transition-colors"
+                            >
+                              {passwordVisibility.newPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
+                          </div>
                         </div>
+
+                        {/* Confirm Password Field */}
                         <div>
-                          <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#100428] mb-1">Konfirmasi Kata Sandi Baru</label>
-                          <input type="password" id="confirmPassword" name="confirmPassword" value={passwordData.confirmPassword} onChange={handlePasswordChange} className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]" required />
+                          <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#100428] mb-1">
+                            Konfirmasi Kata Sandi Baru
+                          </label>
+                          <div className="relative">
+                            <input
+                              type={passwordVisibility.confirmPassword ? "text" : "password"}
+                              id="confirmPassword"
+                              name="confirmPassword"
+                              value={passwordData.confirmPassword}
+                              onChange={handlePasswordChange}
+                              className="w-full px-4 py-2 pr-12 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]"
+                              required
+                            />
+                            <button
+                              type="button"
+                              onClick={() => togglePasswordVisibility('confirmPassword')}
+                              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#753799] hover:text-[#100428] transition-colors"
+                            >
+                              {passwordVisibility.confirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
+                          </div>
                         </div>
+
+                        {/* Buttons */}
                         <div className="flex justify-end space-x-3 pt-4">
-                          <button type="button" onClick={() => setIsChangingPassword(false)} className="px-4 py-2 border border-[#753799] rounded-md text-[#753799] hover:bg-[#100428] hover:text-white transition">Batal</button>
-                          <button type="submit" className="px-4 py-2 bg-gradient-to-r from-[#753799] to-[#100428] text-white rounded-md hover:from-[#632f86] hover:to-[#0d041f] transition">Perbarui Kata Sandi</button>
+                          <button
+                            type="button"
+                            onClick={() => setIsChangingPassword(false)}
+                            className="px-4 py-2 border border-[#753799] rounded-md text-[#753799] hover:bg-[#100428] hover:text-white transition"
+                          >
+                            Batal
+                          </button>
+                          <button
+                            type="submit"
+                            className="px-4 py-2 bg-gradient-to-r from-[#753799] to-[#100428] text-white rounded-md hover:from-[#632f86] hover:to-[#0d041f] transition"
+                          >
+                            Perbarui Kata Sandi
+                          </button>
                         </div>
                       </form>
                     )}
