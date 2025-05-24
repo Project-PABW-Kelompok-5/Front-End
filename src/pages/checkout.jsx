@@ -16,6 +16,17 @@ import Header from "../components/header";
 import Footer from "../components/footer";
 import AddressSelectModal from "../components/AddressSelectModal";
 import DropdownAlamatKaltim from "../components/DropdownAlamatKaltim";
+import {
+  Smartphone,
+  Laptop,
+  Headphones,
+  Watch,
+  Camera,
+  Tablet,
+  Cable,
+  Coffee,
+  Package,
+} from "lucide-react";
 
 const Checkout = () => {
   /* ─────────────────────────────  USER  ───────────────────────────── */
@@ -85,13 +96,21 @@ const Checkout = () => {
 
   /* ───────────────── SINKRONISASI SELECTEDADDRESSINDEX DENGAN ADDRESSLIST ───────────────── */
   useEffect(() => {
-    console.log("SYNC EFFECT: Mulai. selectedAddressIndex awal:", selectedAddressIndex, "Panjang addressList:", addressList.length);
+    console.log(
+      "SYNC EFFECT: Mulai. selectedAddressIndex awal:",
+      selectedAddressIndex,
+      "Panjang addressList:",
+      addressList.length
+    );
     let newSelectedAddressIndex = selectedAddressIndex;
     let selectionChanged = false;
 
     if (addressList.length > 0) {
       // Jika ada alamat di list
-      if (selectedAddressIndex === null || selectedAddressIndex >= addressList.length) {
+      if (
+        selectedAddressIndex === null ||
+        selectedAddressIndex >= addressList.length
+      ) {
         // Jika tidak ada yang dipilih, atau pilihan keluar dari batas (misal setelah delete)
         newSelectedAddressIndex = 0; // Pilih alamat pertama
         if (selectedAddressIndex !== newSelectedAddressIndex) {
@@ -111,7 +130,6 @@ const Checkout = () => {
       setSelectedAddressIndex(newSelectedAddressIndex);
     }
   }, [addressList, selectedAddressIndex, setSelectedAddressIndex]); // Dependensi
-
 
   /* ─────────────────────────  DATA PRODUK  ─────────────────────────── */
   const { state } = useLocation();
@@ -144,17 +162,17 @@ const Checkout = () => {
     setShowAddressModal(true);
     setShowSelectModal(false);
   };
-  
+
   const handleOpenEditAddressInModal = (indexToEdit) => {
     const addressToEdit = addressList[indexToEdit];
     setForm({
-        name: addressToEdit.name,
-        phone: addressToEdit.phone,
-        addressDetail: addressToEdit.addressDetail,
-        provinsi: addressToEdit.provinsi || "Kalimantan Timur",
-        kota: addressToEdit.kota,
-        kecamatan: addressToEdit.kecamatan,
-        kodePos: addressToEdit.kodePos,
+      name: addressToEdit.name,
+      phone: addressToEdit.phone,
+      addressDetail: addressToEdit.addressDetail,
+      provinsi: addressToEdit.provinsi || "Kalimantan Timur",
+      kota: addressToEdit.kota,
+      kecamatan: addressToEdit.kecamatan,
+      kodePos: addressToEdit.kodePos,
     });
     setEditIndex(indexToEdit);
     setShowAddressModal(true);
@@ -166,18 +184,22 @@ const Checkout = () => {
     const alamatCol = collection(firestore, `users/${userId}/alamat`);
     const docRef = await addDoc(alamatCol, addrData);
     const newAddress = { ...addrData, id: docRef.id };
-    
+
     setAddressList((prevList) => {
       const newList = [...prevList, newAddress];
       // Langsung pilih alamat yang baru ditambahkan
-      setSelectedAddressIndex(newList.length - 1); 
+      setSelectedAddressIndex(newList.length - 1);
       return newList;
     });
     return newAddress;
   };
 
   // REVISED updateExistingAddressInFirestore
-  const updateExistingAddressInFirestore = async (addrData, addressId, indexInList) => {
+  const updateExistingAddressInFirestore = async (
+    addrData,
+    addressId,
+    indexInList
+  ) => {
     const ref = doc(firestore, `users/${userId}/alamat/${addressId}`);
     await setDoc(ref, addrData, { merge: true });
     const updatedAddress = { ...addrData, id: addressId };
@@ -186,7 +208,7 @@ const Checkout = () => {
       prevList.map((a, i) => (i === indexInList ? updatedAddress : a))
     );
     // Pastikan alamat yang diedit tetap terpilih
-    setSelectedAddressIndex(indexInList); 
+    setSelectedAddressIndex(indexInList);
     return updatedAddress;
   };
 
@@ -200,7 +222,11 @@ const Checkout = () => {
     try {
       if (editIndex !== null) {
         const addressToUpdate = addressList[editIndex];
-        await updateExistingAddressInFirestore(payload, addressToUpdate.id, editIndex);
+        await updateExistingAddressInFirestore(
+          payload,
+          addressToUpdate.id,
+          editIndex
+        );
         alert("Alamat berhasil diperbarui.");
       } else {
         await saveNewAddressToFirestore(payload);
@@ -209,8 +235,8 @@ const Checkout = () => {
       setShowAddressModal(false);
       setEditIndex(null);
     } catch (error) {
-        console.error("Gagal menyimpan alamat:", error);
-        alert("Terjadi kesalahan saat menyimpan alamat.");
+      console.error("Gagal menyimpan alamat:", error);
+      alert("Terjadi kesalahan saat menyimpan alamat.");
     }
   };
 
@@ -223,7 +249,7 @@ const Checkout = () => {
       return alert("Tidak ada produk yang dipesan.");
     if (selectedAddressIndex === null || !addressList[selectedAddressIndex])
       return alert("Pilih atau tambah alamat pengiriman dulu.");
-    
+
     const userSnap = await getDoc(doc(firestore, `users/${userId}`));
     const userData = userSnap.data();
     if (!userData || userData.saldo < grandTotal) {
@@ -299,145 +325,178 @@ const Checkout = () => {
         </button>
       </div>
     );
-    
-  // TAMBAHKAN LOGS DI SINI SEBELUM RETURN ATAU DEFINISI currentSelectedAddress
-  console.log("CHECKOUT RENDER: selectedAddressIndex state:", selectedAddressIndex);
-  console.log("CHECKOUT RENDER: addressList state:", addressList);
+
   const currentSelectedAddress = addressList[selectedAddressIndex]; // Pastikan ini didefinisikan setelah addressList dan selectedAddressIndex di-log
-  console.log("CHECKOUT RENDER: currentSelectedAddress (hasil dari addressList[selectedAddressIndex]):", currentSelectedAddress);
+  const iconMap = {
+    smartphone: Smartphone,
+    laptop: Laptop,
+    headphones: Headphones,
+    watch: Watch,
+    camera: Camera,
+    tablet: Tablet,
+    cable: Cable,
+    coffee: Coffee,
+  };
+
+  const getProductIcon = (iconName) => {
+    const IconComponent = iconMap[iconName] || Package;
+    return <IconComponent className="h-8 w-8 text-[#753799]" />;
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-100 relative">
       <Header />
       <div className="flex flex-col items-center">
+        <div className="w-full max-w-6xl mx-auto px-4">
+          {/* ─── Alamat Pengiriman  ───  */}
+          <div className="mt-7 p-7 border border-gray-200 rounded-lg bg-white shadow">
+            <h2 className="text-xl font-semibold mb-6">Alamat Pengiriman</h2>
 
-        {/* ─── Alamat Pengiriman  ───  */}
-        <div className="w-full max-w-3xl mt-7 p-7 border border-gray-200 rounded-lg bg-white shadow">
-          <h2 className="text-xl font-semibold mb-6">Alamat Pengiriman</h2>
-
-          {/* Kondisi ini seharusnya sekarang bekerja dengan benar */}
-          {selectedAddressIndex === null || !currentSelectedAddress ? (
-            <div className="text-center">
-              <p className="mb-5">Belum ada alamat pengiriman atau alamat belum dipilih.</p>
-              <button
-                className="px-6 py-2 bg-blue-600 text-white rounded mr-2"
-                onClick={handleOpenAddNewAddressModal}
-              >
-                Tambah Alamat Baru
-              </button>
-              {addressList.length > 0 && (
-                 <button
+            {/* Kondisi ini seharusnya sekarang bekerja dengan benar */}
+            {selectedAddressIndex === null || !currentSelectedAddress ? (
+              <div className="text-center">
+                <p className="mb-5">
+                  Belum ada alamat pengiriman atau alamat belum dipilih.
+                </p>
+                <button
+                  className="px-6 py-2 bg-blue-600 text-white rounded mr-2"
+                  onClick={handleOpenAddNewAddressModal}
+                >
+                  Tambah Alamat Baru
+                </button>
+                {addressList.length > 0 && (
+                  <button
                     onClick={() => setShowSelectModal(true)}
                     className="px-6 py-2 bg-green-600 text-white rounded"
                   >
                     Pilih dari Alamat Tersimpan
                   </button>
-              )}
-            </div>
-          ) : (
-            <div className="flex mb-4 justify-between items-start">
-              <div className="w-2/5">
-                <p className="font-bold">{currentSelectedAddress?.name}</p>
-                <p>{currentSelectedAddress?.phone}</p>
+                )}
               </div>
-              <div className="w-3/5 pr-4">
-                <p>{currentSelectedAddress?.addressDetail}</p>
-                <p>{`${currentSelectedAddress?.kecamatan}, ${currentSelectedAddress?.kota}, ${currentSelectedAddress?.provinsi}, ${currentSelectedAddress?.kodePos}`}</p>
+            ) : (
+              <div className="flex mb-4 justify-between items-start">
+                <div className="w-2/5">
+                  <p className="font-bold">{currentSelectedAddress?.name}</p>
+                  <p>{currentSelectedAddress?.phone}</p>
+                </div>
+                <div className="w-3/5 pr-4">
+                  <p>{currentSelectedAddress?.addressDetail}</p>
+                  <p>{`${currentSelectedAddress?.kecamatan}, ${currentSelectedAddress?.kota}, ${currentSelectedAddress?.provinsi}, ${currentSelectedAddress?.kodePos}`}</p>
+                </div>
+                <button
+                  onClick={() => setShowSelectModal(true)}
+                  className="self-start text-blue-500 text-sm cursor-pointer whitespace-nowrap"
+                >
+                  Ubah Alamat
+                </button>
               </div>
-              <button
-                onClick={() => setShowSelectModal(true)}
-                className="self-start text-blue-500 text-sm cursor-pointer whitespace-nowrap"
-              >
-                Ubah Alamat
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* ─── Produk Dipesan  ───  */}
-        <div className="w-full max-w-3xl mt-4 p-7 border-1 border-gray-200 rounded-t-lg bg-white shadow flex flex-col">
-          <div className="flex justify-between">
-            <h1 className="text-xl font-semibold mb-6">Produk Dipesan</h1>
-            <div className="hidden md:flex text-right text-gray-500">
-              <p className="w-32 md:w-40 lg:w-50">Harga Satuan</p>
-              <p className="w-20 md:w-24 lg:w-50">Jumlah</p>
-              <p className="w-32 md:w-40 lg:w-50">Subtotal</p>
-            </div>
+            )}
           </div>
 
-          {selectedItems.map((it) => (
-            <div key={it.id} className="flex flex-col md:flex-row justify-between items-start md:items-center mb-7">
-              <div className="flex items-center w-full md:w-auto mb-2 md:mb-0">
-                <img
-                  src={it.image || `https://placehold.co/50?text=${it.nama_barang}`}
-                  alt={it.nama_barang}
-                  className="w-12 h-12 mr-4 rounded"
-                />
-                <div className="flex-grow md:w-64 lg:w-125">
-                  <h2 className="text-md lg:text-lg font-semibold">{it.nama_barang}</h2>
-                  {it.deskripsi && <p className="text-sm text-gray-500">{it.deskripsi.substring(0,50)}...</p>}
+          {/* ─── Produk Dipesan ─── */}
+          <div className="mt-4 p-7 border border-gray-200 rounded-t-lg bg-white shadow flex flex-col w-full">
+            <div className="flex justify-between">
+              <h1 className="text-xl font-semibold mb-6">Produk Dipesan</h1>
+              <div className="flex text-right text-gray-500">
+                <p className="w-32 md:w-40 lg:w-50">Harga Satuan</p>
+                <p className="w-20 md:w-24 lg:w-50">Jumlah</p>
+                <p className="w-32 md:w-40 lg:w-50">Subtotal</p>
+              </div>
+            </div>
+
+            {selectedItems.map((it) => (
+              <div
+                key={it.id}
+                className="flex items-center justify-between mb-7"
+              >
+                <div className="flex items-center w-full md:w-auto mb-2 md:mb-0">
+                  <div className="w-16 h-16 bg-purple-50 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                    {getProductIcon(it.icon)}
+                  </div>
+                  <div className="flex-grow ">
+                    <h2 className="text-md lg:text-lg font-semibold">
+                      {it.nama_barang}
+                    </h2>
+                    {it.deskripsi && (
+                      <p className="text-sm text-gray-500">
+                        {it.deskripsi.substring(0, 50)}...
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex text-right ">
+                  <p className="w-32 md:w-40 lg:w-50">
+                    Rp{Number(it.harga).toLocaleString("id-ID")}
+                  </p>
+                  <p className="w-20 md:w-24 lg:w-50">{it.jumlah}</p>
+                  <p className="w-32 md:w-40 lg:w-50 font-semibold">
+                    Rp{(it.harga * it.jumlah).toLocaleString("id-ID")}
+                  </p>
                 </div>
               </div>
+            ))}
 
-              <div className="flex w-full md:w-auto text-right md:text-left justify-around md:justify-end items-center">
-                <p className="w-1/3 md:w-32 lg:w-50"><span className="md:hidden">Harga: </span>Rp{Number(it.harga).toLocaleString("id-ID")}</p>
-                <p className="w-1/3 md:w-20 lg:w-50"><span className="md:hidden">Jml: </span>{it.jumlah}</p>
-                <p className="w-1/3 md:w-32 lg:w-50 font-semibold"><span className="md:hidden">Sub: </span>Rp{(it.harga * it.jumlah).toLocaleString("id-ID")}</p>
+            <div className="flex justify-between items-center pt-7 border-t border-dashed border-gray-300">
+              <div className="flex items-center gap-4 font-semibold">
+                <span>Jasa Pengiriman:</span>
+                <span>Berkah Express</span>
               </div>
+              <span className="font-semibold">
+                Rp{shippingCost.toLocaleString("id-ID")}
+              </span>
             </div>
-          ))}
+          </div>
 
-          <div className="flex justify-between items-center pt-7 border-t border-dashed border-gray-300">
-            <div className="flex items-center gap-4 font-semibold">
-              <span>Jasa Pengiriman:</span>
-              <span>Berkah Express</span>
+          {/* Total Pesanan Ringkas */}
+          <div className="py-4 border-x border-b border-gray-200 rounded-b-lg bg-white shadow flex flex-col w-full">
+            <div className="flex items-center justify-end px-6 md:px-7">
+              <p className="text-gray-500">
+                Total Pesanan ({totalQty} produk):
+              </p>
+              <p className="min-w-30 text-xl font-semibold text-right py-2 text-[#753799]">
+                Rp{grandTotal.toLocaleString("id-ID")}
+              </p>
             </div>
-            <span className="font-semibold">
-              Rp{shippingCost.toLocaleString("id-ID")}
-            </span>
           </div>
-        </div>
 
-        {/* Total Pesanan ringkas  */}
-        <div className="w-full max-w-3xl py-4 border border-gray-200 rounded-b-lg bg-white shadow flex flex-col">
-          <div className="flex items-center justify-end px-6 md:px-7">
-            <p className="text-gray-500">
-              Total Pesanan ({totalQty} produk):
-            </p>
-            <p className="min-w-35 text-xl font-semibold pl-4 md:px-6 py-2">
-              Rp{grandTotal.toLocaleString("id-ID")}
-            </p>
-          </div>
-        </div>
-
-        {/* Ringkasan Pembayaran  */}
-        <div className="w-full max-w-3xl mt-4 p-7 mb-8 border border-gray-200 rounded-lg bg-white shadow flex flex-col">
-          <div className="flex justify-end mb-4 items-center">
-            <p className="w-auto md:w-35 text-left">Subtotal Pesanan</p>
-            <p className="w-auto md:w-45 text-right ml-auto">Rp{subtotal.toLocaleString("id-ID")}</p>
-          </div>
-          <div className="flex justify-end mb-4 items-center">
-            <p className="w-auto md:w-35 text-left">Ongkos Kirim</p>
-            <p className="w-auto md:w-45 text-right ml-auto">Rp{shippingCost.toLocaleString("id-ID")}</p>
-          </div>
-          <div className="flex justify-end mb-4 items-center">
-            <p className="font-semibold w-auto md:w-35 text-left">Total Pembayaran</p>
-            <p className="font-semibold text-2xl w-auto md:w-45 text-right ml-auto">
-              Rp{grandTotal.toLocaleString("id-ID")}
-            </p>
-          </div>
-          <div className="flex justify-end mt-4 md:pr-8">
-            <button
-              onClick={() => {
-                const confirmed = window.confirm("Apakah Anda yakin ingin membuat pesanan?\n\nIni akan mengurangi saldo Anda sesuai total pembayaran.");
-                if (confirmed) {
-                  handleCheckout();
-                }
-              }}
-              className="w-full md:w-55 mt-6 py-2 bg-purple-600 text-white text-lg font-semibold rounded hover:bg-purple-700"
-            >
-              Buat Pesanan
-            </button>
+          {/* Ringkasan Pembayaran */}
+          <div className="mt-4 p-7 mb-8 border border-gray-200 rounded-lg bg-white shadow flex flex-col w-full">
+            <div className="flex justify-end mb-4 items-center">
+              <p className="w-auto md:w-35 text-left">Subtotal Pesanan</p>
+              <p className="w-auto md:w-45 text-right ml-auto">
+                Rp{subtotal.toLocaleString("id-ID")}
+              </p>
+            </div>
+            <div className="flex justify-end mb-4 items-center">
+              <p className="w-auto md:w-35 text-left">Ongkos Kirim</p>
+              <p className="w-auto md:w-45 text-right ml-auto">
+                Rp{shippingCost.toLocaleString("id-ID")}
+              </p>
+            </div>
+            <div className="flex justify-end mb-4 items-center">
+              <p className="font-semibold w-auto md:w-35 text-left">
+                Total Pembayaran
+              </p>
+              <p className="font-bold text-2xl w-auto md:w-45 text-right ml-auto text-[#753799]">
+                Rp{grandTotal.toLocaleString("id-ID")}
+              </p>
+            </div>
+            <div className="flex justify-center">
+              <button
+                onClick={() => {
+                  const confirmed = window.confirm(
+                    "Apakah Anda yakin ingin membuat pesanan?\n\nIni akan mengurangi saldo Anda sesuai total pembayaran."
+                  );
+                  if (confirmed) {
+                    handleCheckout();
+                  }
+                }}
+                className="w-full md:w-55 mt-3 py-2 bg-purple-600 text-white text-lg font-semibold rounded hover:bg-purple-700 cursor-pointer"
+              >
+                Buat Pesanan
+              </button>
+            </div>
           </div>
         </div>
 
@@ -450,18 +509,21 @@ const Checkout = () => {
             handleEditAddress={handleOpenEditAddressInModal}
             onClose={() => setShowSelectModal(false)}
             onAddNew={() => {
-                setShowSelectModal(false);
-                handleOpenAddNewAddressModal();
+              setShowSelectModal(false);
+              handleOpenAddNewAddressModal();
             }}
             onConfirm={(selectedIndex) => {
-                // Memanggil setSelectedAddressIndex di sini memastikan
-                // indeks yang dikonfirmasi dari modal benar-benar diterapkan.
-                // Ini mungkin redundan jika klik item di modal sudah memanggilnya,
-                // tapi aman untuk dipertahankan.
-                console.log("MODAL ONCONFIRM: Index dari modal:", selectedIndex); //
-                console.log("MODAL ONCONFIRM: addressList saat ini:", addressList); //
-                setSelectedAddressIndex(selectedIndex);
-                setShowSelectModal(false);
+              // Memanggil setSelectedAddressIndex di sini memastikan
+              // indeks yang dikonfirmasi dari modal benar-benar diterapkan.
+              // Ini mungkin redundan jika klik item di modal sudah memanggilnya,
+              // tapi aman untuk dipertahankan.
+              console.log("MODAL ONCONFIRM: Index dari modal:", selectedIndex); //
+              console.log(
+                "MODAL ONCONFIRM: addressList saat ini:",
+                addressList
+              ); //
+              setSelectedAddressIndex(selectedIndex);
+              setShowSelectModal(false);
             }}
           />
         )}
@@ -501,13 +563,17 @@ const Checkout = () => {
                   />
                 </div>
 
-                <DropdownAlamatKaltim 
-                    onChange={handleAlamatChange} 
-                    initialData={editIndex !== null ? {
-                        kota: form.kota,
-                        kecamatan: form.kecamatan,
-                        kodePos: form.kodePos,
-                    } : undefined}
+                <DropdownAlamatKaltim
+                  onChange={handleAlamatChange}
+                  initialData={
+                    editIndex !== null
+                      ? {
+                          kota: form.kota,
+                          kecamatan: form.kecamatan,
+                          kodePos: form.kodePos,
+                        }
+                      : undefined
+                  }
                 />
 
                 <textarea
@@ -520,16 +586,19 @@ const Checkout = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
                 />
                 <div className="flex justify-end space-x-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowAddressModal(false)}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                    >
-                      Batal
-                    </button>
-                    <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                      Simpan Alamat
-                    </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowAddressModal(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  >
+                    Simpan Alamat
+                  </button>
                 </div>
               </form>
             </div>
