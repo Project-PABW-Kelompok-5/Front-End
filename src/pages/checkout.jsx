@@ -267,6 +267,7 @@ const Checkout = () => {
           harga: it.harga,
           qty: it.jumlah,
           subtotal: it.harga * it.jumlah,
+          id_penjual: it.id_user,
         })),
         alamat: {
           namaPenerima: alamat.name,
@@ -314,15 +315,40 @@ const Checkout = () => {
   /* ──────────────────────────────  UI  ─────────────────────────────── */
   if (submitted)
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <h1 className="text-2xl font-bold mb-4">Terima kasih!</h1>
-        <p>Pesanan Anda sedang diproses</p>
-        <button
-          onClick={() => navigate("/")}
-          className="mt-6 px-6 py-3 bg-purple-700 text-white rounded"
-        >
-          Kembali ke Beranda
-        </button>
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+        <div className="bg-white shadow-lg rounded-lg p-8 max-w-md text-center">
+          <div className="flex justify-center mb-6">
+            <div className="bg-green-100 rounded-full p-4">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-10 w-10 text-green-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            </div>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">
+            Terima kasih!
+          </h1>
+          <p className="text-gray-600">Pesanan Anda sedang diproses.</p>
+          <p className="text-gray-600 mb-6">
+            Kami akan segera mengirimkan barang Anda.
+          </p>
+          <button
+            onClick={() => navigate("/")}
+            className="mt-4 px-6 py-3 bg-purple-700 text-white rounded hover:bg-purple-800 transition duration-200 cursor-pointer"
+          >
+            Kembali ke Beranda
+          </button>
+        </div>
       </div>
     );
 
@@ -451,10 +477,10 @@ const Checkout = () => {
           {/* Total Pesanan Ringkas */}
           <div className="py-4 border-x border-b border-gray-200 rounded-b-lg bg-white shadow flex flex-col w-full">
             <div className="flex items-center justify-end px-6 md:px-7">
-              <p className="text-gray-500">
+              <p className="w-auto text-gray-500 mr-4">
                 Total Pesanan ({totalQty} produk):
               </p>
-              <p className="min-w-30 text-xl font-semibold text-right py-2 text-[#753799]">
+              <p className="min-w-30 w-auto text-xl font-semibold py-2 text-[#753799]">
                 Rp{grandTotal.toLocaleString("id-ID")}
               </p>
             </div>
