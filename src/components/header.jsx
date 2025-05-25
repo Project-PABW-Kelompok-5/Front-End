@@ -1,14 +1,26 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
-import SearchIcon from "../assets/homepage/search.svg";
-import SaldoIcon from "../assets/homepage/saldo.svg";
-import ChartIcon from "../assets/homepage/chart.svg";
-import SigninIcon from "../assets/homepage/signin.svg";
-import WishlistIcon from "../assets/homepage/wishlist.svg";
+import { useNavigate, useLocation } from "react-router-dom";
 import LogoIcon from "../assets/homepage/logo.svg";
 
 const Header = () => {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  let pageTitle = "";
+
+  switch (location.pathname) {
+    case "/cart":
+      pageTitle = "Keranjang Belanja";
+      break;
+    case "/wishlist":
+      pageTitle = "Wishlist";
+      break;
+    case "/checkout":
+      pageTitle = "Checkout";
+      break;
+    case "/myOrder":
+      pageTitle = "Profil Pengguna";
+      break;
+  }
 
     return (
         <div className="relative z-10">
@@ -23,12 +35,14 @@ const Header = () => {
                         <img src={LogoIcon} alt="Logo" className="h-auto w-auto" />
                         <div className="flex flex-col ml-2">
                             <span className="text-xl font-semibold">Blesing</span>
-                            <span className="text-xl font-semibold flex ">Store</span> 
+                            <span className="text-xl font-semibold flex">Store</span>
                         </div>
                     </button>
                 </div>
                 <div className="h-10 w-px bg-white mx-4" />
-                <p className="text-white text-xl">Checkout</p>
+                
+                {/* Judul halaman dinamis */}
+                <p className="text-white text-xl">{pageTitle}</p>
             </div>
         </div>
     );
