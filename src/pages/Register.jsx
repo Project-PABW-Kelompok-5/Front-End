@@ -29,27 +29,29 @@ const RegisterPage = () => {
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       const user = userCredential.user;
 
       await sendEmailVerification(user);
 
       alert("Registrasi berhasil! Silakan cek email Anda untuk verifikasi.");
 
-      await fetch("http://localhost:3000/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+      // Simpan data user sementara di localStorage
+      localStorage.setItem(
+        "pendingUser",
+        JSON.stringify({
           username,
           email,
-          no_telepon: noTelepon,
+          noTelepon,
           uid: user.uid,
-        }),
-      });
+        })
+      );
 
-      window.location.href = "/login";
+      window.location.href = "/verifikasi-email";
     } catch (error) {
       console.error("Firebase Error:", error.message);
       alert("Registrasi gagal: " + error.message);
@@ -74,11 +76,16 @@ const RegisterPage = () => {
           onSubmit={handleSubmit}
           className="bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-200"
         >
-          <h2 className="text-center text-2xl sm:text-3xl font-semibold mb-6">Register</h2>
+          <h2 className="text-center text-2xl sm:text-3xl font-semibold mb-6">
+            Register
+          </h2>
 
           {/* Email */}
           <div className="mb-4">
-            <label htmlFor="email" className="block mb-2 text-gray-700 font-medium">
+            <label
+              htmlFor="email"
+              className="block mb-2 text-gray-700 font-medium"
+            >
               Email
             </label>
             <input
@@ -94,7 +101,10 @@ const RegisterPage = () => {
 
           {/* Password */}
           <div className="mb-4">
-            <label htmlFor="password" className="block mb-2 text-gray-700 font-medium">
+            <label
+              htmlFor="password"
+              className="block mb-2 text-gray-700 font-medium"
+            >
               Password
             </label>
             <input
@@ -110,7 +120,10 @@ const RegisterPage = () => {
 
           {/* Username */}
           <div className="mb-4">
-            <label htmlFor="username" className="block mb-2 text-gray-700 font-medium">
+            <label
+              htmlFor="username"
+              className="block mb-2 text-gray-700 font-medium"
+            >
               Username
             </label>
             <input
@@ -126,7 +139,10 @@ const RegisterPage = () => {
 
           {/* Phone */}
           <div className="mb-6">
-            <label htmlFor="phone" className="block mb-2 text-gray-700 font-medium">
+            <label
+              htmlFor="phone"
+              className="block mb-2 text-gray-700 font-medium"
+            >
               Phone Number
             </label>
             <input
@@ -143,7 +159,7 @@ const RegisterPage = () => {
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full bg-purple-700 hover:bg-purple-800 text-white py-3 rounded-lg text-lg font-semibold transition duration-300"
+            className="w-full bg-purple-700 hover:bg-purple-800 text-white py-3 rounded-lg text-lg font-semibold transition duration-300 cursor-pointer"
           >
             Register
           </button>
@@ -151,7 +167,10 @@ const RegisterPage = () => {
           {/* Link */}
           <p className="text-center text-sm text-gray-600 mt-5">
             Already have an account?{" "}
-            <a href="/login" className="text-purple-700 hover:underline font-medium">
+            <a
+              href="/login"
+              className="text-purple-700 hover:underline font-medium"
+            >
               Login
             </a>
           </p>

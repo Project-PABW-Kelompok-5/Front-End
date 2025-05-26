@@ -288,6 +288,8 @@ const Checkout = () => {
 
       const historyCol = collection(firestore, `history/${userId}/orders`);
       await addDoc(historyCol, orderData);
+      const orderCol = collection(firestore, `orders`);
+      await addDoc(orderCol, orderData);
 
       const batch = writeBatch(firestore);
       selectedItems.forEach((item) => {

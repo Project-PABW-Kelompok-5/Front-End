@@ -219,6 +219,11 @@ export default function HomePage() {
       return;
     }
 
+    if (product.id_user === uid) {
+      alert("Anda tidak dapat menambahkan produk milik sendiri ke keranjang.");
+      return;
+    }
+
     try {
       // 1. Update Firestore ke dalam koleksi carts/{uid}/items/{productId}
       const cartItemRef = doc(firestore, "carts", uid, "items", product.id);
