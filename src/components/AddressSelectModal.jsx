@@ -135,21 +135,25 @@ const AddressSelectModal = ({
 
             <div className="flex justify-between mt-4">
               <button
-                onClick={() => setIsEditing(true)}
+                onClick={() => setIsEditing(true)} // Tombol "Tambah Alamat Baru"
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
               >
                 Tambah Alamat Baru
               </button>
               <div className="flex gap-2">
                 <button
-                  onClick={onClose}
+                  onClick={onClose} // Tombol "Batalkan"
                   className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-100"
                 >
                   Batalkan
                 </button>
                 <button
-                  onClick={onConfirm}
+                  // 👇 PERBAIKAN DI SINI:
+                  onClick={() => onConfirm(selectedAddressIndex)}
+                  // Pastikan Anda memanggil onConfirm dengan selectedAddressIndex yang merupakan prop
                   className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                  // Tambahkan disabled jika tidak ada alamat yang dipilih
+                  disabled={selectedAddressIndex === null && addressList.length > 0}
                 >
                   Konfirmasi
                 </button>

@@ -9,6 +9,7 @@ import {
   Flag,
   Settings,
   LifeBuoy,
+  Wallet,
 } from "lucide-react";
 
 const AdminSidebar = ({ activePage }) => {
@@ -45,9 +46,10 @@ const AdminSidebar = ({ activePage }) => {
         active={activePage === "Manage Product"}
       />
       <SidebarItem
-        icon={<Flag size={20} />}
-        text="Reporting"
-        active={activePage === "Reporting"}
+        icon={<Wallet size={20} />}
+        text="Manage Balance"
+        to="/admin/manageBalance"
+        active={activePage === "Manage Balance"}
       />
       <hr className="my-3" />
       <SidebarItem

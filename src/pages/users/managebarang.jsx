@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   collection,
   getDocs,
@@ -7,8 +7,10 @@ import {
   deleteDoc,
   doc,
 } from "firebase/firestore";
-import Navbar from "../../components/navbar";
+import Navbar from "../../components/header";
 import { firestore } from "../../firebase"; // sesuaikan path jika perlu
+import * as LucideIcons from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 // Modal component for adding/editing product
 function ProductModal({ isOpen, onClose, onSave, initialData }) {
@@ -17,31 +19,72 @@ function ProductModal({ isOpen, onClose, onSave, initialData }) {
   const [harga, setHarga] = useState("");
   const [stok, setStok] = useState("");
   const [kategori, setKategori] = useState("");
-  const [statusStock, setStatusStock] = useState("stok tersedia");
+  const [icon, setIcon] = useState("");
 
-  useEffect(() => {
+  const kategoriList = {
+  Elektronik: [
+    "Smartphone",
+    "Laptop",
+    "Tv",
+    "Gamepad",
+    "Headphones",
+    "Camera",
+    "Watch",
+    "Mouse",
+    "Fan", // Kipas Angin
+    "WashingMachine", // Mesin Cuci
+    "Refrigerator", // Kulkas
+    "Microwave", // Microwave
+    "Blender", // Blender
+    "Speaker", // Speaker
+    "Printer", // Printer
+    "AirPurifier", // Air Purifier
+    "VacuumCleaner", // Vacuum Cleaner
+  ],
+  Fashion: ["Shirt", "Shoe", "Watch", "Glasses", "Dress", "Hat", "Bag", "Scarf"],
+  "Kesehatan & Kecantikan": ["HeartPulse", "Droplet", "Vial", "HandSoap", "Stethoscope", "Pill", "Thermometer", "Toothbrush"],
+  "Rumah & Dapur": ["Home", "Utensils", "Bed", "Lamp", "Chair", "Sofa", "Refrigerator", "Blender"],
+  "Makanan & Minuman": ["Pizza", "CupSoda", "Drumstick", "IceCream", "Coffee", "Grape", "Milk", "Cake"],
+  "Ibu & Anak": ["Baby", "Stroller", "BookOpen", "TeddyBear", "Rattle", "Crayon", "ToyCar", "Diaper"],
+  Hobi: ["Music", "Book", "Gamepad2", "Brush", "Palette", "Globe", "Microphone", "Camera"],
+  Olahraga: ["Dumbbell", "Bicycle", "Running", "Football", "Basketball", "Award", "Target", "Tent"],
+  Otomotif: ["Car", "Bike", "Fuel", "Wrench", "SteeringWheel", "Tyre", "Motorbike", "BatteryCharging"],
+  Perkakas: ["Hammer", "Tool", "Screwdriver", "Plug", "Drill", "Saw", "TapeMeasure", "Bolt"],
+};
+
+  const User = JSON.parse(localStorage.getItem("user"));
+  const uid = User ? User.id : null;
+
+  // Fungsi untuk reset form
+  const resetForm = useCallback(() => {
     if (initialData) {
       setNamaBarang(initialData.nama_barang || "");
       setDeskripsi(initialData.deskripsi || "");
-      setHarga(initialData.harga || "");
-      setStok(initialData.stok || "");
-      setKategori(initialData.id_kategori || "");
-      setStatusStock(initialData.status_stock || "stok tersedia");
+      setHarga(initialData.harga?.toString() || "");
+      setStok(initialData.stok?.toString() || "");
+      setKategori(initialData.kategori || "");
+      setIcon(initialData.icon || "");
     } else {
       setNamaBarang("");
       setDeskripsi("");
       setHarga("");
       setStok("");
       setKategori("");
-      setStatusStock("stok tersedia");
+      setIcon("");
     }
-  }, [initialData]);
+  },[initialData]);
+
+  // Reset form setiap kali modal dibuka
+  useEffect(() => {
+    if (isOpen) {
+      resetForm();
+    }
+  }, [isOpen, resetForm]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Basic validation
     if (!namaBarang || !harga || !stok || !kategori) {
       alert("Mohon isi semua field yang wajib.");
       return;
@@ -51,14 +94,16 @@ function ProductModal({ isOpen, onClose, onSave, initialData }) {
       deskripsi,
       harga: Number(harga),
       stok: Number(stok),
-      id_kategori: kategori,
-      status_stock: statusStock,
+      kategori,
+      id_user: uid,
+      icon
     });
   };
 
   return (
-    <div className="fixed inset-0 bg-transparent bg-opacity-50 flex justify-center items-center z-50">
-      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+    <div className="fixed inset-0 bg-transparent flex justify-center items-center z-50">
+      <div className="fixed inset-0 bg-black opacity-30"></div>
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 relative overflow-y-auto">
         <h2 className="text-xl font-semibold mb-4">
           {initialData ? "Edit Produk" : "Tambah Produk"}
         </h2>
@@ -106,25 +151,49 @@ function ProductModal({ isOpen, onClose, onSave, initialData }) {
           </div>
           <div>
             <label className="block font-medium mb-1">Kategori*</label>
-            <input
-              type="text"
+            <select
               value={kategori}
-              onChange={(e) => setKategori(e.target.value)}
+              onChange={(e) => {
+                setKategori(e.target.value);
+                setIcon(""); // Reset ikon saat kategori diganti (jika perlu)
+              }}
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-            />
-          </div>
-          <div>
-            <label className="block font-medium mb-1">Status Stok</label>
-            <select
-              value={statusStock}
-              onChange={(e) => setStatusStock(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="stok tersedia">Stok Tersedia</option>
-              <option value="stok kosong">Stok Kosong</option>
+              <option value="">-- Pilih Kategori --</option>
+              {Object.keys(kategoriList).map((kategoriOption) => (
+                <option key={kategoriOption} value={kategoriOption}>
+                  {kategoriOption}
+                </option>
+              ))}
             </select>
           </div>
+          {kategori && (
+            <div>
+              <label className="block font-medium mb-1">
+                Pilih Icon Produk
+              </label>
+              <select
+                value={icon}
+                onChange={(e) => setIcon(e.target.value)}
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">-- Pilih Icon --</option>
+                {kategoriList[kategori].map((iconName) => (
+                  <option key={iconName} value={iconName}>
+                    {iconName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {icon && LucideIcons[icon] && (
+            <div className="mt-2 flex items-center space-x-2">
+              <span className="font-medium">Preview:</span>
+              {React.createElement(LucideIcons[icon], { size: 28 })}
+            </div>
+          )}
           <div className="flex justify-end space-x-3 pt-4">
             <button
               type="button"
@@ -157,6 +226,17 @@ export default function ProductManagement() {
   const [editProduct, setEditProduct] = useState(null);
   // State error message
   const [error, setError] = useState(null);
+
+    // Fungsi untuk mendapatkan komponen ikon Lucide berdasarkan nama string
+  const getLucideIconComponent = (iconName) => {
+    const IconComponent = LucideIcons[iconName];
+    return IconComponent || LucideIcons.Package; // Pastikan LucideIcons.Package tersedia
+    // Mencari komponen ikon di objek LucideIcons
+    // Misalnya, jika iconName adalah "Laptop", ini akan mengembalikan LucideIcons.Laptop
+
+    // Jika komponen ikon tidak ditemukan (misalnya, nama ikon salah atau belum diimpor),
+    // gunakan ikon default seperti "Package" sebagai fallback
+  };
 
   // Fungsi format harga ke Rupiah
   const formatRupiah = (number) => {
@@ -239,115 +319,120 @@ export default function ProductManagement() {
   };
 
   return (
-    <div className="p-0 max-w-10xl mx-auto">
+    <div>
       <Navbar />
-      <h1 className="text-2xl font-bold mt-10 mb-6">Manajemen Produk</h1>
+      <div className="px-6 md:px-10 lg:px-20 py-8 max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mt-2 mb-6">
+          <h1 className="text-2xl font-bold">Manajemen Produk</h1>
+          <button
+            onClick={openAddModal}
+            className="flex items-center gap-2 px-5 py-2 bg-black text-white rounded hover:bg-gray-800 transition"
+          >
+            + Tambah Produk
+          </button>
+        </div>
 
-      <button
-        onClick={openAddModal}
-        className="mb-6 px-5 py-2 bg-black text-white rounded hover:bg-gray-800 transition"
-      >
-        + Tambah Produk
-      </button>
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+            {error}
+          </div>
+        )}
 
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>
-      )}
-
-      {loading ? (
-        <p>Loading produk...</p>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="min-w-full border border-gray-200 rounded-md">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="px-4 py-2 border-b text-left">Gambar</th>
-                <th className="px-4 py-2 border-b text-left">Nama Produk</th>
-                <th className="px-4 py-2 border-b text-left">Kategori</th>
-                <th className="px-4 py-2 border-b text-left">Harga</th>
-                <th className="px-4 py-2 border-b text-left">Stok</th>
-                <th className="px-4 py-2 border-b text-left">Status</th>
-                <th className="px-4 py-2 border-b text-left">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.length === 0 && (
+        {loading ? (
+          <p className="text-gray-600">Loading produk...</p>
+        ) : (
+          <div className="overflow-x-auto border border-gray-200 rounded-md">
+            <table className="min-w-full">
+              <thead className="bg-gray-100 text-sm">
                 <tr>
-                  <td
-                    colSpan={7}
-                    className="text-center py-4 text-gray-500 italic"
-                  >
-                    Tidak ada produk.
-                  </td>
+                  <th className="px-4 py-3 text-left font-medium">
+                    Nama Produk
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium">Kategori</th>
+                  <th className="px-4 py-3 text-left font-medium">Harga</th>
+                  <th className="px-4 py-3 text-left font-medium">Stok</th>
+                  <th className="px-4 py-3 text-left font-medium">Status</th>
+                  <th className="px-4 py-3 text-left font-medium">Aksi</th>
                 </tr>
-              )}
-              {products.map((product) => {
-                const isAvailable =
-                  product.status_stock === "stok tersedia" ||
-                  product.status_stock === "Stok Tersedia";
-                return (
-                  <tr
-                    key={product.id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-4 py-3 border-b">
-                      {/* Placeholder gambar */}
-                      <div className="w-12 h-12 bg-gray-200 rounded-md flex items-center justify-center text-gray-400 text-sm">
-                        Img
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 border-b font-semibold">
-                      {product.nama_barang}
-                    </td>
-                    <td className="px-4 py-3 border-b">
-                      {product.id_kategori}
-                    </td>
-                    <td className="px-4 py-3 border-b">
-                      {formatRupiah(product.harga)}
-                    </td>
-                    <td className="px-4 py-3 border-b">{product.stok}</td>
-                    <td className="px-4 py-3 border-b">
-                      <span
-                        className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                          isAvailable
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {isAvailable ? "Stok Tersedia" : "Stok Kosong"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 border-b space-x-2">
-                      <button
-                        onClick={() => openEditModal(product)}
-                        className="px-3 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500 transition"
-                        title="Edit Produk"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        onClick={() => handleDelete(product.id)}
-                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition"
-                        title="Hapus Produk"
-                      >
-                        🗑️
-                      </button>
+              </thead>
+              <tbody className="text-sm">
+                {products.length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={6}
+                      className="text-center py-6 text-gray-500 italic"
+                    >
+                      Tidak ada produk.
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                )}
+                {products.map((product) => {
+                  const isAvailable = product.stok > 0;
+                  const ProductIconComponent = getLucideIconComponent(product.icon);
+                  return (
+                    <tr
+                      key={product.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-4 py-3 border-t font-semibold text-gray-900">
+                        <div className="flex items-center gap-2">
+                          {/* Render ikon produk */}
+                          <ProductIconComponent size={28} className="text-[#753799]" />
+                          <span>{product.nama_barang}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 border-t text-gray-700">
+                        {product.kategori}
+                      </td>
+                      <td className="px-4 py-3 border-t text-gray-700">
+                        {formatRupiah(product.harga)}
+                      </td>
+                      <td className="px-4 py-3 border-t">{product.stok}</td>
+                      <td className="px-4 py-3 border-t">
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                            isAvailable
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {isAvailable ? "Stok Tersedia" : "Stok Kosong"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 border-t">
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => openEditModal(product)}
+                            className="p-2 bg-yellow-400 hover:bg-yellow-500 text-white rounded"
+                            title="Edit Produk"
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(product.id)}
+                            className="p-2 bg-red-500 hover:bg-red-600 text-white rounded"
+                            title="Hapus Produk"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-      {/* Modal tambah/edit produk */}
-      <ProductModal
-        isOpen={modalOpen}
-        onClose={closeModal}
-        onSave={handleSaveProduct}
-        initialData={editProduct}
-      />
+        {/* Modal tambah/edit produk */}
+        <ProductModal
+          isOpen={modalOpen}
+          onClose={closeModal}
+          onSave={handleSaveProduct}
+          initialData={editProduct}
+        />
+      </div>
     </div>
   );
 }

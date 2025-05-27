@@ -27,8 +27,6 @@ import {
   Menu,
 } from "lucide-react";
 
-import LogoIcon from "../assets/homepage/logo.svg";
-
 // Data dummy untuk wishlist
 const wishlistData = [
   {
@@ -214,11 +212,10 @@ export default function WishlistPage() {
                 <ChevronLeft className="h-6 w-6" />
               </button>
               <a href="/" className="flex items-center space-x-2">
-                <img src={LogoIcon} alt="Logo" className="h-auto w-auto" />
-                <div className="flex flex-col ml-2">
-                  <span className="text-xl font-semibold">Blesing</span>
-                  <span className="text-xl font-semibold flex">Store</span>
-                </div>
+                <Home className="h-6 w-6" />
+                <span className="text-xl font-bold hidden md:inline-block">
+                  MyShop
+                </span>
               </a>
             </div>
 
@@ -314,8 +311,8 @@ export default function WishlistPage() {
           <div className="p-6 border-b border-gray-200">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold text-gray-800">Wishlist Saya</h2>
-              <span className="text-sm bg-[#753799] bg-opacity-10 text-[#dcd7df] px-3 py-1 rounded-full font-medium">
-                6 Barang
+              <span className="text-sm bg-[#753799] bg-opacity-10 text-[#753799] px-3 py-1 rounded-full font-medium">
+                {wishlist.length} Barang
               </span>
             </div>
           </div>
@@ -454,7 +451,7 @@ export default function WishlistPage() {
                 </button>
               </div>
             ) : (
-              <div className="grid cursor-pointer grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredWishlist.map((product) => (
                   <div
                     key={product.id}
@@ -556,8 +553,7 @@ export default function WishlistPage() {
                           }`}
                           disabled={!product.isAvailable}
                         >
-                          <ShoppingCart className="h-4 w-4 mr-1" />
-                          Masukkan Keranjang
+                          <ShoppingCart className="h-4 w-4 mr-1" /> Keranjang
                         </button>
                         <button
                           onClick={(e) => {
@@ -583,7 +579,7 @@ export default function WishlistPage() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <h3 className="text-lg font-bold mb-4">Blazing Store</h3>
+              <h3 className="text-lg font-bold mb-4">MyShop</h3>
               <p className="text-gray-400 text-sm">
                 Temukan berbagai produk berkualitas dengan harga terbaik.
                 Belanja mudah, aman, dan nyaman.
@@ -617,14 +613,14 @@ export default function WishlistPage() {
             <div>
               <h3 className="text-lg font-bold mb-4">Hubungi Kami</h3>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li>Email: Blazingstore@gmail.com</li>
+                <li>Email: cs@myshop.com</li>
                 <li>Telepon: 0800-123-4567</li>
                 <li>Jam Operasional: 08.00 - 20.00 WIB</li>
               </ul>
             </div>
           </div>
           <div className="mt-8 pt-4 border-t border-gray-700 text-center text-sm text-gray-400">
-            <p>© 2025 BlazingStore. Hak Cipta Dilindungi.</p>
+            <p>© 2025 MyShop. Hak Cipta Dilindungi.</p>
           </div>
         </div>
       </footer>

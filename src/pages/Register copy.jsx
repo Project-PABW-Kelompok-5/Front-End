@@ -1,88 +1,63 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { auth, firestore } from "../firebase";
-import {
-  signInWithEmailAndPassword
-} from "firebase/auth";
-import {
-  doc,
-  getDoc,
-  collection,
-  query,
-  where,
-  getDocs
-} from "firebase/firestore";
 import Background from "../assets/background.jpg";
+import { auth } from "../firebase";
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 
-const LoginPage = () => {
+
+const RegisterPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
+  const [username, setUsername] = useState("");
+  const [noTelepon, setNoTelepon] = useState("");
+
+  const isValidEmail = (email) => {
+    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return regex.test(email);
+  };
+  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email || !password) {
-      return alert("Email dan password wajib diisi.");
+  
+    if (!email || !password || !username || !noTelepon) {
+      return alert("Semua field wajib diisi.");
     }
-
-    setIsLoading(true);
-
+  
+    if (!isValidEmail(email)) {
+      return alert("Format email tidak valid.");
+    }
+  
     try {
-      // Coba login sebagai kurir terlebih dahulu
-      const kurirQuery = query(
-        collection(firestore, "kurir"),
-        where("email", "==", email),
-        where("password", "==", password) // asumsi password belum di-hash
-      );
-      const kurirSnapshot = await getDocs(kurirQuery);
-
-      if (!kurirSnapshot.empty) {
-        const kurirDoc = kurirSnapshot.docs[0];
-        const kurirData = kurirDoc.data();
-
-        localStorage.setItem("user", JSON.stringify({
-          id: kurirDoc.id,
-          email: kurirData.email,
-          role: "kurir",
-        }));
-
-        navigate("/kurir/dashboard");
-        return;
-      }
-
-      // Jika bukan kurir, coba login sebagai user biasa via Firebase Auth
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
-      if (!user.emailVerified) {
-        alert("Email belum diverifikasi. Silakan cek email Anda.");
-        return;
-      }
-
-      const token = await user.getIdToken();
-      const userDoc = await getDoc(doc(firestore, "users", user.uid));
-
-      if (!userDoc.exists()) {
-        throw new Error("Data pengguna tidak ditemukan.");
-      }
-
-      const userData = userDoc.data();
-
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify({
-        id: user.uid,
-        email: user.email,
-        role: userData.role,
-      }));
-
-      navigate(userData.role === "admin" ? "/admin/dashboard" : "/");
+  
+      // Kirim email verifikasi
+      await sendEmailVerification(user);
+  
+      alert("Registrasi berhasil! Silakan cek email Anda untuk verifikasi.");
+  
+      // (Opsional) simpan data tambahan ke server
+      await fetch("http://localhost:3000/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          no_telepon: noTelepon,
+          uid: user.uid, // bisa juga dikirim UID Firebase
+        }),
+      });
+  
+      window.location.href = "/login";
     } catch (error) {
-      alert("Login gagal: " + error.message);
-    } finally {
-      setIsLoading(false);
+      console.error("Firebase Error:", error.message);
+      alert("Registrasi gagal: " + error.message);
     }
   };
+  
+  
 
   return (
     <div
@@ -121,7 +96,7 @@ const LoginPage = () => {
         }}
       >
         <h1 style={{ marginBottom: "40px", color: "#fff", fontSize: "40px" }}>
-          Let’s Get Back to Shopping!
+          Start Your Shopping Journey!
         </h1>
         <form
           onSubmit={handleSubmit}
@@ -140,7 +115,7 @@ const LoginPage = () => {
               marginBottom: "20px",
             }}
           >
-            Login
+            Register
           </h2>
           <div style={{ marginBottom: "20px" }}>
             <label
@@ -177,7 +152,7 @@ const LoginPage = () => {
                 marginBottom: "8px",
                 fontSize: "16px",
               }}
-            >
+            > 
               Password
             </label>
             <input
@@ -196,18 +171,46 @@ const LoginPage = () => {
               required
             />
           </div>
-          <div style={{ textAlign: "left", marginBottom: "20px" }}>
-            <a
-              href="/forgot-password"
+          {/* Username */}
+          <div style={{ marginBottom: "20px" }}>
+            <label htmlFor="username">Username</label>
+            <input
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your username"
+              required
               style={{
-                color: "#6941C6",
-                textDecoration: "none",
+                width: "93%",
+                padding: "12px",
+                borderRadius: "12px",
+                border: "1px solid #ccc",
                 fontSize: "14px",
               }}
-            >
-              Forgot Password?
-            </a>
+            />
           </div>
+
+          {/* No Telepon */}
+          <div style={{ marginBottom: "20px" }}>
+            <label htmlFor="phone">Phone Number</label>
+            <input
+              type="text"
+              id="phone"
+              value={noTelepon}
+              onChange={(e) => setNoTelepon(e.target.value)}
+              placeholder="Enter your phone number"
+              required
+              style={{
+                width: "93%",
+                padding: "12px",
+                borderRadius: "12px",
+                border: "1px solid #ccc",
+                fontSize: "14px",
+              }}
+            />
+          </div>
+
           <button
             type="submit"
             style={{
@@ -222,10 +225,12 @@ const LoginPage = () => {
               marginBottom: "12px",
             }}
           >
-            {isLoading ? "Logging in..." : "Login"}
+            Register
           </button>
-          {/* Optional Google login button, disable if not used */}
-          {/* <button
+          <div
+            style={{ display: "flex", alignItems: "center", margin: "12px 0" }}
+          ></div>
+          <button
             type="button"
             style={{
               width: "100%",
@@ -240,20 +245,20 @@ const LoginPage = () => {
             }}
           >
             Continue with Google
-          </button> */}
+          </button>
           <div
             style={{ textAlign: "center", marginTop: "12px", fontSize: "16px" }}
           >
-            <span>Belum punya akun? </span>
+            <span>Already have an account? </span>
             <a
-              href="/register"
+              href="/login"
               style={{
                 color: "#6941C6",
                 textDecoration: "none",
                 cursor: "pointer",
               }}
             >
-              Register
+              Login
             </a>
           </div>
         </form>
@@ -262,4 +267,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default RegisterPage;
