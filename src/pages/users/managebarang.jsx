@@ -6,9 +6,11 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  query,
+  where
 } from "firebase/firestore";
 import Navbar from "../../components/header";
-import { firestore } from "../../firebase"; // sesuaikan path jika perlu
+import { firestore } from "../../firebase"; 
 import * as LucideIcons from "lucide-react";
 import { Pencil, Trash2 } from "lucide-react";
 
@@ -31,20 +33,22 @@ function ProductModal({ isOpen, onClose, onSave, initialData }) {
     "Camera",
     "Watch",
     "Mouse",
-    "Fan", // Kipas Angin
-    "WashingMachine", // Mesin Cuci
-    "Refrigerator", // Kulkas
-    "Microwave", // Microwave
-    "Blender", // Blender
-    "Speaker", // Speaker
-    "Printer", // Printer
-    "AirPurifier", // Air Purifier
-    "VacuumCleaner", // Vacuum Cleaner
+    "Fan",
+    "WashingMachine",
+    "Refrigerator", 
+    "Microwave",
+    "Speaker",
+    "Printer",
+    "Projector", 
+    "Tablet", 
+    "Keyboard",
+    "Router",
+    "Cable",
   ],
   Fashion: ["Shirt", "Shoe", "Watch", "Glasses", "Dress", "Hat", "Bag", "Scarf"],
   "Kesehatan & Kecantikan": ["HeartPulse", "Droplet", "Vial", "HandSoap", "Stethoscope", "Pill", "Thermometer", "Toothbrush"],
-  "Rumah & Dapur": ["Home", "Utensils", "Bed", "Lamp", "Chair", "Sofa", "Refrigerator", "Blender"],
-  "Makanan & Minuman": ["Pizza", "CupSoda", "Drumstick", "IceCream", "Coffee", "Grape", "Milk", "Cake"],
+  "Rumah & Dapur": ["Home", "Utensils", "Bed", "Lamp", "Chair", "Sofa", "Refrigerator", "CookingPot"],
+  "Makanan & Minuman": ["Pizza", "CupSoda", "Drumstick", "IceCream", "Coffee", "Milk", "Cake", "Utensils", "Soup", "Candy", "Burger", "Cookie", "Dessert", "Donut", "CookingPot"],
   "Ibu & Anak": ["Baby", "Stroller", "BookOpen", "TeddyBear", "Rattle", "Crayon", "ToyCar", "Diaper"],
   Hobi: ["Music", "Book", "Gamepad2", "Brush", "Palette", "Globe", "Microphone", "Camera"],
   Olahraga: ["Dumbbell", "Bicycle", "Running", "Football", "Basketball", "Award", "Target", "Tent"],
@@ -124,7 +128,7 @@ function ProductModal({ isOpen, onClose, onSave, initialData }) {
               value={deskripsi}
               onChange={(e) => setDeskripsi(e.target.value)}
               className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows={3}
+              rows={2}
             />
           </div>
           <div>
@@ -216,6 +220,8 @@ function ProductModal({ isOpen, onClose, onSave, initialData }) {
 }
 
 export default function ProductManagement() {
+  const User = JSON.parse(localStorage.getItem("user"));
+  const uid = User ? User.id : null;
   // State untuk daftar produk
   const [products, setProducts] = useState([]);
   // Loading state saat fetch data
@@ -230,12 +236,7 @@ export default function ProductManagement() {
     // Fungsi untuk mendapatkan komponen ikon Lucide berdasarkan nama string
   const getLucideIconComponent = (iconName) => {
     const IconComponent = LucideIcons[iconName];
-    return IconComponent || LucideIcons.Package; // Pastikan LucideIcons.Package tersedia
-    // Mencari komponen ikon di objek LucideIcons
-    // Misalnya, jika iconName adalah "Laptop", ini akan mengembalikan LucideIcons.Laptop
-
-    // Jika komponen ikon tidak ditemukan (misalnya, nama ikon salah atau belum diimpor),
-    // gunakan ikon default seperti "Package" sebagai fallback
+    return IconComponent || LucideIcons.Package; 
   };
 
   // Fungsi format harga ke Rupiah
@@ -247,12 +248,16 @@ export default function ProductManagement() {
     }).format(number);
   };
 
-  // Ambil data produk dari Firestore
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const querySnapshot = await getDocs(collection(firestore, "barang"));
+      const q = query(
+        collection(firestore, "barang"),
+        where("id_user", "==", uid)
+      );
+
+      const querySnapshot = await getDocs(q);
       const items = [];
       querySnapshot.forEach((doc) => {
         items.push({ id: doc.id, ...doc.data() });
@@ -260,13 +265,16 @@ export default function ProductManagement() {
       setProducts(items);
     } catch (err) {
       setError("Gagal mengambil data produk: " + err.message);
+      console.error("Error fetching products:", err);
+    } finally { // Use finally to ensure loading is always set to false
+      setLoading(false);
     }
-    setLoading(false);
-  };
+  }, [uid]);
 
+  // Jalankan fetchProducts saat komponen dimuat atau UID berubah
   useEffect(() => {
     fetchProducts();
-  }, []);
+  }, [fetchProducts]);
 
   // Buka modal tambah produk
   const openAddModal = () => {
@@ -296,7 +304,10 @@ export default function ProductManagement() {
         await updateDoc(productRef, productData);
       } else {
         // Tambah produk baru
-        await addDoc(collection(firestore, "barang"), productData);
+        const newBarangRef = await addDoc(collection(firestore, "barang"), productData);
+        await updateDoc(newBarangRef, {
+          id_barang: newBarangRef.id
+        });
       }
       closeModal();
       fetchProducts();
