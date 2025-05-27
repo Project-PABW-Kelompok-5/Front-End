@@ -59,7 +59,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/history" element={<DeliveryHistory />} />
 
         {/* Protected User Routes */}
-        <Route element={<PrivateRoute role="user" />}>
+        <Route element={<PrivateRoute role="User" />}>
           <Route path="/users/dashboard" element={<EcommerceDashboard />} />
         </Route>
 
