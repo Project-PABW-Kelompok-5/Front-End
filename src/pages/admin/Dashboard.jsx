@@ -9,9 +9,9 @@ import {
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
 import AdminSidebar from "../../components/AdminSidebar.jsx";
-import { useState, useEffect } from "react"; // Import useState and useEffect
-import { db } from "../../firebase.js"; // Import your Firestore instance
-import { collection, getDocs } from "firebase/firestore"; // Import Firestore functions
+import { useState, useEffect } from "react"; 
+import { db } from "../../firebase.js"; 
+import { collection, getDocs } from "firebase/firestore";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
