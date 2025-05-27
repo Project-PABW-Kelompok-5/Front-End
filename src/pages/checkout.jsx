@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import {
   collection,
   addDoc,
+  updateDoc,
   getDocs,
   getDoc,
   doc,
@@ -268,6 +269,7 @@ const Checkout = () => {
           qty: it.jumlah,
           subtotal: it.harga * it.jumlah,
           id_penjual: it.id_user,
+          status_barang: "menunggu penjual",
         })),
         alamat: {
           namaPenerima: alamat.name,
@@ -289,7 +291,16 @@ const Checkout = () => {
       const historyCol = collection(firestore, `history/${userId}/orders`);
       await addDoc(historyCol, orderData);
       const orderCol = collection(firestore, `orders`);
-      await addDoc(orderCol, orderData);
+      const orderRef = await addDoc(orderCol, orderData);
+
+      const sellerIdsFromItems = orderData.items.map(item => item.id_penjual);
+      const uniqueSellerIds = [...new Set(sellerIdsFromItems)];
+
+      
+      await updateDoc(orderRef, {
+        item_ids_penjual: uniqueSellerIds 
+      });
+
 
       const batch = writeBatch(firestore);
       selectedItems.forEach((item) => {
