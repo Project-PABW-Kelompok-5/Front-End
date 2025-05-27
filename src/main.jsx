@@ -24,6 +24,7 @@ import DashboardKurir from "./pages/Kurir/KurirDashboard.jsx";
 import KurirBarang from "./pages/kurir/KurirBarang.jsx";
 import Addresses from "./pages/Addressses.jsx";
 import VerifikasiEmail from "./pages/verifikasiEmail.jsx";
+import HistoryPenjualan from "./pages/users/historyPenjualan.jsx";
 
 import { startTokenRefreshListener } from "./authListener";
 
@@ -57,6 +58,7 @@ createRoot(document.getElementById("root")).render(
         {/* <Route path="/kurir/barang" element={<KurirBarang />} /> */}
         <Route path="/addresses" element={<Addresses />} />
         <Route path="/history" element={<DeliveryHistory />} />
+        <Route path="/history-penjualan" element={<HistoryPenjualan />} />
 
         {/* Protected User Routes */}
         <Route element={<PrivateRoute role="User" />}>
