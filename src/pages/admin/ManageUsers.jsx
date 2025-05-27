@@ -4,7 +4,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import AdminSidebar from "../../components/AdminSidebar.jsx";
 // Import auth Firebase
 import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
-import { app } from "../../firebase"; // pastikan ini mengarah ke file konfigurasi firebase kamu
+import { app } from "../../firebase"; 
 
 const ManageUsers = () => {
   const [users, setUsers] = useState([]);

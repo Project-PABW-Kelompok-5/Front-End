@@ -17,11 +17,17 @@ const Navbar = ({
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const isLoggedIn = !!localStorage.getItem("token"); // cek login
+  // Cek login saat komponen dimount
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setIsLoggedIn(!!token);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    setIsLoggedIn(false);
     setShowDropdown(false);
     navigate("/login");
   };
@@ -150,4 +156,3 @@ const Navbar = ({
 };
 
 export default Navbar;
-
