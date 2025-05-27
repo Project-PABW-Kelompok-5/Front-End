@@ -3,24 +3,67 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
+// Hardcoded Kategori List
+const hardcodedKategoriList = {
+  Elektronik: [
+    "Smartphone", "Laptop", "Tv", "Gamepad", "Headphones", "Camera", "Watch", "Mouse", "Fan",
+    "WashingMachine", "Refrigerator", "Microwave", "Speaker", "Printer", "Projector",
+    "Tablet", "Keyboard", "Router", "Cable",
+  ],
+  Fashion: ["Shirt", "Shoe", "Watch", "Glasses", "Dress", "Hat", "Bag", "Scarf"],
+  "Kesehatan & Kecantikan": ["HeartPulse", "Droplet", "Vial", "HandSoap", "Stethoscope", "Pill", "Thermometer", "Toothbrush"],
+  "Rumah & Dapur": ["Home", "Utensils", "Bed", "Lamp", "Chair", "Sofa", "Refrigerator", "CookingPot"],
+  "Makanan & Minuman": ["Pizza", "CupSoda", "Drumstick", "IceCream", "Coffee", "Milk", "Cake", "Utensils", "Soup", "Candy", "Burger", "Cookie", "Dessert", "Donut", "CookingPot"],
+  "Ibu & Anak": ["Baby", "Stroller", "BookOpen", "TeddyBear", "Rattle", "Crayon", "ToyCar", "Diaper"],
+  Hobi: ["Music", "Book", "Gamepad2", "Brush", "Palette", "Globe", "Microphone", "Camera"],
+  Olahraga: ["Dumbbell", "Bicycle", "Running", "Football", "Basketball", "Award", "Target", "Tent"],
+  Otomotif: ["Car", "Bike", "Fuel", "Wrench", "SteeringWheel", "Tyre", "Motorbike", "BatteryCharging"],
+  Perkakas: ["Hammer", "Tool", "Screwdriver", "Plug", "Drill", "Saw", "TapeMeasure", "Bolt"],
+};
+
 const ManageProduct = () => {
   const [showModal, setShowModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showAlertDialog, setShowAlertDialog] = useState(false);
+  const [dialogMessage, setDialogMessage] = useState("");
+  const [barangToDeleteId, setBarangToDeleteId] = useState(null);
   const [barangList, setBarangList] = useState([]);
+  // Initialize kategoriList with the hardcoded object
+  const [kategoriList] = useState(hardcodedKategoriList); 
+  const [loading, setLoading] = useState(true);
+
   const [formData, setFormData] = useState({
     nama_barang: "",
     deskripsi: "",
     harga: "",
     stok: "",
-    id_kategori: "",
+    id_kategori: "", // This will now store the sub-category name
   });
-  // State baru untuk fitur edit
   const [editingBarangId, setEditingBarangId] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedMainCategory, setSelectedMainCategory] = useState(''); // New state for the main category dropdown
 
   const token = localStorage.getItem("token");
 
-  // Fungsi fetch barang
+  // Function to display custom alert dialog
+  const showCustomDialog = (message) => {
+    setDialogMessage(message);
+    setShowAlertDialog(true);
+  };
+
+  // Function to find the main category from a sub-category name
+  const findMainCategoryFromSub = (subCategoryName, categories) => {
+    for (const mainCat in categories) {
+      if (categories[mainCat].includes(subCategoryName)) {
+        return mainCat;
+      }
+    }
+    return ''; // Return empty string if not found
+  };
+
+  // Function to fetch products
   const fetchBarang = async () => {
+    setLoading(true);
     const token = localStorage.getItem("token");
     console.log("Token yang dikirim:", token);
 
@@ -46,13 +89,18 @@ const ManageProduct = () => {
           error.response.status,
           error.response.data
         );
+        showCustomDialog(`Gagal mengambil data barang: ${error.response.data.message || error.response.statusText}`);
       } else {
         console.error("Error message:", error.message);
+        showCustomDialog(`Gagal mengambil data barang: ${error.message}`);
       }
       setBarangList([]);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // useEffect now only calls fetchBarang, as kategoriList is hardcoded
   useEffect(() => {
     fetchBarang();
   }, []);
@@ -64,194 +112,198 @@ const ManageProduct = () => {
     }));
   };
 
-  // --- Fungsi Edit Barang ---
+  // --- Function to handle Edit Product click ---
   const handleEditClick = (barang) => {
+    // Find the main category based on the sub-category (assuming barang.kategori holds the sub-category name)
+    const mainCat = findMainCategoryFromSub(barang.kategori, kategoriList); // CHANGED: Using barang.kategori
+    setSelectedMainCategory(mainCat); // Set the main category for the first dropdown
+
     setFormData({
       nama_barang: barang.nama_barang,
       deskripsi: barang.deskripsi,
       harga: barang.harga,
       stok: barang.stok,
-      id_kategori: barang.id_kategori,
+      id_kategori: barang.kategori, // CHANGED: Using barang.kategori as the value for the sub-category dropdown
     });
-    setEditingBarangId(barang.id_barang); // Simpan ID barang yang sedang diedit
-    setIsEditing(true); // Set mode ke edit
-    setShowModal(true); // Tampilkan modal
+    setEditingBarangId(barang.id_barang);
+    setIsEditing(true);
+    setShowModal(true);
   };
 
-  // --- Fungsi Hapus Barang ---
-  const handleDelete = async (id_barang) => {
-    if (!window.confirm("Apakah Anda yakin ingin menghapus barang ini?")) {
-      return; // Batalkan jika user tidak yakin
-    }
+  // --- Function to handle Delete Product (triggers confirmation modal) ---
+  const handleDelete = (id_barang) => {
+    setBarangToDeleteId(id_barang);
+    setShowConfirmModal(true);
+  };
 
+  const confirmDelete = async () => {
+    setShowConfirmModal(false);
+    if (!barangToDeleteId) return;
+
+    setLoading(true);
     try {
-      await axios.delete(`http://localhost:3000/api/barang/${id_barang}`, {
+      await axios.delete(`http://localhost:3000/api/barang/${barangToDeleteId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      alert("Barang berhasil dihapus!");
-      fetchBarang(); // Refresh daftar barang setelah penghapusan
+      showCustomDialog("Barang berhasil dihapus!");
+      fetchBarang();
     } catch (error) {
       console.error("Error saat menghapus barang:", error);
-      alert("Gagal menghapus barang.");
+      showCustomDialog("Gagal menghapus barang.");
+    } finally {
+      setBarangToDeleteId(null);
+      setLoading(false);
     }
   };
 
-  // --- Modifikasi handleSubmit untuk POST (Tambah) dan PUT (Edit) ---
+  // --- Modified handleSubmit for PUT (Edit) only ---
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Mencegah reload halaman
+    e.preventDefault();
+    setLoading(true);
     try {
       const payload = {
         ...formData,
         harga: Number(formData.harga),
         stok: Number(formData.stok),
-        // Pastikan id_kategori tidak kosong atau mengandung spasi berlebih
-        id_kategori: formData.id_kategori.trim(),
+        // Send the selected sub-category name in the 'kategori' field
+        kategori: formData.id_kategori, // CHANGED: Now sending 'kategori' field
+        id_kategori: undefined // Ensure id_kategori is not sent if backend doesn't expect it
       };
 
-      if (isEditing && editingBarangId) {
-        // Mode edit: kirim PUT request
-        const res = await axios.put(
-          `http://localhost:3000/api/barang/${editingBarangId}`,
-          payload,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (res.status === 200) {
-          alert("Barang berhasil diperbarui!");
-          // Reset state edit
-          setEditingBarangId(null);
-          setIsEditing(false);
-        } else {
-          throw new Error("Gagal memperbarui barang");
-        }
-      } else {
-        // Mode tambah: kirim POST request
-        const res = await axios.post("http://localhost:3000/api/barang", payload, {
+      const res = await axios.put(
+        `http://localhost:3000/api/barang/${editingBarangId}`,
+        payload,
+        {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        });
-
-        if (res.status === 201 || res.status === 200) {
-          alert("Barang berhasil ditambahkan!");
-        } else {
-          throw new Error("Gagal menambahkan barang");
         }
+      );
+
+      if (res.status === 200) {
+        showCustomDialog("Barang berhasil diperbarui!");
+        setEditingBarangId(null);
+        setIsEditing(false);
+      } else {
+        throw new Error("Gagal memperbarui barang");
       }
 
-      // Reset form dan tutup modal setelah sukses
+      // Reset form and close modal after success
       setFormData({
         nama_barang: "",
         deskripsi: "",
         harga: "",
         stok: "",
-        id_kategori: "",
+        id_kategori: "", // Still used as a temporary holder for sub-category value
       });
+      setSelectedMainCategory(''); // Reset main category selection
       setShowModal(false);
-      fetchBarang(); // Refresh daftar barang
+      fetchBarang();
     } catch (error) {
       console.error("Error saat menyimpan barang:", error);
-      alert("Gagal menyimpan barang. Silakan cek kembali isian form.");
+      showCustomDialog("Gagal menyimpan barang. Silakan cek kembali isian form.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleOpenModal = () => {
-    setEditingBarangId(null); // Reset ID edit jika membuka modal baru
-    setIsEditing(false); // Set mode ke tambah
-    setFormData({ // Bersihkan form
-      nama_barang: "",
-      deskripsi: "",
-      harga: "",
-      stok: "",
-      id_kategori: "",
-    });
-    setShowModal(true);
-  };
-
-
   return (
-    <div className="flex">
+    <div className="flex font-sans">
+      {/* Admin Sidebar */}
       <AdminSidebar activePage="Manage Product" />
+      {/* Main Content */}
       <div className="flex-1 p-6 bg-gray-100 min-h-screen">
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-semibold">Manajemen Barang</h1>
-          <button
-            onClick={handleOpenModal}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-200"
-          >
-            Tambah Barang
-          </button>
+          <h1 className="text-2xl font-semibold text-gray-800">Manajemen Barang</h1>
+          {/* Removed "Tambah Barang" button */}
         </div>
 
+        {/* Product List Table */}
         <div className="bg-white shadow-md rounded-xl overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-gray-100">
+            <thead className="bg-gray-100 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3">Nama</th>
-                <th className="px-6 py-3">Stok</th>
-                <th className="px-6 py-3">Kategori</th>
-                <th className="px-6 py-3">Harga</th>
-                <th className="px-6 py-3">Status</th>
-                <th className="px-6 py-3">Deskripsi</th>
-                <th className="px-6 py-3">Aksi</th>
+                <th className="px-6 py-3 text-gray-700 font-medium">Nama</th>
+                <th className="px-6 py-3 text-gray-700 font-medium">Stok</th>
+                <th className="px-6 py-3 text-gray-700 font-medium">Kategori</th>
+                <th className="px-6 py-3 text-gray-700 font-medium">Harga</th>
+                <th className="px-6 py-3 text-gray-700 font-medium">Status</th>
+                <th className="px-6 py-3 text-gray-700 font-medium">Deskripsi</th>
+                <th className="px-6 py-3 text-gray-700 font-medium">Aksi</th>
               </tr>
             </thead>
             <tbody>
-              {barangList.map((barang) => (
-                <tr key={barang.id_barang} className="border-t">
-                  <td className="px-6 py-3">{barang.nama_barang}</td>
-                  <td className="px-6 py-3">{barang.stok}</td>
-                  <td className="px-6 py-3">{barang.id_kategori}</td>{" "}
-                  {/* Kalau ingin nama kategori, perlu map */}
-                  <td className="px-6 py-3">
-                    {barang.harga?.toLocaleString() ?? "-"}
-                  </td>
-                  <td className="px-6 py-3">{barang.status_stock}</td>{" "}
-                  {/* Sesuaikan dengan backend: status_stock */}
-                  <td className="px-6 py-3">{barang.deskripsi}</td>
-                  <td className="px-6 py-3 space-x-2">
-                    <button
-                      onClick={() => handleEditClick(barang)}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      <Pencil size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(barang.id_barang)}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+              {loading && barangList.length === 0 ? (
+                <tr>
+                  <td colSpan="7" className="text-center py-4 text-gray-500">
+                    Memuat data barang...
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto mt-2"></div>
                   </td>
                 </tr>
-              ))}
+              ) : barangList.length > 0 ? (
+                barangList.map((barang) => (
+                  <tr key={barang.id_barang} className="border-t border-gray-100 hover:bg-gray-50">
+                    <td className="px-6 py-3 text-gray-800">{barang.nama_barang}</td>
+                    <td className="px-6 py-3 text-gray-800">{barang.stok}</td>
+                    <td className="px-6 py-3 text-gray-800">
+                      {/* NOW ONLY DISPLAYS from barang.kategori field */}
+                      {barang.kategori || "-"} 
+                    </td>
+                    <td className="px-6 py-3 text-gray-800">
+                      Rp{barang.harga?.toLocaleString("id-ID") ?? "-"}
+                    </td>
+                    <td className="px-6 py-3">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        barang.stok === 0
+                          ? "bg-red-100 text-red-800"
+                          : "bg-green-100 text-green-800"
+                      }`}>
+                        {barang.stok === 0 ? "Stok Habis" : "Stok Tersedia"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3 text-gray-800">{barang.deskripsi}</td>
+                    <td className="px-6 py-3 space-x-2">
+                      <button
+                        onClick={() => handleEditClick(barang)}
+                        className="text-blue-600 hover:text-blue-800 p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75"
+                        title="Edit Barang"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(barang.id_barang)}
+                        className="text-red-600 hover:text-red-800 p-1 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75"
+                        title="Hapus Barang"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="7" className="text-center py-4 text-gray-500">
+                    Tidak ada barang yang ditemukan.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
-          {barangList.length === 0 && (
-            <div className="text-center py-4 text-gray-500">
-              Tidak ada barang yang ditemukan.
-            </div>
-          )}
         </div>
 
-        {/* Modal untuk Tambah/Edit Barang */}
+        {/* Modal for Edit Product */}
         {showModal && (
-          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
-              <h2 className="text-xl font-semibold mb-4">
-                {isEditing ? "Edit Barang" : "Tambah Barang Baru"}
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 p-4">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md transform transition-all duration-300 scale-100 opacity-100">
+              <h2 className="text-xl font-semibold mb-4 text-gray-800">
+                Edit Barang
               </h2>
               <form onSubmit={handleSubmit}>
                 <div className="mb-4">
-                  <label htmlFor="nama_barang" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="nama_barang" className="block text-sm font-medium text-gray-700 mb-1">
                     Nama Barang
                   </label>
                   <input
@@ -260,12 +312,12 @@ const ManageProduct = () => {
                     name="nama_barang"
                     value={formData.nama_barang}
                     onChange={handleChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
                 </div>
                 <div className="mb-4">
-                  <label htmlFor="deskripsi" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="deskripsi" className="block text-sm font-medium text-gray-700 mb-1">
                     Deskripsi
                   </label>
                   <textarea
@@ -274,12 +326,12 @@ const ManageProduct = () => {
                     value={formData.deskripsi}
                     onChange={handleChange}
                     rows="3"
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   ></textarea>
                 </div>
                 <div className="mb-4">
-                  <label htmlFor="harga" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="harga" className="block text-sm font-medium text-gray-700 mb-1">
                     Harga
                   </label>
                   <input
@@ -288,12 +340,12 @@ const ManageProduct = () => {
                     name="harga"
                     value={formData.harga}
                     onChange={handleChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
                 </div>
                 <div className="mb-4">
-                  <label htmlFor="stok" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="stok" className="block text-sm font-medium text-gray-700 mb-1">
                     Stok
                   </label>
                   <input
@@ -302,40 +354,119 @@ const ManageProduct = () => {
                     name="stok"
                     value={formData.stok}
                     onChange={handleChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
                 </div>
+                {/* Main Category Dropdown */}
                 <div className="mb-4">
-                  <label htmlFor="id_kategori" className="block text-sm font-medium text-gray-700">
-                    ID Kategori
+                  <label htmlFor="main_kategori" className="block text-sm font-medium text-gray-700 mb-1">
+                    Kategori Utama
                   </label>
-                  <input
-                    type="text"
-                    id="id_kategori"
-                    name="id_kategori"
-                    value={formData.id_kategori}
-                    onChange={handleChange}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
+                  <select
+                    id="main_kategori"
+                    name="main_kategori"
+                    value={selectedMainCategory}
+                    onChange={(e) => {
+                      setSelectedMainCategory(e.target.value);
+                      setFormData((prev) => ({ ...prev, id_kategori: '' })); // Reset sub-category when main changes
+                    }}
+                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
                     required
-                  />
+                  >
+                    <option value="">Pilih Kategori Utama</option>
+                    {Object.keys(kategoriList).map((mainCat) => (
+                      <option key={mainCat} value={mainCat}>
+                        {mainCat}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <div className="flex justify-end space-x-3">
+
+                {/* Sub-Category Dropdown (conditionally rendered) */}
+                {selectedMainCategory && (
+                  <div className="mb-4">
+                    <label htmlFor="id_kategori" className="block text-sm font-medium text-gray-700 mb-1">
+                      Sub Kategori
+                    </label>
+                    <select
+                      id="id_kategori" // This ID is used for the form data field
+                      name="id_kategori" // This name is used to update formData
+                      value={formData.id_kategori}
+                      onChange={handleChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    >
+                      <option value="">Pilih Sub Kategori</option>
+                      {kategoriList[selectedMainCategory].map((subCat) => (
+                        <option key={subCat} value={subCat}>
+                          {subCat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="flex justify-end space-x-3 mt-6">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 transition duration-200"
+                    className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 transition duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75"
                   >
                     Batal
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75"
+                    disabled={loading}
                   >
-                    {isEditing ? "Simpan Perubahan" : "Tambah Barang"}
+                    {loading ? "Menyimpan..." : "Simpan Perubahan"}
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Confirmation Delete Modal */}
+        {showConfirmModal && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 p-4">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800">Konfirmasi Penghapusan</h3>
+              <p className="mb-6 text-gray-700">Apakah Anda yakin ingin menghapus barang ini?</p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 transition duration-200"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-200"
+                  disabled={loading}
+                >
+                  {loading ? "Menghapus..." : "Hapus"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Custom Alert Modal */}
+        {showAlertDialog && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 p-4">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800">Informasi</h3>
+              <p className="mb-6 text-gray-700">{dialogMessage}</p>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setShowAlertDialog(false)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200"
+                >
+                  Oke
+                </button>
+              </div>
             </div>
           </div>
         )}
