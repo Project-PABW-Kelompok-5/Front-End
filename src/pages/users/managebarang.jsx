@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   collection,
   getDocs,
@@ -10,6 +10,7 @@ import {
 import Navbar from "../../components/header";
 import { firestore } from "../../firebase"; // sesuaikan path jika perlu
 import * as LucideIcons from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 // Modal component for adding/editing product
 function ProductModal({ isOpen, onClose, onSave, initialData }) {
@@ -21,23 +22,41 @@ function ProductModal({ isOpen, onClose, onSave, initialData }) {
   const [icon, setIcon] = useState("");
 
   const kategoriList = {
-    Elektronik: ["Smartphone", "Laptop", "Tv", "Gamepad"],
-    Fashion: ["Shirt", "Shoe", "Watch", "Glasses"],
-    "Kesehatan & Kecantikan": ["HeartPulse", "Droplet", "Vial", "HandSoap"],
-    "Rumah & Dapur": ["Home", "Utensils", "Bed", "Lamp"],
-    "Makanan & Minuman": ["Pizza", "CupSoda", "Drumstick", "IceCream"],
-    "Ibu & Anak": ["Baby", "Stroller", "BookOpen", "TeddyBear"],
-    Hobi: ["Music", "Book", "Gamepad2", "Brush"],
-    Olahraga: ["Dumbbell", "Bicycle", "Running", "Football"],
-    Otomotif: ["Car", "Bike", "Fuel", "Wrench"],
-    Perkakas: ["Hammer", "Tool", "Screwdriver", "Plug"],
-  };
+  Elektronik: [
+    "Smartphone",
+    "Laptop",
+    "Tv",
+    "Gamepad",
+    "Headphones",
+    "Camera",
+    "Watch",
+    "Mouse",
+    "Fan", // Kipas Angin
+    "WashingMachine", // Mesin Cuci
+    "Refrigerator", // Kulkas
+    "Microwave", // Microwave
+    "Blender", // Blender
+    "Speaker", // Speaker
+    "Printer", // Printer
+    "AirPurifier", // Air Purifier
+    "VacuumCleaner", // Vacuum Cleaner
+  ],
+  Fashion: ["Shirt", "Shoe", "Watch", "Glasses", "Dress", "Hat", "Bag", "Scarf"],
+  "Kesehatan & Kecantikan": ["HeartPulse", "Droplet", "Vial", "HandSoap", "Stethoscope", "Pill", "Thermometer", "Toothbrush"],
+  "Rumah & Dapur": ["Home", "Utensils", "Bed", "Lamp", "Chair", "Sofa", "Refrigerator", "Blender"],
+  "Makanan & Minuman": ["Pizza", "CupSoda", "Drumstick", "IceCream", "Coffee", "Grape", "Milk", "Cake"],
+  "Ibu & Anak": ["Baby", "Stroller", "BookOpen", "TeddyBear", "Rattle", "Crayon", "ToyCar", "Diaper"],
+  Hobi: ["Music", "Book", "Gamepad2", "Brush", "Palette", "Globe", "Microphone", "Camera"],
+  Olahraga: ["Dumbbell", "Bicycle", "Running", "Football", "Basketball", "Award", "Target", "Tent"],
+  Otomotif: ["Car", "Bike", "Fuel", "Wrench", "SteeringWheel", "Tyre", "Motorbike", "BatteryCharging"],
+  Perkakas: ["Hammer", "Tool", "Screwdriver", "Plug", "Drill", "Saw", "TapeMeasure", "Bolt"],
+};
 
   const User = JSON.parse(localStorage.getItem("user"));
   const uid = User ? User.id : null;
 
   // Fungsi untuk reset form
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     if (initialData) {
       setNamaBarang(initialData.nama_barang || "");
       setDeskripsi(initialData.deskripsi || "");
@@ -53,14 +72,14 @@ function ProductModal({ isOpen, onClose, onSave, initialData }) {
       setKategori("");
       setIcon("");
     }
-  };
+  },[initialData]);
 
   // Reset form setiap kali modal dibuka
   useEffect(() => {
     if (isOpen) {
       resetForm();
     }
-  }, [isOpen, initialData]);
+  }, [isOpen, resetForm]);
 
   if (!isOpen) return null;
 
@@ -208,6 +227,17 @@ export default function ProductManagement() {
   // State error message
   const [error, setError] = useState(null);
 
+    // Fungsi untuk mendapatkan komponen ikon Lucide berdasarkan nama string
+  const getLucideIconComponent = (iconName) => {
+    const IconComponent = LucideIcons[iconName];
+    return IconComponent || LucideIcons.Package; // Pastikan LucideIcons.Package tersedia
+    // Mencari komponen ikon di objek LucideIcons
+    // Misalnya, jika iconName adalah "Laptop", ini akan mengembalikan LucideIcons.Laptop
+
+    // Jika komponen ikon tidak ditemukan (misalnya, nama ikon salah atau belum diimpor),
+    // gunakan ikon default seperti "Package" sebagai fallback
+  };
+
   // Fungsi format harga ke Rupiah
   const formatRupiah = (number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -338,13 +368,18 @@ export default function ProductManagement() {
                 )}
                 {products.map((product) => {
                   const isAvailable = product.stok > 0;
+                  const ProductIconComponent = getLucideIconComponent(product.icon);
                   return (
                     <tr
                       key={product.id}
                       className="hover:bg-gray-50 transition-colors"
                     >
                       <td className="px-4 py-3 border-t font-semibold text-gray-900">
-                        {product.nama_barang}
+                        <div className="flex items-center gap-2">
+                          {/* Render ikon produk */}
+                          <ProductIconComponent size={28} className="text-[#753799]" />
+                          <span>{product.nama_barang}</span>
+                        </div>
                       </td>
                       <td className="px-4 py-3 border-t text-gray-700">
                         {product.kategori}

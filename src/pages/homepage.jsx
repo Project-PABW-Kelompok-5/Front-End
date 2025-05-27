@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Heart,
@@ -33,6 +33,7 @@ import {
   updateDoc,
   arrayUnion,
 } from "firebase/firestore";
+import * as LucideIcons from "lucide-react";
 
 export default function HomePage() {
   const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -78,55 +79,60 @@ export default function HomePage() {
     setCurrentPage(page);
   };
 
-  const getProductIcon = (iconName) => {
-    switch (iconName) {
-      case "smartphone":
-        return <Smartphone className="h-8 w-8 text-[#753799]" />;
-      case "laptop":
-        return <Laptop className="h-8 w-8 text-[#753799]" />;
-      case "headphones":
-        return <Headphones className="h-8 w-8 text-[#753799]" />;
-      case "watch":
-        return <Watch className="h-8 w-8 text-[#753799]" />;
-      case "camera":
-        return <Camera className="h-8 w-8 text-[#753799]" />;
-      case "tablet":
-        return <Tablet className="h-8 w-8 text-[#753799]" />;
-      case "cable":
-        return <Cable className="h-8 w-8 text-[#753799]" />;
-      case "coffee":
-        return <Coffee className="h-8 w-8 text-[#753799]" />;
-      default:
-        return <Package className="h-8 w-8 text-[#753799]" />;
-    }
+  const getLucideIconComponent = (iconName) => {
+    const IconComponent = LucideIcons[iconName];
+    return IconComponent || LucideIcons.Package;
   };
 
-  const getProductIconpreview = (iconName) => {
-    switch (iconName) {
-      case "smartphone":
-        return (
-          <Smartphone className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />
-        );
-      case "laptop":
-        return <Laptop className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
-      case "headphones":
-        return (
-          <Headphones className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />
-        );
-      case "watch":
-        return <Watch className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
-      case "camera":
-        return <Camera className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
-      case "tablet":
-        return <Tablet className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
-      case "cable":
-        return <Cable className="h-8 w-8 text-[#753799]" />;
-      case "coffee":
-        return <Coffee className="h-20 w-20 text-[#753799]" />;
-      default:
-        return <Package className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
-    }
-  };
+  // const getProductIcon = (iconName) => {
+  //   switch (iconName) {
+  //     case "smartphone":
+  //       return <Smartphone className="h-8 w-8 text-[#753799]" />;
+  //     case "laptop":
+  //       return <Laptop className="h-8 w-8 text-[#753799]" />;
+  //     case "headphones":
+  //       return <Headphones className="h-8 w-8 text-[#753799]" />;
+  //     case "watch":
+  //       return <Watch className="h-8 w-8 text-[#753799]" />;
+  //     case "camera":
+  //       return <Camera className="h-8 w-8 text-[#753799]" />;
+  //     case "tablet":
+  //       return <Tablet className="h-8 w-8 text-[#753799]" />;
+  //     case "cable":
+  //       return <Cable className="h-8 w-8 text-[#753799]" />;
+  //     case "coffee":
+  //       return <Coffee className="h-8 w-8 text-[#753799]" />;
+  //     default:
+  //       return <Package className="h-8 w-8 text-[#753799]" />;
+  //   }
+  // };
+
+  // const getProductIconpreview = (iconName) => {
+  //   switch (iconName) {
+  //     case "smartphone":
+  //       return (
+  //         <Smartphone className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />
+  //       );
+  //     case "laptop":
+  //       return <Laptop className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
+  //     case "headphones":
+  //       return (
+  //         <Headphones className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />
+  //       );
+  //     case "watch":
+  //       return <Watch className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
+  //     case "camera":
+  //       return <Camera className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
+  //     case "tablet":
+  //       return <Tablet className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
+  //     case "cable":
+  //       return <Cable className="h-8 w-8 text-[#753799]" />;
+  //     case "coffee":
+  //       return <Coffee className="h-20 w-20 text-[#753799]" />;
+  //     default:
+  //       return <Package className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
+  //   }
+  // };
 
   const getPaginationButtons = () => {
     const buttons = [];
@@ -387,65 +393,69 @@ export default function HomePage() {
         </h2>
         {displayedProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            {displayedProducts.map((product) => (
-              <div
-                key={product.id}
-                className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden "
-              >
-                <div
-                  onClick={() => setPreviewProduct(product)}
-                  className="cursor-pointer"
-                >
-                  <div className="p-4">
-                    <div className="flex items-start">
-                      <div className="w-16 h-16 bg-purple-50 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                        {getProductIcon(product.icon)}
-                      </div>
+            {displayedProducts.map((product) => {
+              const ProductIconComponent = getLucideIconComponent(product.icon);
+              return (
 
-                      <div className="p-4">
-                        <div className="flex items-center mb-1">
-                          <span className="text-xs text-gray-500">
-                            {product.kategori}
-                          </span>
+                <div
+                  key={product.id}
+                  className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden "
+                >
+                  <div
+                    onClick={() => setPreviewProduct(product)}
+                    className="cursor-pointer"
+                  >
+                    <div className="p-4">
+                      <div className="flex items-start">
+                        <div className="w-16 h-16 bg-purple-50 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
+                          <ProductIconComponent size={32} className="text-[#753799]" />
                         </div>
-                        <h3 className="font-medium text-gray-900 mb-1 line-clamp-2 h-12">
-                          {product.nama_barang}
-                        </h3>
-                        {/* <div className="flex items-center mb-2">
-                          <div className="flex items-center">
-                            <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                            <span className="ml-1 text-sm font-medium">
-                              {product.rating}
+
+                        <div className="p-4">
+                          <div className="flex items-center mb-1">
+                            <span className="text-xs text-gray-500">
+                              {product.kategori}
                             </span>
                           </div>
-                          <span className="mx-1 text-gray-300">|</span>
-                          <span className="text-xs text-gray-500">
-                            {product.reviewCount} ulasan
+                          <h3 className="font-medium text-gray-900 mb-1 line-clamp-2 h-12">
+                            {product.nama_barang}
+                          </h3>
+                          {/* <div className="flex items-center mb-2">
+                            <div className="flex items-center">
+                              <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                              <span className="ml-1 text-sm font-medium">
+                                {product.rating}
+                              </span>
+                            </div>
+                            <span className="mx-1 text-gray-300">|</span>
+                            <span className="text-xs text-gray-500">
+                              {product.reviewCount} ulasan
+                            </span>
+                          </div> */}
+                          <span className="text-[#753799] font-bold text-base block mb-2">
+                            Rp{product.harga.toLocaleString()}
                           </span>
-                        </div> */}
-                        <span className="text-[#753799] font-bold text-base block mb-2">
-                          Rp{product.harga.toLocaleString()}
-                        </span>
-                        <p
-                          className={`flex items-center gap-1 text-xs ${
-                            product.status_stok === "Stok Tersedia"
-                              ? "text-green-500"
-                              : "text-red-500"
-                          }`}
-                        >
-                          {product.status_stok === "Stok Tersedia" ? (
-                            <CheckCircle size={14} />
-                          ) : (
-                            <AlertCircle size={14} />
-                          )}
-                          {product.status_stok}
-                        </p>
+                          <p
+                            className={`flex items-center gap-1 text-xs ${
+                              product.status_stok === "Stok Tersedia"
+                                ? "text-green-500"
+                                : "text-red-500"
+                            }`}
+                          >
+                            {product.status_stok === "Stok Tersedia" ? (
+                              <CheckCircle size={14} />
+                            ) : (
+                              <AlertCircle size={14} />
+                            )}
+                            {product.status_stok}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-md p-8 text-center">
@@ -511,7 +521,10 @@ export default function HomePage() {
 
               <div className="w-full md:w-1/2 bg-gray-100 rounded-lg overflow-hidden">
                 <div className="w-full h-full bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                  {getProductIconpreview(previewProduct.icon)}
+                  {React.createElement(getLucideIconComponent(previewProduct.icon), {
+                    size: 80, 
+                    className: "text-[#753799]",
+                  })}
                 </div>
               </div>
 
