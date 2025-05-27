@@ -22,11 +22,10 @@ import ManageBalance from "./pages/admin/ManageBalance.jsx";
 import ManageBarang from "./pages/users/managebarang.jsx";
 import DashboardKurir from "./pages/Kurir/KurirDashboard.jsx";
 import KurirBarang from "./pages/kurir/KurirBarang.jsx";
-=========
-import DeliveryHistory from "./pages/kurir/historyPengiriman.jsx";
-import Wishlist
- from "./pages/wishlist.jsx";
->>>>>>>>> Temporary merge branch 2
+import Addresses from "./pages/Addressses.jsx";
+import VerifikasiEmail from "./pages/verifikasiEmail.jsx";
+
+import { startTokenRefreshListener } from "./authListener";
 
 import "./index.css";
 
@@ -48,15 +47,16 @@ createRoot(document.getElementById("root")).render(
         <Route path="/myOrder" element={<MyOrder />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
-<<<<<<<<< Temporary merge branch 1
+        {/* Rute ini dipindahkan ke Protected Kurir Routes */}
+        {/* <Route path="/history" element={<DeliveryHistory />} /> */}
         <Route path="/wishlist" element={<Wishlist />} />
-        <Route path="/kurir/dashboard" element={<KurirDashboard />} />
-        <Route path="/kurir/barang" element={<KurirBarang />} />
-=========
-        <Route path="/historyPengiriman" element={<DeliveryHistory />} />
-        <Route path="/wishlist" element={<Wishlist />} />
-
->>>>>>>>> Temporary merge branch 2
+        <Route path="/managebarang" element={<ManageBarang />} />
+        {/* Rute ini dipindahkan ke Protected Kurir Routes */}
+        {/* <Route path="/kurir/dashboard" element={<DashboardKurir />} /> */}
+        {/* Rute ini dipindahkan ke Protected Kurir Routes */}
+        {/* <Route path="/kurir/barang" element={<KurirBarang />} /> */}
+        <Route path="/addresses" element={<Addresses />} />
+        <Route path="/history" element={<DeliveryHistory />} />
 
         {/* Protected User Routes */}
         <Route element={<PrivateRoute role="User" />}>
