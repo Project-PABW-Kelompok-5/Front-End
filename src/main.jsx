@@ -18,34 +18,48 @@ import Cart from "./pages/cart.jsx";
 import Checkout from "./pages/checkout.jsx";
 import DeliveryHistory from "./pages/kurir/historyPengiriman.jsx";
 import Wishlist from "./pages/wishlist.jsx";
-import KurirDashboard from "./pages/kurir/KurirDashboard.jsx";
+import ManageBalance from "./pages/admin/ManageBalance.jsx";
+import ManageBarang from "./pages/users/managebarang.jsx";
+import DashboardKurir from "./pages/Kurir/KurirDashboard.jsx";
 import KurirBarang from "./pages/kurir/KurirBarang.jsx";
+=========
+import DeliveryHistory from "./pages/kurir/historyPengiriman.jsx";
+import Wishlist
+ from "./pages/wishlist.jsx";
+>>>>>>>>> Temporary merge branch 2
 
 import "./index.css";
+
+startTokenRefreshListener();
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
         {/* Public Routes */}
-        <Route path="/dashboard" element={<Dashboard />} />
+        {/* Hapus atau ubah rute ini jika Dashboard hanya untuk Admin. */}
+        {/* <Route path="/dashboard" element={<Dashboard />} /> */}
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/verifikasi-email" element={<VerifikasiEmail />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/wallet" element={<Wallet />} />
         <Route path="/" element={<Homepage />} />
+        <Route path="/wallet" element={<Wallet />} />
         <Route path="/profile" element={<Profil />} />
         <Route path="/myOrder" element={<MyOrder />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
-        <Route path="/historyPengiriman" element={<DeliveryHistory />} />
+<<<<<<<<< Temporary merge branch 1
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/kurir/dashboard" element={<KurirDashboard />} />
         <Route path="/kurir/barang" element={<KurirBarang />} />
+=========
+        <Route path="/historyPengiriman" element={<DeliveryHistory />} />
+        <Route path="/wishlist" element={<Wishlist />} />
 
+>>>>>>>>> Temporary merge branch 2
 
         {/* Protected User Routes */}
-        <Route element={<PrivateRoute role="user" />}>
-          {/* <Route path="/" element={<Homepage />} /> */}
+        <Route element={<PrivateRoute role="User" />}>
           <Route path="/users/dashboard" element={<EcommerceDashboard />} />
         </Route>
 
@@ -54,8 +68,14 @@ createRoot(document.getElementById("root")).render(
           <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/manageUsers" element={<ManageUsers />} />
           <Route path="/admin/manageProduct" element={<ManageProduct />} />
-          <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/manageCourier" element={<ManageCourier />} />
+          <Route path="/admin/manageBalance" element={<ManageBalance />} />
+        </Route>
+
+        {/* --- Protected Kurir Routes --- */}
+        <Route element={<PrivateRoute role="kurir" />}>
+          <Route path="/kurir/dashboard" element={<DashboardKurir />} />
+          <Route path="/kurir/barang" element={<KurirBarang />} />
         </Route>
       </Routes>
     </BrowserRouter>
