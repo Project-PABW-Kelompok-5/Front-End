@@ -23,7 +23,7 @@ import ManageBarang from "./pages/users/managebarang.jsx";
 import DashboardKurir from "./pages/Kurir/KurirDashboard.jsx";
 import KurirBarang from "./pages/kurir/KurirBarang.jsx";
 import Addresses from "./pages/Addressses.jsx";
-import ErrorSection7 from "./pages/ErrorSection7.jsx";
+import VerifikasiEmail from "./pages/verifikasiEmail.jsx";
 
 import { startTokenRefreshListener } from "./authListener";
 
@@ -39,6 +39,7 @@ createRoot(document.getElementById("root")).render(
         {/* Hapus atau ubah rute ini jika Dashboard hanya untuk Admin. */}
         {/* <Route path="/dashboard" element={<Dashboard />} /> */}
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/verifikasi-email" element={<VerifikasiEmail />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<Homepage />} />
         <Route path="/wallet" element={<Wallet />} />
@@ -56,7 +57,6 @@ createRoot(document.getElementById("root")).render(
         {/* <Route path="/kurir/barang" element={<KurirBarang />} /> */}
         <Route path="/addresses" element={<Addresses />} />
         <Route path="/history" element={<DeliveryHistory />} />
-        <Route path="*" element={<ErrorSection7 />} />
 
         {/* Protected User Routes */}
         <Route element={<PrivateRoute role="user" />}>
