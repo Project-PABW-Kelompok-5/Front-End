@@ -57,6 +57,8 @@ createRoot(document.getElementById("root")).render(
         {/* <Route path="/kurir/barang" element={<KurirBarang />} /> */}
         <Route path="/addresses" element={<Addresses />} />
         <Route path="/history" element={<DeliveryHistory />} />
+        <Route path="/kurir/dashboard" element={<DashboardKurir />} />
+        <Route path="/kurir/barang" element={<KurirBarang />} />
 
         {/* Protected User Routes */}
         <Route element={<PrivateRoute role="User" />}>
@@ -73,10 +75,10 @@ createRoot(document.getElementById("root")).render(
         </Route>
 
         {/* --- Protected Kurir Routes --- */}
-        <Route element={<PrivateRoute role="kurir" />}>
+        {/* <Route element={<PrivateRoute role="kurir" />}>
           <Route path="/kurir/dashboard" element={<DashboardKurir />} />
           <Route path="/kurir/barang" element={<KurirBarang />} />
-        </Route>
+        </Route> */}
       </Routes>
     </BrowserRouter>
   </StrictMode>

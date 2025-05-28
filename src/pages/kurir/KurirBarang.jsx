@@ -1,40 +1,77 @@
+import React, { useEffect, useState } from "react";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+} from "firebase/firestore";
+import { firestore } from "../../firebase"; // Pastikan path ini sesuai dengan konfigurasi Anda
 import KurirSidebar from "../../components/KurirSidebar.jsx";
 
 const KurirBarang = () => {
-  // Dummy data barang yang bisa dilihat kurir
-  const barangKurir = [
-    {
-      id: 1,
-      nama: "Teh Botol",
-      status: "menunggu kurir",
-      penjual: "Toko A",
-      pembeli: "Andi",
-    },
-    {
-      id: 2,
-      nama: "Kopi Sachet",
-      status: "sedang dikirim",
-      penjual: "Toko B",
-      pembeli: "Budi",
-    },
-    {
-      id: 3,
-      nama: "Gula Merah",
-      status: "dikirim balik",
-      penjual: "Toko C",
-      pembeli: "Citra",
-    },
-  ];
+  const [orders, setOrders] = useState([]);
 
-  const handleUpdateStatus = (id, statusBaru) => {
-    // logika update status bisa ditempatkan di sini
-    console.log(`Barang ID ${id} diubah ke status: ${statusBaru}`);
+  // Ambil data user yang sedang login dari localStorage
+  const User = JSON.parse(localStorage.getItem("user"));
+  const uid = User ? User.id : null;
+
+  // Fungsi untuk mengambil data orders dari Firestore dengan filter
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (!uid) return; // Jika user belum login, hentikan proses
+
+      try {
+        // Query Firestore: ambil orders dengan status_barang = 'menunggu kurir' dan id_user sesuai user login
+        const q = query(
+          collection(firestore, "orders"),
+          where("status_barang", "==", "menunggu kurir"),
+          where("id_user", "==", uid)
+        );
+
+        const querySnapshot = await getDocs(q);
+        const ordersData = [];
+
+        querySnapshot.forEach((doc) => {
+          ordersData.push({ id: doc.id, ...doc.data() });
+        });
+
+        setOrders(ordersData);
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+      }
+    };
+
+    fetchOrders();
+  }, [uid]);
+
+  // Fungsi untuk update status_pengiriman pada dokumen order di Firestore
+  const handleUpdateStatus = async (orderId, newStatus) => {
+    try {
+      const orderRef = doc(firestore, "orders", orderId);
+      await updateDoc(orderRef, {
+        status_pengiriman: newStatus,
+      });
+
+      // Update state agar UI langsung berubah tanpa reload
+      setOrders((prevOrders) =>
+        prevOrders.map((order) =>
+          order.id === orderId
+            ? { ...order, status_pengiriman: newStatus }
+            : order
+        )
+      );
+    } catch (error) {
+      console.error("Error updating status:", error);
+    }
   };
 
-  const renderAksi = (barang) => {
-    const { id, status } = barang;
+  // Render tombol aksi berdasarkan status_pengiriman
+  const renderAksi = (order) => {
+    const { id, status_pengiriman } = order;
 
-    switch (status) {
+    switch (status_pengiriman) {
       case "menunggu kurir":
         return (
           <div className="space-x-2">
@@ -44,31 +81,7 @@ const KurirBarang = () => {
             >
               Kirim
             </button>
-            <button
-              onClick={() => handleUpdateStatus(id, "dikirim balik")}
-              className="bg-yellow-600 text-white px-3 py-1 rounded hover:bg-yellow-700"
-            >
-              Kirim Balik
-            </button>
           </div>
-        );
-      case "sedang dikirim":
-        return (
-          <button
-            onClick={() => handleUpdateStatus(id, "sampai di tujuan")}
-            className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-          >
-            Sampai Tujuan
-          </button>
-        );
-      case "dikirim balik":
-        return (
-          <button
-            onClick={() => handleUpdateStatus(id, "menunggu penjual")}
-            className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
-          >
-            Kembali ke Penjual
-          </button>
         );
       default:
         return null;
@@ -93,13 +106,15 @@ const KurirBarang = () => {
               </tr>
             </thead>
             <tbody>
-              {barangKurir.map((barang) => (
-                <tr key={barang.id} className="border-t">
-                  <td className="px-6 py-3">{barang.nama}</td>
-                  <td className="px-6 py-3">{barang.penjual}</td>
-                  <td className="px-6 py-3">{barang.pembeli}</td>
-                  <td className="px-6 py-3 capitalize">{barang.status}</td>
-                  <td className="px-6 py-3">{renderAksi(barang)}</td>
+              {orders.map((order) => (
+                <tr key={order.id} className="border-t">
+                  <td className="px-6 py-3">{order.nama_barang}</td>
+                  <td className="px-6 py-3">{order.penjual}</td>
+                  <td className="px-6 py-3">{order.pembeli}</td>
+                  <td className="px-6 py-3 capitalize">
+                    {order.status_pengiriman}
+                  </td>
+                  <td className="px-6 py-3">{renderAksi(order)}</td>
                 </tr>
               ))}
             </tbody>
