@@ -763,7 +763,7 @@ const UserProfile = () => {
                       </div>
                       <button
                         onClick={toggleVisibility}
-                        className="bg-white/20 p-2 rounded-full hover:bg-white/30 transition-colors"
+                        className="bg-white/20 p-2 rounded-full hover:bg-white/30 transition-colors cursor-pointer"
                       >
                         {isVisible ? (
                           <EyeOffIcon className="h-5 w-5 text-white" />
