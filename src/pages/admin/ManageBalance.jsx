@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import AdminSidebar from '../../components/AdminSidebar.jsx';
-import axios from 'axios'; // Import axios
+import axios from 'axios';
 
 const API_URL = 'http://localhost:3000/api/admin/users';
 
@@ -16,7 +16,6 @@ const ManageBalance = () => {
 
   const token = localStorage.getItem("token");
 
-  // Fungsi untuk menampilkan dialog alert kustom
   const showCustomDialog = (message) => {
     setDialogMessage(message);
     setShowAlertDialog(true);
@@ -25,15 +24,15 @@ const ManageBalance = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(API_URL, { // Menggunakan axios.get
+      const response = await axios.get(API_URL, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      const data = response.data; // axios otomatis mem-parsing JSON
+      const data = response.data;
 
       if (Array.isArray(data)) {
         setUsers(data);
-      } else if (Array.isArray(data.users)) { // Sesuaikan jika API mengembalikan objek dengan properti 'users'
+      } else if (Array.isArray(data.users)) {
         setUsers(data.users);
       } else {
         console.error("Format respons tidak sesuai", data);
@@ -60,7 +59,7 @@ const ManageBalance = () => {
   const openModal = (user, mode) => {
     setSelectedUser(user);
     setIsAdding(mode === 'add');
-    setSaldoInput(''); // Reset input saat modal dibuka
+    setSaldoInput('');
     setIsModalOpen(true);
   };
 
@@ -72,28 +71,26 @@ const ManageBalance = () => {
 
   const handleSubmit = async () => {
     const jumlah = parseFloat(saldoInput);
-    if (isNaN(jumlah) || jumlah <= 0) { // Saldo yang dimasukkan harus positif
+    if (isNaN(jumlah) || jumlah <= 0) {
       showCustomDialog("Masukkan jumlah saldo yang valid (angka positif).");
       return;
     }
 
-    // Tentukan amount: positif jika menambah, negatif jika mengurangi
     const amount = isAdding ? jumlah : -jumlah;
 
     try {
-      const response = await axios.patch(`${API_URL}/${selectedUser.id}`, { amount }, { // Menggunakan axios.patch
+      const response = await axios.patch(`${API_URL}/${selectedUser.id}`, { amount }, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
       });
 
-      if (response.status === 200) { // axios mengembalikan status HTTP langsung
+      if (response.status === 200) {
         showCustomDialog(`Saldo berhasil ${isAdding ? 'ditambah' : 'dikurangi'}!`);
-        fetchUsers();     // refresh data
-        closeModal();     // tutup modal
+        fetchUsers();
+        closeModal();
       } else {
-        // Ini jarang terpanggil karena axios akan melempar error untuk status non-2xx
         showCustomDialog("Gagal update saldo: " + (response.data.message || "Terjadi kesalahan."));
       }
     } catch (err) {
@@ -169,7 +166,6 @@ const ManageBalance = () => {
           </table>
         </div>
 
-        {/* Modal untuk Tambah/Kurangi Saldo */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm transform transition-all duration-300 scale-100 opacity-100">
@@ -202,7 +198,6 @@ const ManageBalance = () => {
           </div>
         )}
 
-        {/* Modal Alert Kustom */}
         {showAlertDialog && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">

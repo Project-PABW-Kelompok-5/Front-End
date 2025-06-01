@@ -1,10 +1,8 @@
-// src/pages/admin/ManageUsers.jsx
 import { useState, useEffect } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import AdminSidebar from "../../components/AdminSidebar.jsx";
-import axios from 'axios'; // Import axios
-// Import auth Firebase
-import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, deleteUser } from "firebase/auth"; // Tambah deleteUser
+import axios from 'axios';
+import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, deleteUser } from "firebase/auth";
 import { app } from "../../firebase";
 
 const API_USERS_URL = "http://localhost:3000/api/admin/users";
@@ -12,7 +10,7 @@ const API_USERS_URL = "http://localhost:3000/api/admin/users";
 const ManageUsers = () => {
   const [users, setUsers] = useState([]);
   const [showModal, setShowModal] = useState(false);
-  const [loading, setLoading] = useState(true); // Default true for initial fetch
+  const [loading, setLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editUserId, setEditUserId] = useState(null);
 
@@ -25,24 +23,22 @@ const ManageUsers = () => {
     role: "User",
   });
 
-  const [showAlertDialog, setShowAlertDialog] = useState(false); // State untuk modal alert kustom
-  const [dialogMessage, setDialogMessage] = useState("");       // Pesan untuk modal alert
-  const [showConfirmModal, setShowConfirmModal] = useState(false); // State untuk modal konfirmasi
-  const [userToDeleteId, setUserToDeleteId] = useState(null); // ID pengguna yang akan dihapus
-  const [userToDeleteUid, setUserToDeleteUid] = useState(null); // UID pengguna Firebase yang akan dihapus
+  const [showAlertDialog, setShowAlertDialog] = useState(false);
+  const [dialogMessage, setDialogMessage] = useState("");
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [userToDeleteId, setUserToDeleteId] = useState(null);
+  const [userToDeleteUid, setUserToDeleteUid] = useState(null);
 
   const token = localStorage.getItem("token");
-  const auth = getAuth(app); // Inisialisasi auth Firebase
+  const auth = getAuth(app);
 
-  // Fungsi untuk menampilkan dialog alert kustom
   const showCustomDialog = (message) => {
     setDialogMessage(message);
     setShowAlertDialog(true);
   };
 
-  // Fungsi untuk mengambil semua data pengguna
   const getAllUsers = async () => {
-    setLoading(true); // Set loading true saat memulai fetch
+    setLoading(true);
     try {
       const res = await axios.get(API_USERS_URL, {
         headers: {
@@ -52,10 +48,9 @@ const ManageUsers = () => {
 
       const data = res.data;
 
-      // Cek apakah data.users adalah array
       if (Array.isArray(data.users)) {
         setUsers(data.users);
-      } else if (Array.isArray(data)) { // Jika response langsung array (misal API endpoint lain)
+      } else if (Array.isArray(data)) {
         setUsers(data);
       } else {
         console.error("Format data tidak sesuai:", data);
@@ -67,7 +62,7 @@ const ManageUsers = () => {
       showCustomDialog(`Gagal mengambil data pengguna: ${error.response?.data?.message || error.message}`);
       setUsers([]);
     } finally {
-      setLoading(false); // Set loading false setelah fetch selesai
+      setLoading(false);
     }
   };
 
@@ -75,7 +70,6 @@ const ManageUsers = () => {
     getAllUsers();
   }, []);
 
-  // Reset form dan state modal
   const resetModalState = () => {
     setNewUser({
       name: "",
@@ -90,15 +84,13 @@ const ManageUsers = () => {
     setEditUserId(null);
   };
 
-  // Handler untuk perubahan input form
   const handleChange = (e) => {
     const { name, value } = e.target;
     setNewUser((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handler untuk submit form (Tambah/Edit)
   const handleSubmitForm = async (e) => {
-    e.preventDefault(); // Mencegah reload halaman
+    e.preventDefault();
     if (isEditMode) {
       await handleUpdateUser();
     } else {
@@ -107,9 +99,8 @@ const ManageUsers = () => {
   };
 
   const handleAddUser = async () => {
-    setLoading(true); // Set loading true saat proses tambah user
+    setLoading(true);
     try {
-      // 1. Buat akun user di Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         newUser.email,
@@ -117,19 +108,16 @@ const ManageUsers = () => {
       );
       const firebaseUser = userCredential.user;
 
-      // 2. Kirim email verifikasi
-      // Pastikan email action code settings dikonfigurasi di Firebase Console
       await sendEmailVerification(firebaseUser);
 
-      // 3. Simpan data user ke backend (sertakan UID dari Firebase)
       const res = await axios.post(API_USERS_URL, {
-        uid: firebaseUser.uid, // Kirim UID ke backend
-        name: newUser.name, // Tambahkan field name
+        uid: firebaseUser.uid,
+        name: newUser.name,
         username: newUser.username,
         email: newUser.email,
         no_telepon: newUser.no_telepon,
         role: newUser.role,
-        saldo: 0 // Inisialisasi saldo default
+        saldo: 0
       }, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -139,15 +127,15 @@ const ManageUsers = () => {
 
       if (res.status === 201) {
         showCustomDialog("Pengguna berhasil ditambahkan. Email verifikasi telah dikirim.");
-        getAllUsers(); // Refresh daftar user
-        resetModalState(); // Reset form dan tutup modal
+        getAllUsers();
+        resetModalState();
       } else {
         throw new Error(res.data.message || "Gagal menambah pengguna.");
       }
     } catch (error) {
       console.error("Kesalahan saat menambah pengguna:", error);
       let errorMessage = "Terjadi kesalahan saat menambah pengguna.";
-      if (error.code) { // Firebase errors
+      if (error.code) {
         switch (error.code) {
           case 'auth/email-already-in-use':
             errorMessage = "Email sudah terdaftar. Gunakan email lain.";
@@ -161,14 +149,14 @@ const ManageUsers = () => {
           default:
             errorMessage = `Firebase Error: ${error.message}`;
         }
-      } else if (error.response?.data?.message) { // Backend errors
+      } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
-      } else if (error.message) { // Generic JS error
+      } else if (error.message) {
         errorMessage = error.message;
       }
       showCustomDialog(errorMessage);
     } finally {
-      setLoading(false); // Set loading false
+      setLoading(false);
     }
   };
 
@@ -179,7 +167,7 @@ const ManageUsers = () => {
       name: user.name,
       email: user.email,
       username: user.username,
-      password: "", // Kosongkan password saat edit, hanya isi jika ingin diubah
+      password: "",
       no_telepon: user.no_telepon,
       role: user.role,
     });
@@ -187,14 +175,12 @@ const ManageUsers = () => {
   };
 
   const handleUpdateUser = async () => {
-    setLoading(true); // Set loading true saat proses update user
+    setLoading(true);
     try {
       const updatedUser = { ...newUser };
-      // Hapus password dari payload jika kosong (tidak diubah)
       if (!updatedUser.password) {
         delete updatedUser.password;
       }
-      // Email tidak boleh diubah jika disabled di UI
       delete updatedUser.email;
 
       const res = await axios.put(
@@ -210,8 +196,8 @@ const ManageUsers = () => {
 
       if (res.status === 200) {
         showCustomDialog("Pengguna berhasil diperbarui!");
-        getAllUsers(); // Refresh daftar user
-        resetModalState(); // Reset form dan tutup modal
+        getAllUsers();
+        resetModalState();
       } else {
         throw new Error(res.data.message || "Gagal memperbarui pengguna.");
       }
@@ -219,39 +205,22 @@ const ManageUsers = () => {
       console.error("Kesalahan saat memperbarui pengguna:", error);
       showCustomDialog(`Gagal memperbarui pengguna: ${error.response?.data?.message || error.message}`);
     } finally {
-      setLoading(false); // Set loading false
+      setLoading(false);
     }
   };
 
-  // Fungsi untuk menghapus pengguna (memicu modal konfirmasi)
   const handleDeleteClick = (user) => {
     setUserToDeleteId(user.id);
-    setUserToDeleteUid(user.uid); // Simpan UID Firebase untuk penghapusan
-    showConfirmModal(true);
+    setUserToDeleteUid(user.uid);
+    setShowConfirmModal(true);
   };
 
-  // Fungsi konfirmasi penghapusan
   const confirmDelete = async () => {
-    setShowConfirmModal(false); // Tutup modal konfirmasi
+    setShowConfirmModal(false);
     if (!userToDeleteId || !userToDeleteUid) return;
 
-    setLoading(true); // Set loading true saat proses hapus user
+    setLoading(true);
     try {
-      // 1. Hapus dari Firebase Authentication
-      // Perhatikan: Menghapus user dari Firebase Auth di sisi klien memerlukan
-      // user yang sedang login adalah admin, dan sesi admin masih aktif.
-      // Untuk solusi produksi yang lebih aman, ini biasanya dilakukan di sisi server (Cloud Functions, dll.)
-      // Namun, jika ini adalah panel admin dan token admin punya hak, kita bisa coba:
-      // const firebaseUser = auth.currentUser;
-      // if (firebaseUser && firebaseUser.uid === userToDeleteUid) {
-      //   await deleteUser(firebaseUser); // Ini akan menghapus user yang sedang login
-      // } else {
-      //   // Untuk menghapus user lain, Anda perlu Cloud Functions/Admin SDK di backend
-      //   // atau pastikan API backend Anda menghapus dari Firebase Auth juga.
-      //   console.warn("Penghapusan Firebase Auth untuk user lain via klien tidak disarankan/tidak didukung langsung.");
-      // }
-
-      // Kita asumsikan backend akan menghapus user dari Firebase Auth
       const res = await axios.delete(`${API_USERS_URL}/${userToDeleteId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -260,7 +229,7 @@ const ManageUsers = () => {
 
       if (res.status === 200) {
         showCustomDialog("Pengguna berhasil dihapus!");
-        getAllUsers(); // Refresh daftar user
+        getAllUsers();
       } else {
         throw new Error(res.data.message || "Gagal menghapus pengguna.");
       }
@@ -268,7 +237,7 @@ const ManageUsers = () => {
       console.error("Kesalahan saat menghapus pengguna:", error);
       showCustomDialog(`Gagal menghapus pengguna: ${error.response?.data?.message || error.message}`);
     } finally {
-      setLoading(false); // Set loading false
+      setLoading(false);
       setUserToDeleteId(null);
       setUserToDeleteUid(null);
     }
@@ -352,7 +321,6 @@ const ManageUsers = () => {
           </table>
         </div>
 
-        {/* Modal Tambah/Edit Pengguna */}
         {showModal && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl transform transition-all duration-300 scale-100 opacity-100">
@@ -380,8 +348,8 @@ const ManageUsers = () => {
                     className={`w-full px-4 py-2 border rounded-lg ${
                       isEditMode ? "bg-gray-100 cursor-not-allowed" : ""
                     } focus:ring-blue-500 focus:border-blue-500`}
-                    disabled={isEditMode} // Email dinonaktifkan saat edit
-                    required={!isEditMode} // Email wajib diisi hanya saat tambah
+                    disabled={isEditMode}
+                    required={!isEditMode}
                   />
 
                   <input
@@ -405,7 +373,7 @@ const ManageUsers = () => {
                     value={newUser.password}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    required={!isEditMode} // Password wajib diisi hanya saat tambah
+                    required={!isEditMode}
                   />
 
                   <input
@@ -430,7 +398,7 @@ const ManageUsers = () => {
 
                   <div className="flex justify-end space-x-2">
                     <button
-                      type="button" // Penting: agar tidak submit form
+                      type="button"
                       onClick={resetModalState}
                       className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 transition duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75"
                     >
@@ -440,7 +408,7 @@ const ManageUsers = () => {
                     <button
                       type="submit"
                       className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75"
-                      disabled={loading} // Nonaktifkan tombol saat loading
+                      disabled={loading}
                     >
                       {loading ? "Memproses..." : (isEditMode ? "Update Pengguna" : "Tambah Pengguna")}
                     </button>
@@ -451,7 +419,6 @@ const ManageUsers = () => {
           </div>
         )}
 
-        {/* Modal Konfirmasi Hapus */}
         {showConfirmModal && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
@@ -467,7 +434,7 @@ const ManageUsers = () => {
                 <button
                   onClick={confirmDelete}
                   className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-200"
-                  disabled={loading} // Nonaktifkan tombol saat loading
+                  disabled={loading}
                 >
                   {loading ? "Menghapus..." : "Hapus"}
                 </button>
@@ -476,7 +443,6 @@ const ManageUsers = () => {
           </div>
         )}
 
-        {/* Modal Alert Kustom */}
         {showAlertDialog && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
