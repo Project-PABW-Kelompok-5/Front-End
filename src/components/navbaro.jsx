@@ -1,6 +1,18 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import LogoIcon from "../assets/homepage/logo.svg";
 
-const Navbaro = ({}) => {
+const navbaro = () => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const navigate = useNavigate();
+  const profile = () => {
+    navigate("/profile");
+  };
+  const wishlist = () => {
+    navigate("/wishlist");
+  };
+
   return (
     <div className="bg-gradient-to-r from-[#753799] to-[#4a1d6a] text-white shadow-lg sticky top-0 z-10">
       <div className="container mx-auto px-4 py-4">
@@ -18,13 +30,6 @@ const Navbaro = ({}) => {
           <div className="hidden md:block flex-1 max-w-md mx-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-black h-4 w-4" />
-              <input
-                type="text"
-                placeholder="Cari produk..."
-                className="w-full bg-[#e7deec] pl-10 pr-4 py-2 rounded-full text-black focus:outline-none focus:ring-2 focus:ring-[#faf5fd] text-sm"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
             </div>
           </div>
 
@@ -37,11 +42,6 @@ const Navbaro = ({}) => {
             </button>
             <button className="ml-0 md:ml-6 relative cursor-pointer md:block">
               <ShoppingBag className="h-6 w-6" />
-              {cartItems.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {cartItems.length}
-                </span>
-              )}
             </button>
             <button
               onClick={profile}
@@ -66,4 +66,4 @@ const Navbaro = ({}) => {
   );
 };
 
-export default Navbaro;
+export default navbaro;

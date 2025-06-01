@@ -1,6 +1,5 @@
 "use client";
 
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -18,7 +17,11 @@ import {
   Trash2,
   Eye,
   EyeOff,
-  BadgeDollarSign
+  EyeIcon,
+  EyeOffIcon,
+  BadgeDollarSign,
+  Store,
+  Banknote,
 } from "lucide-react";
 import { FaHome } from "react-icons/fa";
 import {
@@ -30,14 +33,14 @@ import {
   setDoc,
   deleteDoc,
 } from "firebase/firestore";
-import { firestore } from "../firebase";
+import { firestore, auth } from "../firebase";
 import DropdownAlamatKaltim from "../components/DropdownAlamatKaltim";
-
-import { 
-  getAuth, 
-  updatePassword, 
-  reauthenticateWithCredential, 
-  EmailAuthProvider 
+import {
+  getAuth,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  onAuthStateChanged,
 } from "firebase/auth";
 
 const initialUserData = {
@@ -50,10 +53,11 @@ const initialUserData = {
   isPhoneVerified: false,
 };
 
-
 const UserProfile = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("profile");
+  const [isVisible, setIsVisible] = useState(true);
+  const [saldo, setSaldo] = useState(0);
 
   const loggedInUser = JSON.parse(localStorage.getItem("user"));
   const userId = loggedInUser?.uid || loggedInUser?.id;
@@ -97,7 +101,9 @@ const UserProfile = () => {
   // 1. useEffect untuk memuat data pengguna utama
   useEffect(() => {
     if (!userId) {
-      console.warn("User ID tidak ditemukan. Tidak dapat memuat data pengguna.");
+      console.warn(
+        "User ID tidak ditemukan. Tidak dapat memuat data pengguna."
+      );
       return;
     }
 
@@ -110,17 +116,26 @@ const UserProfile = () => {
           const fetchedDbData = userSnap.data();
           const newUserData = {
             name: fetchedDbData.nama || initialUserData.name,
-            email: loggedInUser?.email || fetchedDbData.email || initialUserData.email,
+            email:
+              loggedInUser?.email ||
+              fetchedDbData.email ||
+              initialUserData.email,
             phone: fetchedDbData.no_telepon || initialUserData.phone,
-            username: fetchedDbData.username || loggedInUser?.displayName || initialUserData.username,
-            profilePicture: fetchedDbData.profilePicture || initialUserData.profilePicture,
+            username:
+              fetchedDbData.username ||
+              loggedInUser?.displayName ||
+              initialUserData.username,
+            profilePicture:
+              fetchedDbData.profilePicture || initialUserData.profilePicture,
             isEmailVerified: loggedInUser?.emailVerified || false,
             isPhoneVerified: !!fetchedDbData.no_telepon,
           };
           setUserData(newUserData);
           // JANGAN setProfileFormData di sini lagi untuk menghindari reset saat mengetik
         } else {
-          console.log("Dokumen pengguna tidak ditemukan di Firestore. Menggunakan initial data.");
+          console.log(
+            "Dokumen pengguna tidak ditemukan di Firestore. Menggunakan initial data."
+          );
           setUserData(initialUserData); // Set ke initial jika tidak ditemukan
         }
       } catch (error) {
@@ -168,7 +183,8 @@ const UserProfile = () => {
 
   // 3. Saat tombol "Edit" diklik, salin userData ke profileFormData
   const handleStartEditingProfile = () => {
-    setProfileFormData({ // Salin dari userData saat ini untuk memulai edit
+    setProfileFormData({
+      // Salin dari userData saat ini untuk memulai edit
       name: userData.name,
       email: userData.email,
       phone: userData.phone,
@@ -194,7 +210,7 @@ const UserProfile = () => {
       await setDoc(userDocRef, dataToUpdate, { merge: true });
 
       // Update userData lokal agar UI langsung berubah (ini akan memicu useEffect no.2)
-      setUserData(prev => ({
+      setUserData((prev) => ({
         ...prev,
         name: profileFormData.name,
         phone: profileFormData.phone,
@@ -228,8 +244,8 @@ const UserProfile = () => {
 
   const handleOpenAddModal = () => {
     setCurrentAddressForm({
-      name: userData.name || "", 
-      phone: userData.phone || "", 
+      name: userData.name || "",
+      phone: userData.phone || "",
       addressDetail: "",
       provinsi: "Kalimantan Timur",
       kota: "",
@@ -265,22 +281,32 @@ const UserProfile = () => {
         currentAddressForm.kota,
         currentAddressForm.provinsi,
         currentAddressForm.kodePos,
-      ].filter(Boolean).join(', '),
+      ]
+        .filter(Boolean)
+        .join(", "),
     };
     try {
       if (editingAddressId) {
-        const addressDocRef = doc(firestore, `users/${userId}/alamat/${editingAddressId}`);
+        const addressDocRef = doc(
+          firestore,
+          `users/${userId}/alamat/${editingAddressId}`
+        );
         await setDoc(addressDocRef, payload, { merge: true });
         setAddressList((prevList) =>
           prevList.map((addr) =>
-            addr.id === editingAddressId ? { ...payload, id: editingAddressId } : addr
+            addr.id === editingAddressId
+              ? { ...payload, id: editingAddressId }
+              : addr
           )
         );
         alert("Alamat berhasil diperbarui.");
       } else {
         const alamatCol = collection(firestore, `users/${userId}/alamat`);
         const docRef = await addDoc(alamatCol, payload);
-        setAddressList((prevList) => [...prevList, { ...payload, id: docRef.id }]);
+        setAddressList((prevList) => [
+          ...prevList,
+          { ...payload, id: docRef.id },
+        ]);
         alert("Alamat baru berhasil disimpan.");
       }
       setShowAddressModal(false);
@@ -295,9 +321,14 @@ const UserProfile = () => {
     if (!userId || !addressIdToDelete) return;
     if (window.confirm("Apakah Anda yakin ingin menghapus alamat ini?")) {
       try {
-        const addressDocRef = doc(firestore, `users/${userId}/alamat/${addressIdToDelete}`);
+        const addressDocRef = doc(
+          firestore,
+          `users/${userId}/alamat/${addressIdToDelete}`
+        );
         await deleteDoc(addressDocRef);
-        setAddressList((prevList) => prevList.filter((addr) => addr.id !== addressIdToDelete));
+        setAddressList((prevList) =>
+          prevList.filter((addr) => addr.id !== addressIdToDelete)
+        );
         alert("Alamat berhasil dihapus.");
       } catch (error) {
         console.error("Error deleting address: ", error);
@@ -305,14 +336,14 @@ const UserProfile = () => {
       }
     }
   };
-  
+
   //Enhanced handlePasswordChange dengan validasi real-time
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
     setPasswordData((prev) => ({ ...prev, [name]: value }));
 
     // Real-time validation untuk new password
-    if (name === 'newPassword') {
+    if (name === "newPassword") {
       // const validation = validatePasswordStrength(value);
       // Bisa set state untuk menampilkan indikator kekuatan password
       // setPasswordStrength(validation);
@@ -320,9 +351,9 @@ const UserProfile = () => {
   };
 
   const togglePasswordVisibility = (field) => {
-    setPasswordVisibility(prev => ({
+    setPasswordVisibility((prev) => ({
       ...prev,
-      [field]: !prev[field]
+      [field]: !prev[field],
     }));
   };
 
@@ -368,7 +399,10 @@ const UserProfile = () => {
       }
 
       // Re-authenticate user dengan password lama
-      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      const credential = EmailAuthProvider.credential(
+        user.email,
+        currentPassword
+      );
       await reauthenticateWithCredential(user, credential);
 
       // Update password
@@ -388,22 +422,23 @@ const UserProfile = () => {
       setIsChangingPassword(false);
 
       alert("Kata sandi berhasil diperbarui!");
-
     } catch (error) {
       console.error("Error updating password:", error);
 
       // Handle specific error codes
       switch (error.code) {
-        case 'auth/wrong-password':
+        case "auth/wrong-password":
           alert("Kata sandi saat ini salah.");
           break;
-        case 'auth/weak-password':
+        case "auth/weak-password":
           alert("Kata sandi baru terlalu lemah. Gunakan minimal 6 karakter.");
           break;
-        case 'auth/requires-recent-login':
-          alert("Untuk keamanan, silakan logout dan login ulang sebelum mengubah kata sandi.");
+        case "auth/requires-recent-login":
+          alert(
+            "Untuk keamanan, silakan logout dan login ulang sebelum mengubah kata sandi."
+          );
           break;
-        case 'auth/too-many-requests':
+        case "auth/too-many-requests":
           alert("Terlalu banyak percobaan. Silakan coba lagi nanti.");
           break;
         default:
@@ -421,43 +456,51 @@ const UserProfile = () => {
 
     return {
       isValid: minLength,
-      strength: [minLength, hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar].filter(Boolean).length,
+      strength: [
+        minLength,
+        hasUpperCase,
+        hasLowerCase,
+        hasNumbers,
+        hasSpecialChar,
+      ].filter(Boolean).length,
       suggestions: [
         !minLength && "Minimal 6 karakter",
         !hasUpperCase && "Tambahkan huruf besar",
         !hasLowerCase && "Tambahkan huruf kecil",
         !hasNumbers && "Tambahkan angka",
-        !hasSpecialChar && "Tambahkan karakter khusus"
-      ].filter(Boolean)
+        !hasSpecialChar && "Tambahkan karakter khusus",
+      ].filter(Boolean),
     };
   };
 
-// Komponen untuk menampilkan kekuatan password (opsional)
-const PasswordStrengthIndicator = ({ password }) => {
-  const validation = validatePasswordStrength(password);
-  const colors = ['red', 'orange', 'yellow', 'lightgreen', 'green'];
-  
-  return (
-    <div className="mt-2">
-      <div className="flex space-x-1 mb-1">
-        {[1,2,3,4,5].map(i => (
-          <div 
-            key={i}
-            className={`h-1 flex-1 rounded ${
-              i <= validation.strength ? `bg-${colors[validation.strength-1]}-500` : 'bg-gray-200'
-            }`}
-          />
-        ))}
+  // Komponen untuk menampilkan kekuatan password (opsional)
+  const PasswordStrengthIndicator = ({ password }) => {
+    const validation = validatePasswordStrength(password);
+    const colors = ["red", "orange", "yellow", "lightgreen", "green"];
+
+    return (
+      <div className="mt-2">
+        <div className="flex space-x-1 mb-1">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div
+              key={i}
+              className={`h-1 flex-1 rounded ${
+                i <= validation.strength
+                  ? `bg-${colors[validation.strength - 1]}-500`
+                  : "bg-gray-200"
+              }`}
+            />
+          ))}
+        </div>
+        {validation.suggestions.length > 0 && (
+          <p className="text-xs text-gray-600">
+            Saran: {validation.suggestions.join(", ")}
+          </p>
+        )}
       </div>
-      {validation.suggestions.length > 0 && (
-        <p className="text-xs text-gray-600">
-          Saran: {validation.suggestions.join(', ')}
-        </p>
-      )}
-    </div>
-  );
-};
-  
+    );
+  };
+
   const handleChangeProfilePicture = () => {
     alert("Fitur ganti foto profil belum diimplementasikan.");
   };
@@ -469,7 +512,40 @@ const PasswordStrengthIndicator = ({ password }) => {
   const handleLogout = () => {
     localStorage.removeItem("user");
     navigate("/login");
-  }
+  };
+
+  // Fungsi untuk mengambil saldo user dari Firestore
+  const getSaldo = async (uid) => {
+    try {
+      const userDocRef = doc(firestore, "users", uid);
+      const userSnap = await getDoc(userDocRef);
+      if (userSnap.exists()) {
+        return userSnap.data().saldo || 0;
+      }
+      return 0;
+    } catch (error) {
+      console.error("Error fetching saldo:", error);
+      return 0;
+    }
+  };
+
+  // fetch saldo
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const nominal = await getSaldo(user.uid);
+        setSaldo(nominal);
+      }
+    });
+
+    // Bersihkan listener saat komponen dibongkar
+    return () => unsubscribe();
+  }, []);
+
+  //show saldo
+  const toggleVisibility = () => {
+    setIsVisible(!isVisible);
+  };
 
   return (
     <div
@@ -482,20 +558,30 @@ const PasswordStrengthIndicator = ({ password }) => {
         <div className="flex flex-col md:flex-row gap-6">
           {/* Sidebar */}
           <div className="w-full md:w-1/4">
-            <div className="rounded-lg shadow p-6 mb-6" style={{ backgroundColor: "#ffffff" }}>
+            <div
+              className="rounded-lg shadow p-6 mb-6"
+              style={{ backgroundColor: "#ffffff" }}
+            >
               {/* ... Bagian Foto Profil & Navigasi Sidebar ... */}
               <div className="flex flex-col items-center mb-6">
                 <div className="relative mb-4">
                   <img
-                    src={userData.profilePicture || "https://via.placeholder.com/150"}
+                    src={
+                      userData.profilePicture ||
+                      "https://via.placeholder.com/150"
+                    }
                     alt="Profile"
                     className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"
                   />
                   <button
                     className="absolute bottom-0 right-0 p-2 rounded-full transition"
                     style={{ backgroundColor: "#753799", color: "#ffffff" }}
-                    onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#5a2d7a")}
-                    onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#753799")}
+                    onMouseOver={(e) =>
+                      (e.currentTarget.style.backgroundColor = "#5a2d7a")
+                    }
+                    onMouseOut={(e) =>
+                      (e.currentTarget.style.backgroundColor = "#753799")
+                    }
                     onClick={handleChangeProfilePicture}
                   >
                     <Camera className="w-4 h-4" />
@@ -508,35 +594,99 @@ const PasswordStrengthIndicator = ({ password }) => {
                   @{userData.username}
                 </p>
               </div>
+
               <nav className="space-y-1">
+                <button
+                  onClick={() => setActiveTab("balance")}
+                  className={`group w-full flex items-center px-4 py-3 rounded-md text-left ${
+                    activeTab === "balance"
+                      ? "text-white"
+                      : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
+                  }`}
+                  style={{
+                    backgroundColor:
+                      activeTab === "balance" ? "#753799" : "transparent",
+                    color: activeTab === "balance" ? "#ffffff" : "#100428",
+                    transition: "all 0.3s ease",
+                  }}
+                >
+                  <Banknote
+                    className={`w-5 h-5 mr-3 ${
+                      activeTab === "balance"
+                        ? "text-white"
+                        : "text-[#753799] group-hover:text-white"
+                    }`}
+                  />
+                  <span>Saldo & Top Up</span>
+                </button>
+
                 <button
                   onClick={() => setActiveTab("profile")}
                   className={`group w-full flex items-center px-4 py-3 rounded-md text-left ${
-                    activeTab === "profile" ? "text-white" : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
+                    activeTab === "profile"
+                      ? "text-white"
+                      : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
                   }`}
-                  style={{ backgroundColor: activeTab === "profile" ? "#753799" : "transparent", color: activeTab === "profile" ? "#ffffff" : "#100428", transition: "all 0.3s ease" }}
+                  style={{
+                    backgroundColor:
+                      activeTab === "profile" ? "#753799" : "transparent",
+                    color: activeTab === "profile" ? "#ffffff" : "#100428",
+                    transition: "all 0.3s ease",
+                  }}
                 >
-                  <User className={`w-5 h-5 mr-3 ${activeTab === "profile" ? "text-white" : "text-[#753799] group-hover:text-white"}`} />
+                  <User
+                    className={`w-5 h-5 mr-3 ${
+                      activeTab === "profile"
+                        ? "text-white"
+                        : "text-[#753799] group-hover:text-white"
+                    }`}
+                  />
                   <span>Profil Saya</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("addresses")}
                   className={`group w-full flex items-center px-4 py-3 rounded-md text-left ${
-                    activeTab === "addresses" ? "text-white" : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
+                    activeTab === "addresses"
+                      ? "text-white"
+                      : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
                   }`}
-                  style={{ backgroundColor: activeTab === "addresses" ? "#753799" : "transparent", color: activeTab === "addresses" ? "#ffffff" : "#100428", transition: "all 0.3s ease" }}
+                  style={{
+                    backgroundColor:
+                      activeTab === "addresses" ? "#753799" : "transparent",
+                    color: activeTab === "addresses" ? "#ffffff" : "#100428",
+                    transition: "all 0.3s ease",
+                  }}
                 >
-                  <MapPin className={`w-5 h-5 mr-3 ${activeTab === "addresses" ? "text-white" : "text-[#753799] group-hover:text-white"}`} />
+                  <MapPin
+                    className={`w-5 h-5 mr-3 ${
+                      activeTab === "addresses"
+                        ? "text-white"
+                        : "text-[#753799] group-hover:text-white"
+                    }`}
+                  />
                   <span>Alamat Saya</span>
                 </button>
                 <button
                   onClick={() => setActiveTab("security")}
                   className={`group w-full flex items-center px-4 py-3 rounded-md text-left ${
-                    activeTab === "security" ? "text-white" : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
+                    activeTab === "security"
+                      ? "text-white"
+                      : "hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
                   }`}
-                  style={{ backgroundColor: activeTab === "security" ? "#753799" : "transparent", color: activeTab === "security" ? "#ffffff" : "#100428", transition: "all 0.3s ease" }}
+                  style={{
+                    backgroundColor:
+                      activeTab === "security" ? "#753799" : "transparent",
+                    color: activeTab === "security" ? "#ffffff" : "#100428",
+                    transition: "all 0.3s ease",
+                  }}
                 >
-                  <Shield className={`w-5 h-5 mr-3 ${activeTab === "security" ? "text-white" : "text-[#753799] group-hover:text-white"}`} />
+                  <Shield
+                    className={`w-5 h-5 mr-3 ${
+                      activeTab === "security"
+                        ? "text-white"
+                        : "text-[#753799] group-hover:text-white"
+                    }`}
+                  />
                   <span>Keamanan</span>
                 </button>
                 <button
@@ -568,9 +718,10 @@ const PasswordStrengthIndicator = ({ password }) => {
                   <FaHome className="w-5 h-5 mr-3 text-[#753799]" />
                   <span>Kembali ke Beranda</span>
                 </button>
-                <button 
+                <button
                   onClick={handleLogout}
-                  className="w-full flex items-center px-4 py-3 rounded-md text-left text-red-600 hover:bg-red-200">
+                  className="w-full flex items-center px-4 py-3 rounded-md text-left text-red-600 hover:bg-red-200"
+                >
                   <LogOut className="w-5 h-5 mr-3" />
                   <span>Keluar</span>
                 </button>
@@ -580,15 +731,149 @@ const PasswordStrengthIndicator = ({ password }) => {
 
           {/* Main Content */}
           <div className="w-full md:w-3/4">
+            {/*Informasi Saldo*/}
+            {activeTab === "balance" && (
+              <div className="bg-white rounded-lg shadow">
+                <div
+                  className="p-6 border-b"
+                  style={{
+                    borderColor: "#753799",
+                    background:
+                      "linear-gradient(90deg, #753799 0%, #100428 100%)",
+                  }}
+                >
+                  <h2 className="text-xl font-bold text-white">
+                    Saldo & Top Up
+                  </h2>
+                </div>
+                <div className="p-6">
+                  {/* Current Balance Card */}
+                  <div className="bg-gradient-to-r from-emerald-500 to-teal-600 rounded-xl p-6 mb-6 text-white">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-white/20 p-3 rounded-lg backdrop-blur-sm">
+                          <Banknote className="h-8 w-8 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold">Saldo Anda</h3>
+                          <p className="text-sm text-white/80">
+                            Total saldo tersedia
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={toggleVisibility}
+                        className="bg-white/20 p-2 rounded-full hover:bg-white/30 transition-colors"
+                      >
+                        {isVisible ? (
+                          <EyeOffIcon className="h-5 w-5 text-white" />
+                        ) : (
+                          <EyeIcon className="h-5 w-5 text-white" />
+                        )}
+                      </button>
+                    </div>
+                    <div className="text-3xl font-bold mb-4">
+                      {isVisible
+                        ? "Rp ********"
+                        : `Rp ${saldo.toLocaleString("id-ID")}`}
+                    </div>
+                  </div>
+
+                  {/* Top Up Information */}
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 mb-6">
+                    <div className="flex items-start gap-4">
+                      <div className="bg-[#753799] p-3 rounded-lg">
+                        <Store className="h-6 w-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-[#100428] mb-2">
+                          Cara Top Up Saldo
+                        </h3>
+                        <div className="space-y-3 text-gray-700">
+                          <div className="flex items-start gap-3">
+                            <span className="bg-[#753799] text-white text-sm font-bold rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              1
+                            </span>
+                            <p>
+                              Kunjungi{" "}
+                              <span className="font-semibold text-[#753799]">
+                                Toko Pak Mat
+                              </span>{" "}
+                              terdekat
+                            </p>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <span className="bg-[#753799] text-white text-sm font-bold rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              2
+                            </span>
+                            <p>
+                              Sebutkan username Anda{" "}
+                              <span className="font-semibold text-[#753799]">
+                                {userData.username}
+                              </span>
+                            </p>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <span className="bg-[#753799] text-white text-sm font-bold rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              3
+                            </span>
+                            <p>
+                              Serahkan uang tunai sesuai nominal yang ingin
+                              ditop up
+                            </p>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <span className="bg-[#753799] text-white text-sm font-bold rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              4
+                            </span>
+                            <p>Saldo akan otomatis bertambah dalam 1-5 menit</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contact Information */}
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="bg-yellow-500 p-1 rounded">
+                        <Phone className="h-4 w-4 text-white" />
+                      </div>
+                      <h4 className="font-semibold text-yellow-800">
+                        Butuh Bantuan?
+                      </h4>
+                    </div>
+                    <p className="text-yellow-700 text-sm">
+                      Hubungi Pak Mat di{" "}
+                      <span className="font-semibold">0823-1066-9753</span> jika
+                      mengalami kendala saat top up
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Profile Tab */}
             {activeTab === "profile" && (
               <div className="bg-white rounded-lg shadow">
-                <div className="p-6 border-b" style={{ borderColor: "#753799", background: "linear-gradient(90deg, #753799 0%, #100428 100%)" }}>
+                <div
+                  className="p-6 border-b"
+                  style={{
+                    borderColor: "#753799",
+                    background:
+                      "linear-gradient(90deg, #753799 0%, #100428 100%)",
+                  }}
+                >
                   <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-bold text-white">Informasi Profil</h2>
+                    <h2 className="text-xl font-bold text-white">
+                      Informasi Profil
+                    </h2>
                     {!isEditingProfile && (
                       // Ganti setIsEditingProfile(true) dengan handleStartEditingProfile
-                      <button onClick={handleStartEditingProfile} className="flex items-center text-white hover:text-[#d6b3ff]">
+                      <button
+                        onClick={handleStartEditingProfile}
+                        className="flex items-center text-white hover:text-[#d6b3ff]"
+                      >
                         <Edit className="w-4 h-4 mr-1" /> Edit
                       </button>
                     )}
@@ -601,18 +886,24 @@ const PasswordStrengthIndicator = ({ password }) => {
                       <div className="flex items-start">
                         <User className="w-5 h-5 text-[#753799] mt-0.5 mr-3" />
                         <div>
-                          <h3 className="text-sm font-medium text-[#100428]">Nama Lengkap</h3>
+                          <h3 className="text-sm font-medium text-[#100428]">
+                            Nama Lengkap
+                          </h3>
                           <p>{userData.name}</p>
                         </div>
                       </div>
                       <div className="flex items-start">
                         <Mail className="w-5 h-5 text-[#753799] mt-0.5 mr-3" />
                         <div>
-                          <h3 className="text-sm font-medium text-[#100428]">Email</h3>
+                          <h3 className="text-sm font-medium text-[#100428]">
+                            Email
+                          </h3>
                           <p className="flex items-center">
                             {userData.email}
                             {userData.isEmailVerified && (
-                              <span className="ml-2 px-2 py-0.5 text-xs bg-[#753799] text-white rounded-full">Terverifikasi</span>
+                              <span className="ml-2 px-2 py-0.5 text-xs bg-[#753799] text-white rounded-full">
+                                Terverifikasi
+                              </span>
                             )}
                           </p>
                         </div>
@@ -620,13 +911,21 @@ const PasswordStrengthIndicator = ({ password }) => {
                       <div className="flex items-start">
                         <Phone className="w-5 h-5 text-[#753799] mt-0.5 mr-3" />
                         <div>
-                          <h3 className="text-sm font-medium text-[#100428]">Nomor Telepon</h3>
+                          <h3 className="text-sm font-medium text-[#100428]">
+                            Nomor Telepon
+                          </h3>
                           <p className="flex items-center">
                             {userData.phone || "-"}
                             {userData.isPhoneVerified && userData.phone ? (
-                              <span className="ml-2 px-2 py-0.5 text-xs bg-[#753799] text-white rounded-full">Terverifikasi</span>
+                              <span className="ml-2 px-2 py-0.5 text-xs bg-[#753799] text-white rounded-full">
+                                Terverifikasi
+                              </span>
                             ) : (
-                              userData.phone && <button className="ml-2 px-2 py-0.5 text-xs bg-[#100428] text-white rounded-full hover:bg-[#753799] transition">Verifikasi</button>
+                              userData.phone && (
+                                <button className="ml-2 px-2 py-0.5 text-xs bg-[#100428] text-white rounded-full hover:bg-[#753799] transition">
+                                  Verifikasi
+                                </button>
+                              )
                             )}
                           </p>
                         </div>
@@ -634,34 +933,101 @@ const PasswordStrengthIndicator = ({ password }) => {
                       <div className="flex items-start">
                         <User className="w-5 h-5 text-[#753799] mt-0.5 mr-3" />
                         <div>
-                          <h3 className="text-sm font-medium text-[#100428]">Username</h3>
+                          <h3 className="text-sm font-medium text-[#100428]">
+                            Username
+                          </h3>
                           <p>{userData.username}</p>
                         </div>
                       </div>
                     </div>
                   ) : (
                     // Form menggunakan profileFormData
-                    <form onSubmit={(e) => { e.preventDefault(); handleProfileSubmit(); }} className="space-y-4">
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        handleProfileSubmit();
+                      }}
+                      className="space-y-4"
+                    >
                       <div>
-                        <label htmlFor="name" className="block text-sm font-medium text-[#100428] mb-1">Nama Lengkap</label>
-                        <input type="text" id="name" name="name" value={profileFormData.name} onChange={handleProfileInputChange} className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]" />
+                        <label
+                          htmlFor="name"
+                          className="block text-sm font-medium text-[#100428] mb-1"
+                        >
+                          Nama Lengkap
+                        </label>
+                        <input
+                          type="text"
+                          id="name"
+                          name="name"
+                          value={profileFormData.name}
+                          onChange={handleProfileInputChange}
+                          className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]"
+                        />
                       </div>
                       <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-[#100428] mb-1">Email (Tidak bisa diubah)</label>
-                        <input type="email" id="email" name="email" value={profileFormData.email} readOnly className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100" />
+                        <label
+                          htmlFor="email"
+                          className="block text-sm font-medium text-[#100428] mb-1"
+                        >
+                          Email (Tidak bisa diubah)
+                        </label>
+                        <input
+                          type="email"
+                          id="email"
+                          name="email"
+                          value={profileFormData.email}
+                          readOnly
+                          className="w-full px-4 py-2 border border-gray-300 rounded-md bg-gray-100"
+                        />
                       </div>
                       <div>
-                        <label htmlFor="phone" className="block text-sm font-medium text-[#100428] mb-1">Nomor Telepon</label>
-                        <input type="tel" id="phone" name="phone" value={profileFormData.phone} onChange={handleProfileInputChange} className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]" />
+                        <label
+                          htmlFor="phone"
+                          className="block text-sm font-medium text-[#100428] mb-1"
+                        >
+                          Nomor Telepon
+                        </label>
+                        <input
+                          type="tel"
+                          id="phone"
+                          name="phone"
+                          value={profileFormData.phone}
+                          onChange={handleProfileInputChange}
+                          className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]"
+                        />
                       </div>
                       <div>
-                        <label htmlFor="username" className="block text-sm font-medium text-[#100428] mb-1">Username</label>
-                        <input type="text" id="username" name="username" value={profileFormData.username} onChange={handleProfileInputChange} className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]" />
+                        <label
+                          htmlFor="username"
+                          className="block text-sm font-medium text-[#100428] mb-1"
+                        >
+                          Username
+                        </label>
+                        <input
+                          type="text"
+                          id="username"
+                          name="username"
+                          value={profileFormData.username}
+                          onChange={handleProfileInputChange}
+                          className="w-full px-4 py-2 border border-[#753799] rounded-md focus:outline-none focus:ring-2 focus:ring-[#753799]"
+                        />
                       </div>
                       <div className="flex justify-end space-x-3 pt-4">
                         {/* Panggil handleCancelEditProfile untuk tombol Batal */}
-                        <button type="button" onClick={handleCancelEditProfile} className="px-4 py-2 border border-[#753799] rounded-md text-[#753799] hover:bg-[#100428] hover:text-white transition">Batal</button>
-                        <button type="submit" className="px-4 py-2 bg-gradient-to-r from-[#753799] to-[#100428] text-white rounded-md hover:from-[#632f86] hover:to-[#0d041f] transition">Simpan Perubahan</button>
+                        <button
+                          type="button"
+                          onClick={handleCancelEditProfile}
+                          className="px-4 py-2 border border-[#753799] rounded-md text-[#753799] hover:bg-[#100428] hover:text-white transition"
+                        >
+                          Batal
+                        </button>
+                        <button
+                          type="submit"
+                          className="px-4 py-2 bg-gradient-to-r from-[#753799] to-[#100428] text-white rounded-md hover:from-[#632f86] hover:to-[#0d041f] transition"
+                        >
+                          Simpan Perubahan
+                        </button>
                       </div>
                     </form>
                   )}
@@ -672,33 +1038,60 @@ const PasswordStrengthIndicator = ({ password }) => {
             {/* Addresses Tab */}
             {activeTab === "addresses" && (
               <div className="bg-white rounded-lg shadow">
-                 {/* ... Konten Addresses Tab ... */}
-                 <div className="p-6 border-b" style={{ borderColor: "#753799", background: "linear-gradient(90deg, #753799 0%, #100428 100%)" }}>
+                {/* ... Konten Addresses Tab ... */}
+                <div
+                  className="p-6 border-b"
+                  style={{
+                    borderColor: "#753799",
+                    background:
+                      "linear-gradient(90deg, #753799 0%, #100428 100%)",
+                  }}
+                >
                   <h2 className="text-xl font-bold text-white">Alamat Saya</h2>
                 </div>
                 <div className="p-6">
                   <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-semibold text-[#100428]">Daftar Alamat</h2>
-                    <button onClick={handleOpenAddModal} className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#753799] to-[#100428] text-white rounded-md hover:from-[#632f86] hover:to-[#0d041f] transition">
+                    <h2 className="text-xl font-semibold text-[#100428]">
+                      Daftar Alamat
+                    </h2>
+                    <button
+                      onClick={handleOpenAddModal}
+                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#753799] to-[#100428] text-white rounded-md hover:from-[#632f86] hover:to-[#0d041f] transition"
+                    >
                       <Plus className="w-4 h-4" /> Tambah Alamat
                     </button>
                   </div>
                   {addressList.length === 0 ? (
-                     <p className="text-gray-500">Anda belum menambahkan alamat.</p>
+                    <p className="text-gray-500">
+                      Anda belum menambahkan alamat.
+                    </p>
                   ) : (
                     addressList.map((address) => (
-                      <div key={address.id} className="border border-[#753799] rounded-lg p-4 mb-4">
+                      <div
+                        key={address.id}
+                        className="border border-[#753799] rounded-lg p-4 mb-4"
+                      >
                         <div className="flex justify-between items-start">
                           <div>
-                            <h3 className="font-semibold text-[#100428]">{address.name} ({address.phone})</h3>
-                            <p className="text-gray-600">{address.addressDetail}</p>
+                            <h3 className="font-semibold text-[#100428]">
+                              {address.name} ({address.phone})
+                            </h3>
+                            <p className="text-gray-600">
+                              {address.addressDetail}
+                            </p>
                             <p className="text-gray-600">{`${address.kecamatan}, ${address.kota}, ${address.provinsi}, ${address.kodePos}`}</p>
                           </div>
                           <div className="flex space-x-2">
-                            <button onClick={() => handleOpenEditModal(address)} className="text-[#753799] hover:text-[#100428] p-1">
+                            <button
+                              onClick={() => handleOpenEditModal(address)}
+                              className="text-[#753799] hover:text-[#100428] p-1"
+                            >
                               <PenSquare className="w-4 h-4" />
                             </button>
-                            <button onClick={() => handleDeleteAddress(address.id)} className="text-red-500 hover:text-red-700 p-1">
+                            <button
+                              onClick={() => handleDeleteAddress(address.id)}
+                              className="text-red-500 hover:text-red-700 p-1"
+                            >
                               <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
@@ -709,33 +1102,60 @@ const PasswordStrengthIndicator = ({ password }) => {
                 </div>
               </div>
             )}
-             {/* Security Tab */}
+            {/* Security Tab */}
             {activeTab === "security" && (
               <div className="bg-white rounded-lg shadow">
                 {/* ... Konten Security Tab ... */}
-                <div className="p-6 border-b" style={{ borderColor: "#753799", background: "linear-gradient(90deg, #753799 0%, #100428 100%)" }}>
-                  <h2 className="text-xl font-bold text-white">Pengaturan Keamanan</h2>
+                <div
+                  className="p-6 border-b"
+                  style={{
+                    borderColor: "#753799",
+                    background:
+                      "linear-gradient(90deg, #753799 0%, #100428 100%)",
+                  }}
+                >
+                  <h2 className="text-xl font-bold text-white">
+                    Pengaturan Keamanan
+                  </h2>
                 </div>
                 <div className="p-6">
                   <div className="mb-8">
                     <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-medium text-[#100428]">Ubah Kata Sandi</h3>
+                      <h3 className="text-lg font-medium text-[#100428]">
+                        Ubah Kata Sandi
+                      </h3>
                       {!isChangingPassword && (
-                        <button onClick={() => setIsChangingPassword(true)} className="flex items-center text-[#753799] hover:text-[#100428]">
+                        <button
+                          onClick={() => setIsChangingPassword(true)}
+                          className="flex items-center text-[#753799] hover:text-[#100428]"
+                        >
                           <Edit className="w-4 h-4 mr-1" /> Ubah
                         </button>
                       )}
                     </div>
                     {isChangingPassword && (
-                      <form onSubmit={(e) => { e.preventDefault(); handlePasswordSubmit(); }} className="space-y-4">
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handlePasswordSubmit();
+                        }}
+                        className="space-y-4"
+                      >
                         {/* Current Password Field */}
                         <div>
-                          <label htmlFor="currentPassword" className="block text-sm font-medium text-[#100428] mb-1">
+                          <label
+                            htmlFor="currentPassword"
+                            className="block text-sm font-medium text-[#100428] mb-1"
+                          >
                             Kata Sandi Saat Ini
                           </label>
                           <div className="relative">
                             <input
-                              type={passwordVisibility.currentPassword ? "text" : "password"}
+                              type={
+                                passwordVisibility.currentPassword
+                                  ? "text"
+                                  : "password"
+                              }
                               id="currentPassword"
                               name="currentPassword"
                               value={passwordData.currentPassword}
@@ -745,22 +1165,35 @@ const PasswordStrengthIndicator = ({ password }) => {
                             />
                             <button
                               type="button"
-                              onClick={() => togglePasswordVisibility('currentPassword')}
+                              onClick={() =>
+                                togglePasswordVisibility("currentPassword")
+                              }
                               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#753799] hover:text-[#100428] transition-colors"
                             >
-                              {passwordVisibility.currentPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                              {passwordVisibility.currentPassword ? (
+                                <EyeOff className="w-5 h-5" />
+                              ) : (
+                                <Eye className="w-5 h-5" />
+                              )}
                             </button>
                           </div>
                         </div>
 
                         {/* New Password Field */}
                         <div>
-                          <label htmlFor="newPassword" className="block text-sm font-medium text-[#100428] mb-1">
+                          <label
+                            htmlFor="newPassword"
+                            className="block text-sm font-medium text-[#100428] mb-1"
+                          >
                             Kata Sandi Baru
                           </label>
                           <div className="relative">
                             <input
-                              type={passwordVisibility.newPassword ? "text" : "password"}
+                              type={
+                                passwordVisibility.newPassword
+                                  ? "text"
+                                  : "password"
+                              }
                               id="newPassword"
                               name="newPassword"
                               value={passwordData.newPassword}
@@ -770,22 +1203,35 @@ const PasswordStrengthIndicator = ({ password }) => {
                             />
                             <button
                               type="button"
-                              onClick={() => togglePasswordVisibility('newPassword')}
+                              onClick={() =>
+                                togglePasswordVisibility("newPassword")
+                              }
                               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#753799] hover:text-[#100428] transition-colors"
                             >
-                              {passwordVisibility.newPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                              {passwordVisibility.newPassword ? (
+                                <EyeOff className="w-5 h-5" />
+                              ) : (
+                                <Eye className="w-5 h-5" />
+                              )}
                             </button>
                           </div>
                         </div>
 
                         {/* Confirm Password Field */}
                         <div>
-                          <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#100428] mb-1">
+                          <label
+                            htmlFor="confirmPassword"
+                            className="block text-sm font-medium text-[#100428] mb-1"
+                          >
                             Konfirmasi Kata Sandi Baru
                           </label>
                           <div className="relative">
                             <input
-                              type={passwordVisibility.confirmPassword ? "text" : "password"}
+                              type={
+                                passwordVisibility.confirmPassword
+                                  ? "text"
+                                  : "password"
+                              }
                               id="confirmPassword"
                               name="confirmPassword"
                               value={passwordData.confirmPassword}
@@ -795,10 +1241,16 @@ const PasswordStrengthIndicator = ({ password }) => {
                             />
                             <button
                               type="button"
-                              onClick={() => togglePasswordVisibility('confirmPassword')}
+                              onClick={() =>
+                                togglePasswordVisibility("confirmPassword")
+                              }
                               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#753799] hover:text-[#100428] transition-colors"
                             >
-                              {passwordVisibility.confirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                              {passwordVisibility.confirmPassword ? (
+                                <EyeOff className="w-5 h-5" />
+                              ) : (
+                                <Eye className="w-5 h-5" />
+                              )}
                             </button>
                           </div>
                         </div>
@@ -832,8 +1284,11 @@ const PasswordStrengthIndicator = ({ password }) => {
       {/* Modal Tambah/Edit Alamat */}
       {showAddressModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-           {/* ... Konten Modal Alamat ... */}
-           <div className="fixed inset-0 bg-black opacity-30" onClick={() => setShowAddressModal(false)}/>
+          {/* ... Konten Modal Alamat ... */}
+          <div
+            className="fixed inset-0 bg-black opacity-30"
+            onClick={() => setShowAddressModal(false)}
+          />
           <div className="bg-white p-6 w-[560px] rounded-lg shadow-xl relative max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-[#100428]">
@@ -865,13 +1320,17 @@ const PasswordStrengthIndicator = ({ password }) => {
                   className="w-1/2 px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
                 />
               </div>
-              <DropdownAlamatKaltim 
-                onChange={handleAlamatKaltimChange} 
-                initialData={editingAddressId ? { 
-                    kota: currentAddressForm.kota,
-                    kecamatan: currentAddressForm.kecamatan,
-                    kodePos: currentAddressForm.kodePos,
-                } : undefined}
+              <DropdownAlamatKaltim
+                onChange={handleAlamatKaltimChange}
+                initialData={
+                  editingAddressId
+                    ? {
+                        kota: currentAddressForm.kota,
+                        kecamatan: currentAddressForm.kecamatan,
+                        kodePos: currentAddressForm.kodePos,
+                      }
+                    : undefined
+                }
               />
               <textarea
                 name="addressDetail"
