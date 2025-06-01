@@ -8,12 +8,12 @@ import {
   doc,
   updateDoc,
   writeBatch,
-  runTransaction, // Import runTransaction
-  getDoc, // Import getDoc untuk membaca dokumen dalam transaksi
-  increment, // Import increment untuk menambahkan nilai secara atomik
+  runTransaction, 
+  getDoc,
+  increment, 
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import { auth, firestore } from "../../firebase"; // Pastikan path ini benar
+import { auth, firestore } from "../../firebase";
 
 import {
   Package,

@@ -7,56 +7,51 @@ const API_URL = 'http://localhost:3000/api/kurir';
 
 const ManageCourier = () => {
   const [couriers, setCouriers] = useState([]);
-  const [loading, setLoading] = useState(true); // State untuk loading
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [newCourier, setNewCourier] = useState({ nama: '', email: '', no_telepon: '', password: '' });
   const [editingCourierId, setEditingCourierId] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  const [showAlertDialog, setShowAlertDialog] = useState(false); // State untuk modal alert kustom
-  const [dialogMessage, setDialogMessage] = useState('');       // Pesan untuk modal alert
-  const [showConfirmModal, setShowConfirmModal] = useState(false); // State untuk modal konfirmasi
-  const [courierToDeleteId, setCourierToDeleteId] = useState(null); // ID kurir yang akan dihapus
+  const [showAlertDialog, setShowAlertDialog] = useState(false);
+  const [dialogMessage, setDialogMessage] = useState('');
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [courierToDeleteId, setCourierToDeleteId] = useState(null);
 
-  // Fungsi untuk menampilkan dialog alert kustom
   const showCustomDialog = (message) => {
     setDialogMessage(message);
     setShowAlertDialog(true);
   };
 
-  // GET kurir saat halaman load
   useEffect(() => {
     fetchCouriers();
   }, []);
 
-  // Fungsi untuk mengambil data kurir dari API
   const fetchCouriers = async () => {
-    setLoading(true); // Mulai loading
+    setLoading(true);
     try {
       const response = await axios.get(API_URL);
       setCouriers(response.data);
     } catch (err) {
       console.error("Gagal fetch data kurir", err);
       showCustomDialog(`Gagal mengambil data kurir: ${err.response?.data?.message || err.message}`);
-      setCouriers([]); // Pastikan array kosong jika gagal
+      setCouriers([]);
     } finally {
-      setLoading(false); // Selesai loading
+      setLoading(false);
     }
   };
 
-  // Handler untuk perubahan input form
   const handleChange = (e) => {
     setNewCourier({ ...newCourier, [e.target.name]: e.target.value });
   };
 
-  // Fungsi untuk membuka modal (untuk tambah atau edit)
   const openModal = (courier = null) => {
     if (courier) {
       setNewCourier({
         nama: courier.nama,
         email: courier.email,
         no_telepon: courier.no_telepon,
-        password: '', // Password tidak diisi ulang untuk keamanan
+        password: '',
       });
       setEditingCourierId(courier.id);
       setIsEditing(true);
@@ -68,7 +63,6 @@ const ManageCourier = () => {
     setShowModal(true);
   };
 
-  // Fungsi untuk menutup modal
   const closeModal = () => {
     setShowModal(false);
     setNewCourier({ nama: '', email: '', no_telepon: '', password: '' });
@@ -76,15 +70,12 @@ const ManageCourier = () => {
     setIsEditing(false);
   };
 
-  // Fungsi untuk menangani penambahan atau pembaruan kurir
   const handleSubmitCourier = async (e) => {
     e.preventDefault();
 
     try {
       if (isEditing) {
-        // Mode edit: Kirim permintaan PUT
         const payload = { ...newCourier };
-        // Hapus password dari payload jika kosong (tidak diubah)
         if (!payload.password) {
             delete payload.password;
         }
@@ -98,7 +89,6 @@ const ManageCourier = () => {
           throw new Error("Gagal memperbarui kurir");
         }
       } else {
-        // Mode tambah: Kirim permintaan POST
         const response = await axios.post(API_URL, newCourier);
         if (response.status === 201) {
           showCustomDialog("Kurir berhasil ditambahkan!");
@@ -114,15 +104,13 @@ const ManageCourier = () => {
     }
   };
 
-  // Fungsi untuk menghapus kurir (memicu modal konfirmasi)
   const handleDeleteCourier = (id) => {
     setCourierToDeleteId(id);
     setShowConfirmModal(true);
   };
 
-  // Fungsi konfirmasi penghapusan
   const confirmDelete = async () => {
-    setShowConfirmModal(false); // Tutup modal konfirmasi
+    setShowConfirmModal(false);
     if (!courierToDeleteId) return;
 
     try {
@@ -208,7 +196,6 @@ const ManageCourier = () => {
           </table>
         </div>
 
-        {/* Modal Tambah/Edit Kurir */}
         {showModal && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl transform transition-all duration-300 scale-100 opacity-100">
@@ -244,7 +231,6 @@ const ManageCourier = () => {
                     className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
-                  {/* Input password hanya ditampilkan saat menambah kurir baru atau jika ingin mengubah saat edit */}
                   {!isEditing ? (
                     <input
                       type="password"
@@ -286,7 +272,6 @@ const ManageCourier = () => {
           </div>
         )}
 
-        {/* Modal Konfirmasi Hapus */}
         {showConfirmModal && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
@@ -310,7 +295,6 @@ const ManageCourier = () => {
           </div>
         )}
 
-        {/* Modal Alert Kustom */}
         {showAlertDialog && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
