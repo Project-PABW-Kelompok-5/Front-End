@@ -1,3 +1,5 @@
+// src/pages/kurir/KurirDashboard.jsx
+
 import { useEffect, useState } from "react";
 import {
   query,
@@ -7,14 +9,22 @@ import {
   doc,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "../../../src/firebase.js";
+import { getAuth, signOut } from "firebase/auth"; // Import getAuth dan signOut
+import { db } from "../../../src/firebase.js"; // Pastikan db diimpor dengan benar
 import KurirSidebar from "../../components/KurirSidebar.jsx";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
+
+// Inisialisasi auth di luar komponen atau pastikan sudah diimpor dari firebase.js
+// Jika firebase.js mengekspor auth, Anda bisa mengimpornya seperti db.
+// Contoh: import { db, auth } from "../../../src/firebase.js";
+// Jika tidak, Anda bisa inisialisasi di sini jika 'app' tersedia:
+const auth = getAuth(); // Mengambil instance auth dari Firebase app yang sudah diinisialisasi
 
 const statusOptions = [
   { value: "menunggu kurir", label: "📦 Menunggu Kurir" },
   { value: "sedang dikirim", label: "🚚 Sedang Dikirim" },
   { value: "menunggu dikirim balik", label: "📦 Menunggu Dikirim Balik" },
-  { value: "dikirim balik", label: "🔁 Dikirim Balik" }
+  { value: "dikirim balik", label: "🔁 Dikirim Balik" },
 ];
 
 const KurirDashboard = () => {
@@ -22,9 +32,23 @@ const KurirDashboard = () => {
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const [sellersMap, setSellersMap] = useState({});
-  const [sellersLoading, setSellersLoading] = useState(true); // Default ke true saat pertama kali
+  const [sellersLoading, setSellersLoading] = useState(true);
+
+  const navigate = useNavigate(); // Inisialisasi useNavigate
+
+  // Fungsi untuk logout
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); // Melakukan proses logout
+      localStorage.removeItem("user"); // Hapus data user dari localStorage
+      navigate("/login"); // Arahkan pengguna ke halaman login
+      alert("Anda telah berhasil logout.");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      alert("Gagal logout. Silakan coba lagi.");
+    }
+  };
 
   useEffect(() => {
     const fetchSellersData = async () => {
@@ -33,8 +57,8 @@ const KurirDashboard = () => {
         setSellersLoading(false);
         return;
       }
-      setSellersLoading(true);
 
+      setSellersLoading(true);
       const newSellersMap = { ...sellersMap };
       const sellerIdsToFetch = new Set();
 
@@ -47,46 +71,30 @@ const KurirDashboard = () => {
       });
 
       if (sellerIdsToFetch.size === 0) {
-        setSellersLoading(false); 
+        setSellersLoading(false);
         return;
       }
 
       try {
-        const sellerPromises = Array.from(sellerIdsToFetch).map(
-          async (sellerId) => {
-            // Mengambil data dari Firestore collection 'users'
-            const userDocRef = doc(db, "users", sellerId); // Membuat referensi ke dokumen user
-            const userSnap = await getDoc(userDocRef); // Mengambil snapshot dokumen
-
-            if (userSnap.exists()) {
-              // Dokumen ditemukan, ambil field username
-              const userData = userSnap.data();
-              return {
-                id: sellerId,
-                username: userData.username || "Username Tdk Ada",
-              }; // Fallback jika field username tidak ada
-            } else {
-              // Dokumen tidak ditemukan
-              console.warn(`User document with ID ${sellerId} not found.`);
-              return { id: sellerId, username: "Penjual Tdk Ditemukan" };
-            }
-          }
-        );
+        const sellerPromises = Array.from(sellerIdsToFetch).map(async (sellerId) => {
+          const userDocRef = doc(db, "users", sellerId);
+          const userSnap = await getDoc(userDocRef);
+          return userSnap.exists()
+            ? { id: sellerId, username: userSnap.data().username || "Username Tdk Ada" }
+            : { id: sellerId, username: "Penjual Tdk Ditemukan" };
+        });
 
         const sellersData = await Promise.all(sellerPromises);
         sellersData.forEach((seller) => {
-          if (seller) {
-            newSellersMap[seller.id] = seller.username;
-          }
+          newSellersMap[seller.id] = seller.username;
         });
         setSellersMap(newSellersMap);
       } catch (err) {
-        console.error("Error fetching sellers data from Firestore:", err);
-        // Untuk ID yang gagal, Anda bisa menandainya di map
+        console.error("Error fetching sellers data:", err);
         sellerIdsToFetch.forEach((id) => {
           if (!newSellersMap[id]) newSellersMap[id] = "Gagal Memuat";
         });
-        setSellersMap(newSellersMap); // Pastikan map diperbarui meskipun ada error
+        setSellersMap(newSellersMap);
       } finally {
         setSellersLoading(false);
       }
@@ -100,7 +108,6 @@ const KurirDashboard = () => {
     setError(null);
     try {
       const q = query(collection(db, "orders"));
-
       const snap = await getDocs(q);
       const allOrders = [];
 
@@ -108,9 +115,8 @@ const KurirDashboard = () => {
         const order = doc.data();
         allOrders.push({
           id: doc.id,
-          // *** PERUBAHAN DI SINI: Akses melalui 'alamat' ***
-          namaPenerima: order.alamat?.namaPenerima || "-", // Gunakan optional chaining dan fallback
-          teleponPenerima: order.alamat?.teleponPenerima || "-", // Gunakan optional chaining dan fallback
+          namaPenerima: order.alamat?.namaPenerima || "-",
+          teleponPenerima: order.alamat?.teleponPenerima || "-",
           alamatLengkap: order.alamat?.alamatLengkap || "-",
           items: order.items || [],
           firestoreShippingStatus: order.status_pengiriman,
@@ -134,29 +140,11 @@ const KurirDashboard = () => {
 
       const clientFiltered = allOrders
         .filter((order) =>
-          order.items.some((item) => {
-            if (
-              item.status_barang === "menunggu kurir" &&
-              selectedStatus === "menunggu kurir"
-            ) {
-              return true;
-            }
-            return item.status_barang === selectedStatus;
-          })
+          order.items.some((item) => item.status_barang === selectedStatus)
         )
-        .map((order) => ({
-          ...order,
-          status: order.items.some(
-            (item) =>
-              item.status_barang === "menunggu kurir" &&
-              selectedStatus === "menunggu kurir"
-          )
-            ? "menunggu kurir"
-            : selectedStatus,
-        }));
+        .map((order) => ({ ...order, status: selectedStatus }));
 
       setFilteredOrders(clientFiltered);
-      console.log("Fetched and filtered orders (client-side):", clientFiltered);
     } catch (err) {
       console.error("Gagal mengambil data:", err);
       setError("Gagal memuat pesanan. Silakan coba lagi.");
@@ -169,113 +157,61 @@ const KurirDashboard = () => {
     fetchOrders();
   }, [selectedStatus]);
 
-  const handleStatusChange = (e) => {
-    setSelectedStatus(e.target.value);
-  };
+  const handleStatusChange = (e) => setSelectedStatus(e.target.value);
 
   const updateItemStatusInFirestore = async (orderId, oldStatus, newStatus) => {
     try {
       const orderRef = doc(db, "orders", orderId);
-      // Gunakan getDoc untuk mengambil satu dokumen
       const orderSnap = await getDoc(orderRef);
 
-      if (!orderSnap.exists()) { // Periksa apakah dokumen ada menggunakan orderSnap.exists()
-        console.error("Dokumen pesanan tidak ditemukan:", orderId);
-        return false;
-      }
+      if (!orderSnap.exists()) return false;
 
-      const orderData = orderSnap.data(); // Akses data menggunakan orderSnap.data()
+      const orderData = orderSnap.data();
+      const updatedItems = orderData.items.map((item) =>
+        item.status_barang === oldStatus ? { ...item, status_barang: newStatus } : item
+      );
 
-      // Memperbarui status_barang dalam array items
-      const updatedItems = orderData.items.map((item) => {
-        if (item.status_barang === oldStatus) {
-          return { ...item, status_barang: newStatus };
-        }
-        return item;
-      });
-
-      // Hanya perbarui field 'items' di Firestore
-      await updateDoc(orderRef, {
-        items: updatedItems,
-      });
-
-      console.log(`Status barang untuk order ${orderId} berhasil diperbarui dari '${oldStatus}' menjadi '${newStatus}'.`);
+      await updateDoc(orderRef, { items: updatedItems });
       return true;
     } catch (error) {
-      console.error("Gagal memperbarui status barang di Firestore:", error);
+      console.error("Gagal update status:", error);
       return false;
     }
   };
 
   const handleTakeOrder = async (orderId) => {
-    if (window.confirm("Apakah Anda yakin ingin mengambil pesanan ini?")) {
-      const success = await updateItemStatusInFirestore(
-        orderId,
-        "menunggu kurir",
-        "sedang dikirim"
-      );
-      if (success) {
-        alert(
-          "Pesanan berhasil diambil! Status diperbarui menjadi 'Sedang Dikirim'."
-        );
-        fetchOrders();
-      } else {
-        alert("Terjadi kesalahan saat mengambil pesanan.");
-      }
+    // Ganti window.confirm dengan modal UI kustom
+    if (confirm("Ambil pesanan ini?")) { // Menggunakan confirm sebagai placeholder
+      const success = await updateItemStatusInFirestore(orderId, "menunggu kurir", "sedang dikirim");
+      success ? alert("Pesanan diambil.") : alert("Gagal mengambil pesanan.");
+      fetchOrders();
     }
   };
 
   const handleCompleteOrder = async (orderId) => {
-    if (window.confirm("Apakah Anda yakin ingin konfirmasi pesanan ini sampai ditujuan?")) {
-      const success = await updateItemStatusInFirestore(
-        orderId,
-        "sedang dikirim",
-        "sampai di tujuan"
-      );
-      if (success) {
-        alert("Pesanan berhasil dikonfirmasi sampai di tujuan! Status diperbarui menjadi 'Sampai di tujuan'.");
-        fetchOrders();
-      } else {
-        alert("Terjadi kesalahan saat menyelesaikan pesanan.");
-      }
+    // Ganti window.confirm dengan modal UI kustom
+    if (confirm("Konfirmasi pesanan sampai tujuan?")) { // Menggunakan confirm sebagai placeholder
+      const success = await updateItemStatusInFirestore(orderId, "sedang dikirim", "sampai di tujuan");
+      success ? alert("Konfirmasi berhasil.") : alert("Gagal konfirmasi.");
+      fetchOrders();
     }
   };
 
   const handleTakeReturn = async (orderId) => {
-    if (window.confirm("Apakah Anda yakin ingin mengambil pengiriman balik pesanan ini?")) {
-      const success = await updateItemStatusInFirestore(
-        orderId,
-        "menunggu dikirim balik",
-        "dikirim balik"
-      );
-      if (success) {
-        alert(
-          "Pengiriman balik pesanan berhasil diambil! Status diperbarui menjadi 'Dikirim balik'."
-        );
-        fetchOrders();
-      } else {
-        alert("Terjadi kesalahan saat mengambil pesanan.");
-      }
+    // Ganti window.confirm dengan modal UI kustom
+    if (confirm("Ambil pengiriman balik?")) { // Menggunakan confirm sebagai placeholder
+      const success = await updateItemStatusInFirestore(orderId, "menunggu dikirim balik", "dikirim balik");
+      success ? alert("Pengiriman balik diambil.") : alert("Gagal mengambil pengembalian.");
+      fetchOrders();
     }
   };
 
   const handleConfirmReturn = async (orderId) => {
-    if (
-      window.confirm(
-        "Apakah Anda yakin ingin konfirmasi pengembalian pesanan ini?"
-      )
-    ) {
-      const success = await updateItemStatusInFirestore(
-        orderId,
-        "dikirim balik",
-        "menunggu penjual"
-      );
-      if (success) {
-        alert("Pengembalian pesanan berhasil dikonfirmasi! Status diperbarui menjadi 'Menunggu penjual'.");
-        fetchOrders();
-      } else {
-        alert("Terjadi kesalahan saat mengkonfirmasi pengembalian.");
-      }
+    // Ganti window.confirm dengan modal UI kustom
+    if (confirm("Konfirmasi pengembalian pesanan?")) { // Menggunakan confirm sebagai placeholder
+      const success = await updateItemStatusInFirestore(orderId, "dikirim balik", "menunggu penjual");
+      success ? alert("Pengembalian dikonfirmasi.") : alert("Gagal konfirmasi pengembalian.");
+      fetchOrders();
     }
   };
 
@@ -283,37 +219,25 @@ const KurirDashboard = () => {
     switch (status) {
       case "menunggu kurir":
         return (
-          <button
-            onClick={() => handleTakeOrder(orderId)}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors duration-200"
-          >
+          <button onClick={() => handleTakeOrder(orderId)} className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">
             Ambil
           </button>
         );
       case "sedang dikirim":
         return (
-          <button
-            onClick={() => handleCompleteOrder(orderId)}
-            className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded transition-colors duration-200"
-          >
+          <button onClick={() => handleCompleteOrder(orderId)} className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded">
             Konfirmasi sampai ditujuan
           </button>
         );
       case "menunggu dikirim balik":
         return (
-          <button
-            onClick={() => handleTakeReturn(orderId)}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors duration-200"
-          >
+          <button onClick={() => handleTakeReturn(orderId)} className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">
             Ambil pengiriman balik
           </button>
         );
       case "dikirim balik":
         return (
-          <button
-            onClick={() => handleConfirmReturn(orderId)}
-            className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded transition-colors duration-200"
-          >
+          <button onClick={() => handleConfirmReturn(orderId)} className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded">
             Konfirmasi pengembalian
           </button>
         );
@@ -322,33 +246,30 @@ const KurirDashboard = () => {
     }
   };
 
-  const formatCurrency = (amount) => {
-    return amount?.toLocaleString("id-ID", {
-      style: "currency",
-      currency: "IDR",
-    });
-  };
+  const formatCurrency = (amount) => amount?.toLocaleString("id-ID", { style: "currency", currency: "IDR" });
 
   return (
     <div className="flex">
       <KurirSidebar activePage="Dashboard" />
-      <div className="flex-1 p-6 bg-gray-100 min-h-screen overflow-y-auto">
+      <div className="flex-1 p-6 bg-gray-100 min-h-screen overflow-y-auto relative"> {/* Tambahkan relative di sini */}
+        <div className="absolute top-4 right-4"> {/* Posisi tombol logout */}
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md shadow-md flex items-center space-x-2"
+          >
+            <span>Logout</span>
+            {/* Anda bisa menambahkan ikon logout dari lucide-react jika diinginkan */}
+            {/* <LogOut size={18} /> */}
+          </button>
+        </div>
+
         <h1 className="text-2xl font-bold mb-4">Dashboard Kurir</h1>
 
         <div className="mb-4">
-          <label className="text-sm text-gray-600 mr-2" htmlFor="status-filter">
-            Filter Status:
-          </label>
-          <select
-            id="status-filter"
-            value={selectedStatus}
-            onChange={handleStatusChange}
-            className="p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
-          >
+          <label htmlFor="status-filter" className="text-sm text-gray-600 mr-2">Filter Status:</label>
+          <select id="status-filter" value={selectedStatus} onChange={handleStatusChange} className="p-2 border rounded">
             {statusOptions.map((status) => (
-              <option key={status.value} value={status.value}>
-                {status.label}
-              </option>
+              <option key={status.value} value={status.value}>{status.label}</option>
             ))}
           </select>
         </div>
@@ -361,78 +282,36 @@ const KurirDashboard = () => {
                 <th className="px-4 py-2 text-left">Penjual</th>
                 <th className="px-4 py-2 text-left">Telepon</th>
                 <th className="px-4 py-2 text-left">Alamat</th>
-                <th className="px-4 py-2 text-left">Barang</th>
-                <th className="px-4 py-2 text-left">Qty</th>{" "}
-                {/* Kolom baru untuk Qty Item */}
-                <th className="px-4 py-2 text-left">Subtotal Barang</th>{" "}
-                {/* Nama kolom diperjelas */}
-                <th className="px-4 py-2 text-left">Ongkir Order</th>{" "}
-                {/* Nama kolom diperjelas */}
-                <th className="px-4 py-2 text-left">Status</th>
-                <th className="px-4 py-2 text-left">Tanggal Pesan</th>
+                <th className="px-4 py-2 text-left">Total</th>
+                <th className="px-4 py-2 text-left">Tanggal</th>
                 <th className="px-4 py-2 text-left">Aksi</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr>
-                  <td colSpan="11" className="text-center py-4 text-blue-500">
-                    Memuat pesanan...
-                  </td>
-                </tr>
+                <tr><td colSpan="7" className="text-center p-4">Memuat data...</td></tr>
               ) : error ? (
-                <tr>
-                  <td colSpan="11" className="text-center py-4 text-red-500">
-                    {error}
-                  </td>
-                </tr>
+                <tr><td colSpan="7" className="text-center text-red-500 p-4">{error}</td></tr>
               ) : filteredOrders.length === 0 ? (
-                <tr>
-                  <td colSpan="11" className="text-center py-4 text-gray-500">
-                    Tidak ada pesanan dengan status ini.
-                  </td>
-                </tr>
+                <tr><td colSpan="7" className="text-center p-4">Tidak ada pesanan untuk status ini.</td></tr>
               ) : (
-                filteredOrders.flatMap((order) =>
-                  order.items
-                    .filter((item) => item.status_barang === selectedStatus) // <-- PERUBAHAN DI SINI
-                    .map((item, itemIndex) => {
-                      const sellerUsername =
-                        sellersLoading && !sellersMap[item.id_penjual]
-                          ? "Memuat data penjual..."
-                          : sellersMap[item.id_penjual] || "N/A";
-                      return (
-                        <tr
-                          key={`${order.id}-${item.id || itemIndex}`} // Pastikan item memiliki 'id' atau gunakan index sebagai fallback
-                          className="border-t align-top hover:bg-gray-50"
-                        >
-                          <td className="px-4 py-2">{order.namaPenerima}</td>
-                          <td className="px-4 py-2">{sellerUsername}</td>
-                          <td className="px-4 py-2">{order.teleponPenerima}</td>
-                          <td className="px-4 py-2">{order.alamatLengkap}</td>
-                          <td className="px-4 py-2">{item.nama}</td>
-                          <td className="px-4 py-2">{item.qty}</td>
-                          <td className="px-4 py-2">
-                            {/* Asumsi subtotal di sini adalah subtotal keseluruhan order, bukan per item */}
-                            {/* Jika Anda memiliki subtotal per item, gunakan item.subtotal */}
-                            {formatCurrency(item.subtotal)}
-                          </td>
-                          <td className="px-4 py-2">
-                            {formatCurrency(order.shippingCost)}
-                          </td>
-                          <td className="px-4 py-2 capitalize">
-                            {item.status_barang} {/* Akan selalu sama dengan selectedStatus */}
-                          </td>
-                          <td className="px-4 py-2">{order.createdAt}</td>
-                          <td className="px-4 py-2">
-                            {/* order.status sudah disesuaikan di fetchOrders berdasarkan selectedStatus */}
-                            {/* Jadi, ini seharusnya sudah benar untuk menampilkan tombol aksi yang sesuai */}
-                            {renderActionButton(order.status, order.id)}
-                          </td>
-                        </tr>
-                      );
-                    })
-                )
+                filteredOrders.map((order) => (
+                  <tr key={order.id} className="border-t">
+                    <td className="px-4 py-2">{order.namaPenerima}</td>
+                    <td className="px-4 py-2">
+                      {order.items.map((item, idx) => (
+                        <div key={idx}>
+                          {sellersMap[item.id_penjual] || (sellersLoading ? "Loading..." : "Tidak Diketahui")}
+                        </div>
+                      ))}
+                    </td>
+                    <td className="px-4 py-2">{order.teleponPenerima}</td>
+                    <td className="px-4 py-2">{order.alamatLengkap}</td>
+                    <td className="px-4 py-2">{formatCurrency(order.totalBayar)}</td>
+                    <td className="px-4 py-2">{order.createdAt}</td>
+                    <td className="px-4 py-2">{renderActionButton(order.status, order.id)}</td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>

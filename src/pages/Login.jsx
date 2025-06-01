@@ -29,11 +29,10 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      // Coba login sebagai kurir terlebih dahulu
       const kurirQuery = query(
         collection(firestore, "kurir"),
         where("email", "==", email),
-        where("password", "==", password) // asumsi password belum di-hash
+        where("password", "==", password) 
       );
       const kurirSnapshot = await getDocs(kurirQuery);
 
@@ -51,7 +50,6 @@ const LoginPage = () => {
         return;
       }
 
-      // Jika bukan kurir, coba login sebagai user biasa via Firebase Auth
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
@@ -224,23 +222,6 @@ const LoginPage = () => {
           >
             {isLoading ? "Logging in..." : "Login"}
           </button>
-          {/* Optional Google login button, disable if not used */}
-          {/* <button
-            type="button"
-            style={{
-              width: "100%",
-              padding: "14px",
-              backgroundColor: "#FFF",
-              color: "#344054",
-              border: "1px solid #ccc",
-              borderRadius: "32px",
-              cursor: "pointer",
-              fontSize: "16px",
-              marginBottom: "12px",
-            }}
-          >
-            Continue with Google
-          </button> */}
           <div
             style={{ textAlign: "center", marginTop: "12px", fontSize: "16px" }}
           >

@@ -1,5 +1,5 @@
 import { onIdTokenChanged } from "firebase/auth";
-import { auth } from "./firebase"; // pastikan ini mengarah ke konfigurasi firebase-mu
+import { auth } from "./firebase"; 
 
 export const startTokenRefreshListener = () => {
   onIdTokenChanged(auth, async (user) => {

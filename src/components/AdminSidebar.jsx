@@ -22,9 +22,6 @@ const AdminSidebar = ({ activePage }) => {
 
   return (
     <Sidebar>
-      {/* ... (bagian lain dari SidebarItem tetap sama) */}
-      <SidebarItem
-        icon={<Home size={20} />} text="Home" to="/" active={activePage === "Home"} />
       <SidebarItem
         icon={<LayoutDashboard size={20} />} text="Dashboard" to="/admin/dashboard" active={activePage === "Dashboard"} />
       <SidebarItem
@@ -40,12 +37,6 @@ const AdminSidebar = ({ activePage }) => {
         icon={<Settings size={20} />} text="Settings" active={activePage === "Settings"} />
       <SidebarItem
         icon={<LifeBuoy size={20} />} text="Help" active={activePage === "Help"} />
-      <SidebarItem
-        icon={<LogOut size={20} />}
-        text="Logout"
-        onClick={handleLogout}
-        active={false}
-      />
     </Sidebar>
   );
 };
