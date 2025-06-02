@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   collection,
   getDocs,
@@ -320,6 +321,7 @@ export default function ProductManagement() {
   const [editProduct, setEditProduct] = useState(null);
   // State error message
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
   // Fungsi untuk mendapatkan komponen ikon Lucide berdasarkan nama string
   const getLucideIconComponent = (iconName) => {
@@ -422,14 +424,25 @@ export default function ProductManagement() {
   };
 
   return (
-    <div className="bg-pink-950">
+    <div
+      className="min-h-screen w-full"
+      style={{
+        background: "linear-gradient(135deg, #4a2362 0%, #08001a 100%)",
+      }}
+    >
       {/* <Navbar /> */}
       <div className="px-6 md:px-10 lg:px-20 py-8 max-w-7xl mx-auto">
         <div className="flex justify-between items-center mt-2 mb-6">
-          <h1 className="text-2xl font-bold">Manajemen Produk</h1>
+          <button
+            onClick={() => navigate(-1)}
+            className="mb-6 px-5 py-2 bg-purple-900 text-white rounded hover:bg-gray-700 transition"
+          >
+            &larr; Kembali
+          </button>
+          <h1 className="text-2xl font-bold text-white">Manajemen Produk</h1>
           <button
             onClick={openAddModal}
-            className="flex items-center gap-2 px-5 py-2 bg-black text-white rounded hover:bg-gray-800 transition"
+            className="flex items-center gap-2 px-5 py-2 bg-purple-500 text-white rounded hover:bg-gray-800 transition"
           >
             + Tambah Produk
           </button>
@@ -444,7 +457,7 @@ export default function ProductManagement() {
         {loading ? (
           <p className="text-gray-600">Loading produk...</p>
         ) : (
-          <div className="overflow-x-auto border border-gray-200 rounded-md">
+          <div className="overflow-x-auto rounded-md">
             <table className="min-w-full">
               <thead className="bg-purple-950 text-sm">
                 <tr>
@@ -468,7 +481,7 @@ export default function ProductManagement() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="text-sm">
+              <tbody className="text-sm ">
                 {products.length === 0 && (
                   <tr>
                     <td
@@ -487,28 +500,28 @@ export default function ProductManagement() {
                   return (
                     <tr
                       key={product.id}
-                      className="hover:bg-gray-50 transition-colors"
+                      className="hover:bg-gray-50 transition-colors "
                     >
-                      <td className="px-4 py-3 border-t font-semibold text-gray-900 bg-purple-300">
-                        <div className="flex items-center gap-2">
+                      <td className="px-4 py-3  font-semibold  text-white bg-purple-500">
+                        <div className="flex items-center gap-2 ">
                           {/* Render ikon produk */}
                           <ProductIconComponent
                             size={28}
-                            className="text-[#753799]"
+                            className="text-white"
                           />
                           <span>{product.nama_barang}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 border-t text-gray-700 bg-purple-300">
+                      <td className="px-4 py-3 text-white bg-purple-500">
                         {product.kategori}
                       </td>
-                      <td className="px-4 py-3 border-t text-gray-700 bg-purple-300">
+                      <td className="px-4 py-3  text-white bg-purple-500">
                         {formatRupiah(product.harga)}
                       </td>
-                      <td className="px-4 py-3 border-t bg-purple-300">
+                      <td className="px-4 py-3  text-white bg-purple-500">
                         {product.stok}
                       </td>
-                      <td className="px-4 py-3 border-t bg-purple-300">
+                      <td className="px-4 py-3  bg-purple-500">
                         <span
                           className={`inline-block px-3 py-1 rounded-sm text-xs font-bold ${
                             isAvailable
@@ -519,7 +532,7 @@ export default function ProductManagement() {
                           {isAvailable ? "Stok Tersedia" : "Stok Kosong"}
                         </span>
                       </td>
-                      <td className="px-4 py-3 border-t bg-purple-300">
+                      <td className="px-4 py-3  bg-purple-500">
                         <div className="flex items-center space-x-2 ">
                           <button
                             onClick={() => openEditModal(product)}
