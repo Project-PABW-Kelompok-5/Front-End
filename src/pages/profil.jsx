@@ -412,17 +412,6 @@ const UserProfile = () => {
     }
   };
 
-  //Fungsi untuk logout dan redirect ke login (opsional untuk keamanan ekstra)
-  // const handleLogoutAfterPasswordChange = () => {
-  //   const auth = getAuth();
-  //   auth.signOut().then(() => {
-  //     localStorage.removeItem("user");
-  //     navigate("/login");
-  //     alert("Kata sandi berhasil diubah. Silakan login ulang untuk keamanan.");
-  //   });
-  // };
-
-  //Fungsi untuk validasi password strength (opsional)
   const validatePasswordStrength = (password) => {
     const minLength = password.length >= 6;
     const hasUpperCase = /[A-Z]/.test(password);

@@ -84,56 +84,6 @@ export default function HomePage() {
     return IconComponent || LucideIcons.Package;
   };
 
-  // const getProductIcon = (iconName) => {
-  //   switch (iconName) {
-  //     case "smartphone":
-  //       return <Smartphone className="h-8 w-8 text-[#753799]" />;
-  //     case "laptop":
-  //       return <Laptop className="h-8 w-8 text-[#753799]" />;
-  //     case "headphones":
-  //       return <Headphones className="h-8 w-8 text-[#753799]" />;
-  //     case "watch":
-  //       return <Watch className="h-8 w-8 text-[#753799]" />;
-  //     case "camera":
-  //       return <Camera className="h-8 w-8 text-[#753799]" />;
-  //     case "tablet":
-  //       return <Tablet className="h-8 w-8 text-[#753799]" />;
-  //     case "cable":
-  //       return <Cable className="h-8 w-8 text-[#753799]" />;
-  //     case "coffee":
-  //       return <Coffee className="h-8 w-8 text-[#753799]" />;
-  //     default:
-  //       return <Package className="h-8 w-8 text-[#753799]" />;
-  //   }
-  // };
-
-  // const getProductIconpreview = (iconName) => {
-  //   switch (iconName) {
-  //     case "smartphone":
-  //       return (
-  //         <Smartphone className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />
-  //       );
-  //     case "laptop":
-  //       return <Laptop className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
-  //     case "headphones":
-  //       return (
-  //         <Headphones className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />
-  //       );
-  //     case "watch":
-  //       return <Watch className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
-  //     case "camera":
-  //       return <Camera className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
-  //     case "tablet":
-  //       return <Tablet className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
-  //     case "cable":
-  //       return <Cable className="h-8 w-8 text-[#753799]" />;
-  //     case "coffee":
-  //       return <Coffee className="h-20 w-20 text-[#753799]" />;
-  //     default:
-  //       return <Package className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
-  //   }
-  // };
-
   const getPaginationButtons = () => {
     const buttons = [];
     const maxVisibleButtons = 5;

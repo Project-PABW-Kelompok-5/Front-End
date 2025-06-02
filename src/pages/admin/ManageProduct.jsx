@@ -3,7 +3,6 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-// Hardcoded Kategori List
 const hardcodedKategoriList = {
   Elektronik: [
     "Smartphone", "Laptop", "Tv", "Gamepad", "Headphones", "Camera", "Watch", "Mouse", "Fan",
@@ -28,8 +27,7 @@ const ManageProduct = () => {
   const [dialogMessage, setDialogMessage] = useState("");
   const [barangToDeleteId, setBarangToDeleteId] = useState(null);
   const [barangList, setBarangList] = useState([]);
-  // Initialize kategoriList with the hardcoded object
-  const [kategoriList] = useState(hardcodedKategoriList); 
+  const [kategoriList] = useState(hardcodedKategoriList);
   const [loading, setLoading] = useState(true);
 
   const [formData, setFormData] = useState({
@@ -37,31 +35,28 @@ const ManageProduct = () => {
     deskripsi: "",
     harga: "",
     stok: "",
-    id_kategori: "", // This will now store the sub-category name
+    id_kategori: "",
   });
   const [editingBarangId, setEditingBarangId] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedMainCategory, setSelectedMainCategory] = useState(''); // New state for the main category dropdown
+  const [selectedMainCategory, setSelectedMainCategory] = useState('');
 
   const token = localStorage.getItem("token");
 
-  // Function to display custom alert dialog
   const showCustomDialog = (message) => {
     setDialogMessage(message);
     setShowAlertDialog(true);
   };
 
-  // Function to find the main category from a sub-category name
   const findMainCategoryFromSub = (subCategoryName, categories) => {
     for (const mainCat in categories) {
       if (categories[mainCat].includes(subCategoryName)) {
         return mainCat;
       }
     }
-    return ''; // Return empty string if not found
+    return '';
   };
 
-  // Function to fetch products
   const fetchBarang = async () => {
     setLoading(true);
     const token = localStorage.getItem("token");
@@ -100,7 +95,6 @@ const ManageProduct = () => {
     }
   };
 
-  // useEffect now only calls fetchBarang, as kategoriList is hardcoded
   useEffect(() => {
     fetchBarang();
   }, []);
@@ -112,25 +106,22 @@ const ManageProduct = () => {
     }));
   };
 
-  // --- Function to handle Edit Product click ---
   const handleEditClick = (barang) => {
-    // Find the main category based on the sub-category (assuming barang.kategori holds the sub-category name)
-    const mainCat = findMainCategoryFromSub(barang.kategori, kategoriList); // CHANGED: Using barang.kategori
-    setSelectedMainCategory(mainCat); // Set the main category for the first dropdown
+    const mainCat = findMainCategoryFromSub(barang.kategori, kategoriList);
+    setSelectedMainCategory(mainCat);
 
     setFormData({
       nama_barang: barang.nama_barang,
       deskripsi: barang.deskripsi,
       harga: barang.harga,
       stok: barang.stok,
-      id_kategori: barang.kategori, // CHANGED: Using barang.kategori as the value for the sub-category dropdown
+      id_kategori: barang.kategori,
     });
     setEditingBarangId(barang.id_barang);
     setIsEditing(true);
     setShowModal(true);
   };
 
-  // --- Function to handle Delete Product (triggers confirmation modal) ---
   const handleDelete = (id_barang) => {
     setBarangToDeleteId(id_barang);
     setShowConfirmModal(true);
@@ -158,7 +149,6 @@ const ManageProduct = () => {
     }
   };
 
-  // --- Modified handleSubmit for PUT (Edit) only ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -167,9 +157,8 @@ const ManageProduct = () => {
         ...formData,
         harga: Number(formData.harga),
         stok: Number(formData.stok),
-        // Send the selected sub-category name in the 'kategori' field
-        kategori: formData.id_kategori, // CHANGED: Now sending 'kategori' field
-        id_kategori: undefined // Ensure id_kategori is not sent if backend doesn't expect it
+        kategori: formData.id_kategori,
+        id_kategori: undefined
       };
 
       const res = await axios.put(
@@ -191,15 +180,14 @@ const ManageProduct = () => {
         throw new Error("Gagal memperbarui barang");
       }
 
-      // Reset form and close modal after success
       setFormData({
         nama_barang: "",
         deskripsi: "",
         harga: "",
         stok: "",
-        id_kategori: "", // Still used as a temporary holder for sub-category value
+        id_kategori: "",
       });
-      setSelectedMainCategory(''); // Reset main category selection
+      setSelectedMainCategory('');
       setShowModal(false);
       fetchBarang();
     } catch (error) {
@@ -212,16 +200,12 @@ const ManageProduct = () => {
 
   return (
     <div className="flex font-sans">
-      {/* Admin Sidebar */}
       <AdminSidebar activePage="Manage Product" />
-      {/* Main Content */}
       <div className="flex-1 p-6 bg-gray-100 min-h-screen">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-semibold text-gray-800">Manajemen Barang</h1>
-          {/* Removed "Tambah Barang" button */}
         </div>
 
-        {/* Product List Table */}
         <div className="bg-white shadow-md rounded-xl overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead className="bg-gray-100 border-b border-gray-200">
@@ -249,8 +233,7 @@ const ManageProduct = () => {
                     <td className="px-6 py-3 text-gray-800">{barang.nama_barang}</td>
                     <td className="px-6 py-3 text-gray-800">{barang.stok}</td>
                     <td className="px-6 py-3 text-gray-800">
-                      {/* NOW ONLY DISPLAYS from barang.kategori field */}
-                      {barang.kategori || "-"} 
+                      {barang.kategori || "-"}
                     </td>
                     <td className="px-6 py-3 text-gray-800">
                       Rp{barang.harga?.toLocaleString("id-ID") ?? "-"}
@@ -294,7 +277,6 @@ const ManageProduct = () => {
           </table>
         </div>
 
-        {/* Modal for Edit Product */}
         {showModal && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md transform transition-all duration-300 scale-100 opacity-100">
@@ -358,7 +340,6 @@ const ManageProduct = () => {
                     required
                   />
                 </div>
-                {/* Main Category Dropdown */}
                 <div className="mb-4">
                   <label htmlFor="main_kategori" className="block text-sm font-medium text-gray-700 mb-1">
                     Kategori Utama
@@ -369,7 +350,7 @@ const ManageProduct = () => {
                     value={selectedMainCategory}
                     onChange={(e) => {
                       setSelectedMainCategory(e.target.value);
-                      setFormData((prev) => ({ ...prev, id_kategori: '' })); // Reset sub-category when main changes
+                      setFormData((prev) => ({ ...prev, id_kategori: '' }));
                     }}
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
                     required
@@ -383,15 +364,14 @@ const ManageProduct = () => {
                   </select>
                 </div>
 
-                {/* Sub-Category Dropdown (conditionally rendered) */}
                 {selectedMainCategory && (
                   <div className="mb-4">
                     <label htmlFor="id_kategori" className="block text-sm font-medium text-gray-700 mb-1">
                       Sub Kategori
                     </label>
                     <select
-                      id="id_kategori" // This ID is used for the form data field
-                      name="id_kategori" // This name is used to update formData
+                      id="id_kategori"
+                      name="id_kategori"
                       value={formData.id_kategori}
                       onChange={handleChange}
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
@@ -428,7 +408,6 @@ const ManageProduct = () => {
           </div>
         )}
 
-        {/* Confirmation Delete Modal */}
         {showConfirmModal && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
@@ -453,7 +432,6 @@ const ManageProduct = () => {
           </div>
         )}
 
-        {/* Custom Alert Modal */}
         {showAlertDialog && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">

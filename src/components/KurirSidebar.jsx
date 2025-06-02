@@ -14,7 +14,6 @@ import {
 const KurirSidebar = ({ activePage }) => {
   return (
     <Sidebar>
-      <SidebarItem icon={<Home size={20} />} text="Home" to="/" active={activePage === "Home"} />
       <SidebarItem icon={<LayoutDashboard size={20} />} text="Dashboard" to="/kurir/dashboard" active={activePage === "Dashboard"} />
       <SidebarItem icon={<Package size={20} />} text="barang" to="/kurir/barang" active={activePage === "barang"} />
       <hr className="my-3" />
