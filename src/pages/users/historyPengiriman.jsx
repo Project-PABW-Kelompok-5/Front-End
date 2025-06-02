@@ -514,7 +514,7 @@ const HistoryPengiriman = () => {
         background: "linear-gradient(135deg, #4a2362 0%, #08001a 100%)",
       }}
     >
-      <div className="container rounded-2xl mx-auto px-4 py-8 max-w-4xl shadow-2xl">
+      <div className="container rounded-2xl mx-auto px-4 py-8 max-w-6xl shadow-2xl">
         <div
           onClick={homepage}
           className="flex items-center mb-6 cursor-pointer group"
