@@ -24,6 +24,7 @@ import DashboardKurir from "./pages/Kurir/KurirDashboard.jsx";
 import KurirBarang from "./pages/kurir/KurirBarang.jsx";
 import Addresses from "./pages/Addressses.jsx";
 import VerifikasiEmail from "./pages/verifikasiEmail.jsx";
+import HistoryPenjualan from "./pages/users/historyPenjualan.jsx";
 
 import { startTokenRefreshListener } from "./authListener";
 
@@ -52,13 +53,12 @@ createRoot(document.getElementById("root")).render(
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/managebarang" element={<ManageBarang />} />
         {/* Rute ini dipindahkan ke Protected Kurir Routes */}
-        {/* <Route path="/kurir/dashboard" element={<DashboardKurir />} /> */}
+        <Route path="/kurir/dashboard" element={<DashboardKurir />} />
         {/* Rute ini dipindahkan ke Protected Kurir Routes */}
-        {/* <Route path="/kurir/barang" element={<KurirBarang />} /> */}
+        <Route path="/kurir/barang" element={<KurirBarang />} />
         <Route path="/addresses" element={<Addresses />} />
         <Route path="/history" element={<DeliveryHistory />} />
-        <Route path="/kurir/dashboard" element={<DashboardKurir />} />
-        <Route path="/kurir/barang" element={<KurirBarang />} />
+        <Route path="/history-penjualan" element={<HistoryPenjualan />} />
 
         {/* Protected User Routes */}
         <Route element={<PrivateRoute role="User" />}>

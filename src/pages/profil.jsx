@@ -18,6 +18,7 @@ import {
   Trash2,
   Eye,
   EyeOff,
+  BadgeDollarSign
 } from "lucide-react";
 import { FaHome } from "react-icons/fa";
 import {
@@ -44,7 +45,7 @@ const initialUserData = {
   email: "pengguna@example.com",
   phone: "+62 800 0000 0000",
   username: "pengguna_baru",
-  profilePicture: "https://via.placeholder.com/150",
+  profilePicture: "https://placehold.co/150",
   isEmailVerified: false,
   isPhoneVerified: false,
 };
@@ -312,7 +313,7 @@ const UserProfile = () => {
 
     // Real-time validation untuk new password
     if (name === 'newPassword') {
-      const validation = validatePasswordStrength(value);
+      // const validation = validatePasswordStrength(value);
       // Bisa set state untuk menampilkan indikator kekuatan password
       // setPasswordStrength(validation);
     }
@@ -325,19 +326,19 @@ const UserProfile = () => {
     }));
   };
 
-  const handleCancelPasswordChange = () => {
-    setPasswordData({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
-    setPasswordVisibility({
-      currentPassword: false,
-      newPassword: false,
-      confirmPassword: false,
-    });
-    setIsChangingPassword(false);
-  };
+  // const handleCancelPasswordChange = () => {
+  //   setPasswordData({
+  //     currentPassword: "",
+  //     newPassword: "",
+  //     confirmPassword: "",
+  //   });
+  //   setPasswordVisibility({
+  //     currentPassword: false,
+  //     newPassword: false,
+  //     confirmPassword: false,
+  //   });
+  //   setIsChangingPassword(false);
+  // };
   const handlePasswordSubmit = async () => {
     const { currentPassword, newPassword, confirmPassword } = passwordData;
 
@@ -412,14 +413,14 @@ const UserProfile = () => {
   };
 
   //Fungsi untuk logout dan redirect ke login (opsional untuk keamanan ekstra)
-  const handleLogoutAfterPasswordChange = () => {
-    const auth = getAuth();
-    auth.signOut().then(() => {
-      localStorage.removeItem("user");
-      navigate("/login");
-      alert("Kata sandi berhasil diubah. Silakan login ulang untuk keamanan.");
-    });
-  };
+  // const handleLogoutAfterPasswordChange = () => {
+  //   const auth = getAuth();
+  //   auth.signOut().then(() => {
+  //     localStorage.removeItem("user");
+  //     navigate("/login");
+  //     alert("Kata sandi berhasil diubah. Silakan login ulang untuk keamanan.");
+  //   });
+  // };
 
   //Fungsi untuk validasi password strength (opsional)
   const validatePasswordStrength = (password) => {
@@ -473,6 +474,7 @@ const PasswordStrengthIndicator = ({ password }) => {
   };
 
   const historyPengiriman = () => navigate("/history");
+  const historyPenjualan = () => navigate("/history-penjualan");
   const manageBarang = () => navigate("/managebarang");
   const homepage = () => navigate("/");
   const handleLogout = () => {
@@ -561,6 +563,13 @@ const PasswordStrengthIndicator = ({ password }) => {
                 >
                   <ShoppingBag className="w-5 h-5 mr-3 text-[#753799] group-hover:text-white" />
                   <span>Produk Saya</span>
+                </button>
+                <button
+                  onClick={historyPenjualan}
+                  className="group w-full flex items-center px-4 py-3 rounded-md text-left text-[#100428] hover:text-white hover:bg-gradient-to-r from-[#753799] to-[#602bca]"
+                >
+                  <BadgeDollarSign className="w-5 h-5 mr-3 text-[#753799] group-hover:text-white" />
+                  <span>History Penjualan</span>
                 </button>
                 <hr className="my-3 border-gray-200" />
                 <button

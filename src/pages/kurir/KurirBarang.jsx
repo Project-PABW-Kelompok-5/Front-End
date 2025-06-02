@@ -1,87 +1,79 @@
 import React, { useEffect, useState } from "react";
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  doc,
-  updateDoc,
-} from "firebase/firestore";
-import { firestore } from "../../firebase"; // Pastikan path ini sesuai dengan konfigurasi Anda
-import KurirSidebar from "../../components/KurirSidebar.jsx";
+import { collection, onSnapshot, updateDoc, doc } from "firebase/firestore";
+import { db } from "../../firebase";
+import KurirSidebar from "../../components/KurirSidebar";
 
-const KurirBarang = () => {
+const KurirOrder = () => {
   const [orders, setOrders] = useState([]);
 
-  // Ambil data user yang sedang login dari localStorage
-  const User = JSON.parse(localStorage.getItem("user"));
-  const uid = User ? User.id : null;
-
-  // Fungsi untuk mengambil data orders dari Firestore dengan filter
   useEffect(() => {
-    const fetchOrders = async () => {
-      if (!uid) return; // Jika user belum login, hentikan proses
+    const unsubscribe = onSnapshot(collection(db, "orders"), (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setOrders(data);
+    });
 
-      try {
-        // Query Firestore: ambil orders dengan status_barang = 'menunggu kurir' dan id_user sesuai user login
-        const q = query(
-          collection(firestore, "orders"),
-          where("status_barang", "==", "menunggu kurir"),
-          where("id_user", "==", uid)
-        );
+    return () => unsubscribe();
+  }, []);
 
-        const querySnapshot = await getDocs(q);
-        const ordersData = [];
+  // Update status item di dalam array items
+  const handleUpdateItemStatus = async (orderId, index, statusBaru) => {
+    const orderRef = doc(db, "orders", orderId);
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) return;
 
-        querySnapshot.forEach((doc) => {
-          ordersData.push({ id: doc.id, ...doc.data() });
-        });
+    const updatedItems = [...order.items];
+    updatedItems[index].status = statusBaru;
 
-        setOrders(ordersData);
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-      }
-    };
-
-    fetchOrders();
-  }, [uid]);
-
-  // Fungsi untuk update status_pengiriman pada dokumen order di Firestore
-  const handleUpdateStatus = async (orderId, newStatus) => {
-    try {
-      const orderRef = doc(firestore, "orders", orderId);
-      await updateDoc(orderRef, {
-        status_pengiriman: newStatus,
-      });
-
-      // Update state agar UI langsung berubah tanpa reload
-      setOrders((prevOrders) =>
-        prevOrders.map((order) =>
-          order.id === orderId
-            ? { ...order, status_pengiriman: newStatus }
-            : order
-        )
-      );
-    } catch (error) {
-      console.error("Error updating status:", error);
-    }
+    await updateDoc(orderRef, { items: updatedItems });
   };
 
-  // Render tombol aksi berdasarkan status_pengiriman
-  const renderAksi = (order) => {
-    const { id, status_pengiriman } = order;
-
-    switch (status_pengiriman) {
+  const renderItemActions = (orderId, item, index) => {
+    switch (item.status) {
       case "menunggu kurir":
         return (
           <div className="space-x-2">
             <button
-              onClick={() => handleUpdateStatus(id, "sedang dikirim")}
+              onClick={() =>
+                handleUpdateItemStatus(orderId, index, "sedang dikirim")
+              }
               className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
             >
               Kirim
             </button>
+            <button
+              onClick={() =>
+                handleUpdateItemStatus(orderId, index, "dikirim balik")
+              }
+              className="bg-yellow-600 text-white px-3 py-1 rounded hover:bg-yellow-700"
+            >
+              Kirim Balik
+            </button>
           </div>
+        );
+      case "sedang dikirim":
+        return (
+          <button
+            onClick={() =>
+              handleUpdateItemStatus(orderId, index, "sampai di tujuan")
+            }
+            className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+          >
+            Sampai Tujuan
+          </button>
+        );
+      case "dikirim balik":
+        return (
+          <button
+            onClick={() =>
+              handleUpdateItemStatus(orderId, index, "menunggu penjual")
+            }
+            className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+          >
+            Kembali ke Penjual
+          </button>
         );
       default:
         return null;
@@ -90,10 +82,9 @@ const KurirBarang = () => {
 
   return (
     <div className="flex">
-      <KurirSidebar activePage="Manage Product" />
+      <KurirSidebar activePage="Manage Order" />
       <div className="flex-1 p-6 bg-gray-100 min-h-screen">
-        <h1 className="text-2xl font-semibold mb-4">Daftar Barang Kurir</h1>
-
+        <h1 className="text-2xl font-semibold mb-4">Daftar Order Kurir</h1>
         <div className="bg-white shadow-md rounded-xl overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead className="bg-gray-100">
@@ -101,22 +92,24 @@ const KurirBarang = () => {
                 <th className="px-6 py-3">Nama Barang</th>
                 <th className="px-6 py-3">Penjual</th>
                 <th className="px-6 py-3">Pembeli</th>
-                <th className="px-6 py-3">Status</th>
+                <th className="px-6 py-3">Status Barang</th>
                 <th className="px-6 py-3">Aksi</th>
               </tr>
             </thead>
             <tbody>
-              {orders.map((order) => (
-                <tr key={order.id} className="border-t">
-                  <td className="px-6 py-3">{order.nama_barang}</td>
-                  <td className="px-6 py-3">{order.penjual}</td>
-                  <td className="px-6 py-3">{order.pembeli}</td>
-                  <td className="px-6 py-3 capitalize">
-                    {order.status_pengiriman}
-                  </td>
-                  <td className="px-6 py-3">{renderAksi(order)}</td>
-                </tr>
-              ))}
+              {orders.map((order) =>
+                order.items?.map((item, index) => (
+                  <tr key={`${order.id}-${index}`} className="border-t">
+                    <td className="px-6 py-3">{item.namaBarang}</td>
+                    <td className="px-6 py-3">{order.penjual}</td>
+                    <td className="px-6 py-3">{order.pembeli}</td>
+                    <td className="px-6 py-3 capitalize">{item.status}</td>
+                    <td className="px-6 py-3">
+                      {renderItemActions(order.id, item, index)}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -125,4 +118,4 @@ const KurirBarang = () => {
   );
 };
 
-export default KurirBarang;
+export default KurirOrder;
