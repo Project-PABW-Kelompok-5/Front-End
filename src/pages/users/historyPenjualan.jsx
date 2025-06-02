@@ -199,12 +199,13 @@ const HistoryPenjualan = () => {
   const getStatusIcon = (itemStatus) => {
     const statusLower = itemStatus ? itemStatus.toLowerCase() : 'baru';
     switch (statusLower) {
-      case "baru": return <Package className="h-5 w-5 text-gray-500" />; // Status awal
-      case "diproses penjual": return <UserCheck className="h-5 w-5 text-indigo-500" />;
+      case "menunggu penjual": return <UserCheck className="h-5 w-5 text-gray-500" />; // Status awal
+      case "diproses penjual": return <Package className="h-5 w-5 text-indigo-500" />;
       case "menunggu kurir": return <Clock className="h-5 w-5 text-orange-500" />;
-      case "dalam perjalanan": case "in transit": return <Truck className="h-5 w-5 text-blue-500" />;
-      case "dikirim": case "delivered": return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case "dibatalkan": case "cancelled": return <AlertCircle className="h-5 w-5 text-red-500" />;
+      case "sedang dikirim": case "in transit": return <Truck className="h-5 w-5 text-blue-500" />;
+      case "sampai di tujuan": case "delivered": return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case "diterima pembeli": return <CheckCircle className="h-5 w-5 text-green-700" />;
+      case "dikomplain": case "dibatalkan": return <AlertCircle className="h-5 w-5 text-red-500" />;
       default: return <Package className="h-5 w-5 text-gray-500" />;
     }
   };
@@ -212,27 +213,29 @@ const HistoryPenjualan = () => {
   const getStatusBadge = (itemStatus) => {
     const statusLower = itemStatus ? itemStatus.toLowerCase() : 'baru';
     switch (statusLower) {
-      case "baru": return ( <span className="px-2 py-1 text-xs font-medium rounded-full border border-gray-300"> Baru </span> );
+      case "menunggu penjual": return ( <span className="px-2 py-1 text-xs font-medium rounded-full border border-gray-300"> Menunggu Penjual </span> );
       case "diproses penjual": return ( <span className="px-2 py-1 text-xs font-medium rounded-full bg-indigo-100 text-indigo-800"> Diproses Penjual </span> );
       case "menunggu kurir": return ( <span className="px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800"> Menunggu Kurir </span> );
-      case "dalam perjalanan": case "in transit": return ( <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800"> Dlm Perjalanan </span> );
-      case "dikirim": case "delivered": return ( <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 w-max"> Terkirim </span> );
-      case "dibatalkan": case "cancelled": return ( <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800"> Dibatalkan </span> );
+      case "sedang dikirim": case "in transit": return ( <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800"> Sedang Dikirim </span> );
+      case "sampai di tujuan": case "delivered": return ( <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 w-max"> Sampai di Tujuan </span> );
+      case "diterima pembeli": return ( <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-400 text-green-900 w-max"> Diterima Pembeli </span> );
+      case "dikomplain": case "dibatalkan": return ( <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800"> Dikomplain </span> );
       default: return ( <span className="px-2 py-1 text-xs font-medium rounded-full border border-gray-300"> {itemStatus || "Baru"} </span> );
     }
   };
   
   // Nilai-nilai status yang diketahui (untuk logika tombol dan filter tab)
   const KNOWN_STATUSES = {
-    BARU: "menunggu penjual", // Atau status awal Anda jika berbeda
+    MENUNGGU_PENJUAL: "menunggu penjual", // Atau status awal Anda jika berbeda
     DIPROSES_PENJUAL: "diproses penjual",
     MENUNGGU_KURIR: "menunggu kurir",
-    DALAM_PERJALANAN: "dalam perjalanan", // gabung dengan in transit
+    SEDANG_DIKIRIM: "sedang dikirim", // gabung dengan in transit
     IN_TRANSIT: "in transit",
-    DIKIRIM: "dikirim", // gabung dengan delivered
+    SAMPAI_DI_TUJUAN: "sampai di tujuan", // gabung dengan delivered
     DELIVERED: "delivered",
-    DIBATALKAN: "dibatalkan", // gabung dengan cancelled
-    CANCELLED: "cancelled",
+    DITERIMA_PEMBELI: "diterima pembeli",
+    DIKOMPLAIN: "dikomplain", // gabung dengan cancelled
+    DIBATALKAN: "dibatalkan",
   };
 
 
@@ -248,25 +251,26 @@ const HistoryPenjualan = () => {
 
   return (
     <div className="min-h-screen" style={{ background: "linear-gradient(135deg, #4a2362 0%, #08001a 100%)" }}>
-      <div className="container rounded-2xl mx-auto px-4 py-8 max-w-5xl shadow-2xl">
+      <div className="container rounded-2xl mx-auto px-4 py-8 max-w-6xl shadow-2xl">
         <div onClick={homepage} className="flex items-center mb-6 cursor-pointer group"> <HomeIcon className="h-6 w-6 mr-2 text-white group-hover:text-purple-300 transition-colors" /> <p className="text-xl font-bold text-white group-hover:text-purple-300 transition-colors">Kembali</p> </div>
         <div className="flex items-center mb-6"> <Package className="h-6 w-6 mr-2 text-white" /> <h1 className="text-2xl font-bold text-white">History Penjualan Barang Anda</h1> </div>
         {userId && <p className="text-xs text-gray-400 mb-4">User ID Penjual: {userId}</p>}
         {error && isUpdatingItem && <p className="text-sm text-red-400 bg-red-100 p-2 rounded-md mb-4">Gagal update item: {typeof error === 'string' ? error : error.message}</p>}
 
         <div className="mb-6">
-          <div className="grid w-full grid-cols-3 sm:grid-cols-4 md:grid-cols-7 bg-[#ffffff22] p-1 rounded-lg">
+          <div className="grid w-full grid-cols-3 sm:grid-cols-4 md:grid-cols-8 bg-[#ffffff22] p-1 rounded-lg">
             {/* Disesuaikan dengan alur status baru */}
-            {["all", "New", "ProcessingSeller", "WaitingCourier", "InTransit", "Delivered", "Cancelled"].map(
+            {["all", "Menunggu Penjual", "Diproses Penjual", "Menunggu Kurir", "Sedang Dikirim", "Sampai di Tujuan", "Diterima Pembeli", "Dikomplain"].map(
               (tab) => {
                 let filterValue = tab.toLowerCase();
                 let tabLabel = tab;
-                if (tab === "New") { filterValue = KNOWN_STATUSES.BARU; tabLabel = "Menunggu Penjual"; }
-                if (tab === "ProcessingSeller") { filterValue = KNOWN_STATUSES.DIPROSES_PENJUAL; tabLabel = "Diproses"; }
-                if (tab === "WaitingCourier") { filterValue = KNOWN_STATUSES.MENUNGGU_KURIR; tabLabel = "Menunggu Kurir"; }
-                if (tab === "InTransit") { filterValue = KNOWN_STATUSES.DALAM_PERJALANAN; tabLabel = "Dikirim"; } // Atau gabung dengan IN_TRANSIT
-                if (tab === "Delivered") { filterValue = KNOWN_STATUSES.DIKIRIM; tabLabel = "Selesai"; } // Atau gabung dengan DELIVERED
-                if (tab === "Cancelled") { filterValue = KNOWN_STATUSES.DIBATALKAN; tabLabel = "Batal"; } // Atau gabung dengan CANCELLED
+                if (tab === "Menunggu Penjual") { filterValue = KNOWN_STATUSES.MENUNGGU_PENJUAL; tabLabel = "Menunggu Penjual"; }
+                if (tab === "Diproses Penjual") { filterValue = KNOWN_STATUSES.DIPROSES_PENJUAL; tabLabel = "Diproses Penjual"; }
+                if (tab === "Menunggu Kurir") { filterValue = KNOWN_STATUSES.MENUNGGU_KURIR; tabLabel = "Menunggu Kurir"; }
+                if (tab === "Sedang Dikirm") { filterValue = KNOWN_STATUSES.SEDANG_DIKIRIM; tabLabel = "Sedang Dikirim"; } // Atau gabung dengan IN_TRANSIT
+                if (tab === "Sampai di Tujuan") { filterValue = KNOWN_STATUSES.SAMPAI_DI_TUJUAN; tabLabel = "Sampai di Tujuan"; } // Atau gabung dengan DELIVERED
+                if (tab === "Diterima Pembeli") { filterValue = KNOWN_STATUSES.DITERIMA_PEMBELI; tabLabel = "Diterima Pembeli"; }
+                if (tab === "Dikomplain") { filterValue = KNOWN_STATUSES.DIKOMPLAIN; tabLabel = "Dikomplain"; } // Atau gabung dengan CANCELLED
                 if (tab === "all") {tabLabel = "Semua";}
 
 
@@ -292,12 +296,13 @@ const HistoryPenjualan = () => {
           {/* ... Deskripsi Tab disesuaikan ... */}
           <div className="mt-4 bg-white border border-[#75379944] rounded-lg p-4 text-[#100428]">
             {activeTab === "all" && ( <div> <h2 className="text-lg font-semibold">Semua Barang Terjual</h2> <p className="text-sm text-gray-600"> Menampilkan semua barang dari semua status. </p> </div> )}
-            {activeTab === "New" && ( <div> <h2 className="text-lg font-semibold">Barang Baru / Perlu Diproses</h2> <p className="text-sm text-gray-600"> Barang yang baru masuk atau menunggu untuk Anda proses. </p> </div> )}
-            {activeTab === "ProcessingSeller" && ( <div> <h2 className="text-lg font-semibold">Barang Diproses Penjual</h2> <p className="text-sm text-gray-600"> Barang yang sedang Anda siapkan. </p> </div> )}
-            {activeTab === "WaitingCourier" && ( <div> <h2 className="text-lg font-semibold">Barang Menunggu Kurir</h2> <p className="text-sm text-gray-600"> Barang siap dijemput kurir. </p> </div> )}
-            {activeTab === "InTransit" && ( <div> <h2 className="text-lg font-semibold">Barang Dalam Pengiriman</h2> <p className="text-sm text-gray-600"> Barang sedang dikirim ke pembeli. </p> </div> )}
-            {activeTab === "Delivered" && ( <div> <h2 className="text-lg font-semibold">Barang Terkirim</h2> <p className="text-sm text-gray-600"> Barang sudah diterima pembeli. </p> </div> )}
-            {activeTab === "Cancelled" && ( <div> <h2 className="text-lg font-semibold">Barang Dibatalkan</h2> <p className="text-sm text-gray-600"> Penjualan barang ini dibatalkan. </p> </div> )}
+            {activeTab === "Menunggu Penjual" && ( <div> <h2 className="text-lg font-semibold">Barang Perlu Diproses</h2> <p className="text-sm text-gray-600"> Pesanan yang baru masuk, menunggu untuk Anda proses. </p> </div> )}
+            {activeTab === "Diproses Penjual" && ( <div> <h2 className="text-lg font-semibold">Barang Diproses Penjual</h2> <p className="text-sm text-gray-600"> Barang yang sedang Anda siapkan agar siap dikirim. </p> </div> )}
+            {activeTab === "Menunggu Kurir" && ( <div> <h2 className="text-lg font-semibold">Barang Menunggu Kurir</h2> <p className="text-sm text-gray-600"> Barang siap dijemput kurir. </p> </div> )}
+            {activeTab === "Sedang Dikirim" && ( <div> <h2 className="text-lg font-semibold">Barang Dalam Pengiriman</h2> <p className="text-sm text-gray-600"> Barang sedang dikirim ke pembeli. </p> </div> )}
+            {activeTab === "Sampai di Tujuan" && ( <div> <h2 className="text-lg font-semibold">Barang Sampai di Tujuan</h2> <p className="text-sm text-gray-600"> Barang sudah sampai di alamat pembeli. </p> </div> )}
+            {activeTab === "Diterima Pembeli" && ( <div> <h2 className="text-lg font-semibold">Barang Diterima</h2> <p className="text-sm text-gray-600"> Barang sudah diterima pembeli. </p> </div> )}
+            {activeTab === "Dikomplain" && ( <div> <h2 className="text-lg font-semibold">Barang Dikomplain</h2> <p className="text-sm text-gray-600"> Penjualan barang ini dikomplain/dibatalkan. </p> </div> )}
           </div>
         </div>
 
@@ -312,7 +317,7 @@ const HistoryPenjualan = () => {
               
               // Tentukan apakah tombol "Proses Pesanan" harus ditampilkan
               // Tampil jika statusnya adalah "baru" (atau state awal yang Anda definisikan)
-              const showProsesButton = itemStatusLower === KNOWN_STATUSES.BARU;
+              const showProsesButton = itemStatusLower === KNOWN_STATUSES.MENUNGGU_PENJUAL;
 
               // Tentukan apakah tombol "Panggil Kurir" harus ditampilkan
               // Tampil hanya jika statusnya adalah "diproses penjual"

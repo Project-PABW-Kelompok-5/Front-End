@@ -6,11 +6,8 @@ import {
   onSnapshot,
   where,
   doc,
-  updateDoc,
-  writeBatch,
-  runTransaction, 
-  getDoc,
-  increment, 
+  runTransaction,
+  increment,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth, firestore } from "../../firebase";
@@ -44,7 +41,6 @@ const HistoryPengiriman = () => {
 
   const navigate = useNavigate();
 
-  // Helper function to determine overall status from item statuses
   const getOverallStatus = (items) => {
     if (!items || items.length === 0) {
       return "Status tidak diketahui";
@@ -53,37 +49,51 @@ const HistoryPengiriman = () => {
     const itemStatuses = items.map((item) => item.status_barang?.toLowerCase());
 
     // Prioritas status: Dibatalkan > Diterima Pembeli > Dikirim > Dalam Perjalanan > Proses Pengiriman > Menunggu Penjual
-    if (itemStatuses.includes("dibatalkan") || itemStatuses.includes("cancelled")) {
-      return "Dibatalkan";
+    if (
+      itemStatuses.includes("dibatalkan") ||
+      itemStatuses.includes("dikomplain")
+    ) {
+      return "Dikomplain";
     }
     // Jika semua item sudah "diterima pembeli", maka status keseluruhan adalah "Diterima Pembeli"
     if (itemStatuses.every((status) => status === "diterima pembeli")) {
-        return "Diterima Pembeli";
+      return "Diterima Pembeli";
     }
-    // Jika semua item sudah "sampai di tujuan" atau "delivered", maka status keseluruhan adalah "Dikirim"
-    if (itemStatuses.every((status) => status === "sampai di tujuan" || status === "delivered")) {
-      return "Dikirim";
+    // Jika semua item sudah "sampai di tujuan" atau "delivered", maka status keseluruhan adalah "Sampai di Tujuan"
+    if (itemStatuses.every((status) => status === "sampai di tujuan")) {
+      return "Sampai di Tujuan";
     }
-    if (itemStatuses.includes("dalam perjalanan") || itemStatuses.includes("in transit")) {
-      return "Dalam Perjalanan";
+    if (itemStatuses.includes("sedang dikirim")) {
+      return "Sedang Dikirim";
     }
-    if (itemStatuses.includes("proses pengiriman") || itemStatuses.includes("processing")) {
-      return "Proses Pengiriman";
+    if (itemStatuses.includes("dikirim balik")) {
+      return "Dikirim Balik";
     }
-    if (itemStatuses.includes("menunggu penjual") || itemStatuses.includes("pending")) {
+    if (itemStatuses.includes("diproses penjual")) {
+      return "Diproses Penjual";
+    }
+    if (
+      itemStatuses.includes("menunggu kurir") ||
+      itemStatuses.includes("menunggu dikirim balik")
+    ) {
+      return "Menunggu Kurir";
+    }
+    if (
+      itemStatuses.includes("menunggu penjual") ||
+      itemStatuses.includes("pending")
+    ) {
       return "Menunggu Penjual";
     }
 
     return "Status tidak diketahui";
   };
 
-  // Fungsi untuk mengubah status_barang menjadi "diterima pembeli" dan mengirim saldo ke penjual
-  const handleConfirmDelivery = async (orderId, orderItems) => {
+  const handleConfirmDelivery = async (orderId) => {
     if (!firestore || !userId) {
       setError("Firebase Firestore tidak tersedia atau pengguna belum login.");
       return;
     }
-    setIsUpdating(true); // Mulai loading state
+    setIsUpdating(true);
 
     try {
       const orderRef = doc(firestore, "orders", orderId);
@@ -95,67 +105,64 @@ const HistoryPengiriman = () => {
         }
 
         const data = orderDoc.data();
-        let totalAmountForSeller = 0;
-        const sellersToUpdate = new Map(); // Map untuk melacak penjual dan jumlah yang harus diterima
+        const sellersToUpdate = new Map();
 
-        const updatedItems = data.items.map(item => {
-          // Hanya ubah status jika saat ini "sampai di tujuan" atau "delivered"
-          if (item.status_barang?.toLowerCase() === "sampai di tujuan" || item.status_barang?.toLowerCase() === "delivered") {
-            const itemSubtotal = item.harga * item.qty; // Hitung subtotal per item
-            // Asumsi: item.id_penjual tersedia di setiap item
-            const sellerId = item.id_penjual; 
+        const updatedItems = data.items.map((item) => {
+          if (
+            item.status_barang?.toLowerCase() === "sampai di tujuan" ||
+            item.status_barang?.toLowerCase() === "delivered"
+          ) {
+            const itemSubtotal = item.harga * item.qty;
+            const sellerId = item.id_penjual;
 
-            // Tambahkan subtotal item ke total yang akan diterima penjual ini
-            sellersToUpdate.set(sellerId, (sellersToUpdate.get(sellerId) || 0) + itemSubtotal);
+            sellersToUpdate.set(
+              sellerId,
+              (sellersToUpdate.get(sellerId) || 0) + itemSubtotal
+            );
 
             return { ...item, status_barang: "diterima pembeli" };
           }
-          return item; // Biarkan item lain tidak berubah
+          return item;
         });
 
-        // Pastikan semua item sudah berubah status sebelum update dokumen
         const allItemsConfirmed = updatedItems.every(
-          item => item.status_barang?.toLowerCase() === "diterima pembeli" ||
-                     !["sampai di tujuan", "delivered"].includes(item.status_barang?.toLowerCase())
+          (item) =>
+            item.status_barang?.toLowerCase() === "diterima pembeli" ||
+            !["sampai di tujuan", "delivered"].includes(
+              item.status_barang?.toLowerCase()
+            )
         );
 
         if (!allItemsConfirmed) {
-            // Ini bisa terjadi jika ada item yang tidak perlu dikonfirmasi
-            // atau jika status_barang tidak sesuai dengan yang diharapkan.
-            // Anda bisa menambahkan logika penanganan error yang lebih spesifik di sini
-            console.warn("Beberapa item mungkin tidak diubah statusnya menjadi 'diterima pembeli' karena status awal tidak 'sampai di tujuan'/'delivered'.");
+          console.warn(
+            "Beberapa item mungkin tidak diubah statusnya menjadi 'diterima pembeli' karena status awal tidak 'sampai di tujuan'/'delivered'."
+          );
         }
 
-        // 1. Update status_barang di dokumen pesanan
         transaction.update(orderRef, { items: updatedItems });
 
-        // 2. Update saldo untuk setiap penjual yang terlibat
         for (let [sellerId, amount] of sellersToUpdate.entries()) {
-            // Asumsi: ada koleksi 'users' atau 'sellers' dengan dokumen user/penjual
-            // dan di dalamnya ada field 'saldo' atau 'balance'
-            const sellerRef = doc(firestore, "users", sellerId); // Sesuaikan dengan path dokumen penjual Anda
-            transaction.update(sellerRef, {
-                saldo: increment(amount), // Tambahkan jumlah secara atomik
-                // Anda juga bisa menambahkan catatan transaksi di sini jika strukturnya memungkinkan
-            });
+          const sellerRef = doc(firestore, "users", sellerId);
+          transaction.update(sellerRef, {
+            saldo: increment(amount),
+          });
         }
-
-        // Opsional: Jika ada biaya platform, Anda bisa menguranginya dari total pembayaran di sini
-        // atau menambahkan ke akun admin. Namun, ini akan lebih kompleks karena membutuhkan
-        // dokumen 'platform' atau 'admin' dan perlu dipastikan sudah ada.
       });
 
-      console.log(`Pesanan ${orderId} berhasil dikonfirmasi dan saldo penjual diperbarui.`);
+      console.log(
+        `Pesanan ${orderId} berhasil dikonfirmasi dan saldo penjual diperbarui.`
+      );
     } catch (err) {
-      console.error("Gagal mengkonfirmasi penerimaan dan/atau update saldo: ", err);
+      console.error(
+        "Gagal mengkonfirmasi penerimaan dan/atau update saldo: ",
+        err
+      );
       setError(`Gagal mengkonfirmasi penerimaan: ${err.message}`);
     } finally {
-      setIsUpdating(false); // Selesai loading state
+      setIsUpdating(false);
     }
   };
 
-
-  // Auth state listener - terpisah dari data fetching
   useEffect(() => {
     if (!auth) {
       setError("Firebase Auth tidak tersedia");
@@ -176,9 +183,8 @@ const HistoryPengiriman = () => {
     });
 
     return () => unsubscribeAuth();
-  }, []); // Hanya dependency kosong untuk auth listener
+  }, []);
 
-  // Data fetching - hanya berjalan ketika userId sudah ada
   useEffect(() => {
     let unsubscribeFirestore = null;
 
@@ -189,7 +195,6 @@ const HistoryPengiriman = () => {
     }
 
     if (!userId) {
-      // User belum login, tunggu sampai userId tersedia
       return;
     }
 
@@ -197,11 +202,7 @@ const HistoryPengiriman = () => {
     setError(null);
 
     try {
-      // Mengambil data dari koleksi 'orders' dan memfilter berdasarkan 'userId'
       const ordersCollectionRef = collection(firestore, "orders");
-      console.log("Fetching data from collection:", "orders");
-
-      // Menambahkan klausa 'where' untuk memfilter pesanan berdasarkan userId
       const q = query(ordersCollectionRef, where("userId", "==", userId));
 
       unsubscribeFirestore = onSnapshot(
@@ -212,24 +213,21 @@ const HistoryPengiriman = () => {
             const data = doc.data();
             console.log("Document data:", doc.id, data);
 
-            // Transformasi data Firestore ke format yang diharapkan oleh UI
             const items = data.items
               ? data.items.map((item) => ({
                   name: item.nama || "Nama item tidak diketahui",
                   quantity: item.qty || 0,
                   price: `Rp${(item.harga || 0).toLocaleString("id-ID")}`,
                   productId: item.productId,
-                  status_barang: item.status_barang, // Pastikan untuk menyertakan ini
-                  id_penjual: item.id_penjual, // Pastikan id_penjual juga disertakan
+                  status_barang: item.status_barang,
+                  id_penjual: item.id_penjual,
                 }))
               : [];
 
-            // Tentukan status keseluruhan HANYA berdasarkan item statuses
             const determinedStatus = getOverallStatus(items);
 
             orders.push({
               id: doc.id,
-              // Mengambil tanggal pemesanan dari berbagai kemungkinan field
               date: data.tanggal_pemesanan?.toDate
                 ? data.tanggal_pemesanan.toDate().toLocaleDateString("id-ID", {
                     year: "numeric",
@@ -249,8 +247,7 @@ const HistoryPengiriman = () => {
                     day: "numeric",
                   })
                 : "Tanggal tidak tersedia",
-              status: determinedStatus, // Gunakan status yang ditentukan di sini
-              // Mengambil alamat pengiriman dari berbagai kemungkinan struktur
+              status: determinedStatus,
               address: data.alamat_pengiriman
                 ? typeof data.alamat_pengiriman === "string"
                   ? data.alamat_pengiriman
@@ -268,7 +265,9 @@ const HistoryPengiriman = () => {
                 : data.alamat && data.alamat.alamatLengkap
                 ? data.alamat.alamatLengkap
                 : data.Alamat
-                ? `${data.Alamat.fullAddress || ""}, ${data.Alamat.detail || ""}`
+                ? `${data.Alamat.fullAddress || ""}, ${
+                    data.Alamat.detail || ""
+                  }`
                     .replace(", ", "")
                     .trim()
                 : data.shipping_address
@@ -278,8 +277,10 @@ const HistoryPengiriman = () => {
                       data.shipping_address.city || ""
                     } ${data.shipping_address.province || ""}`.trim()
                 : "Alamat tidak tersedia",
-              items: items, // Gunakan item yang diproses
-              shippingCost: `Rp${(data.shippingCost || 0).toLocaleString("id-ID")}`,
+              items: items,
+              shippingCost: `Rp${(data.shippingCost || 0).toLocaleString(
+                "id-ID"
+              )}`,
               subtotal: `Rp${(data.subtotal || 0).toLocaleString("id-ID")}`,
               total: `Rp${(data.totalBayar || 0).toLocaleString("id-ID")}`,
               trackingNumber: data.trackingNumber || "N/A",
@@ -317,13 +318,12 @@ const HistoryPengiriman = () => {
       setLoading(false);
     }
 
-    // Cleanup function
     return () => {
       if (unsubscribeFirestore) {
         unsubscribeFirestore();
       }
     };
-  }, [userId]); // Hanya userId sebagai dependency
+  }, [userId]);
 
   const toggleOrderDetails = (orderId) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
@@ -334,6 +334,12 @@ const HistoryPengiriman = () => {
   };
 
   const filteredDeliveries = deliveryHistory.filter((delivery) => {
+    if (activeTab === "Sedang Dikirim") {
+      return (
+        delivery.status === "Sedang Dikirim" ||
+        delivery.status === "Dikirim Balik"
+      );
+    }
     const matchesSearch =
       delivery.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (delivery.items &&
@@ -355,17 +361,18 @@ const HistoryPengiriman = () => {
       case "diterima pembeli":
         return <CheckCircle className="h-5 w-5 text-green-700" />;
       case "dikirim":
-      case "delivered":
+      case "sampai di tujuan":
         return <CheckCircle className="h-5 w-5 text-green-500" />;
       case "dalam perjalanan":
-      case "in transit":
+      case "sedang dikirim":
+      case "dikirim balik":
         return <Truck className="h-5 w-5 text-blue-500" />;
-      case "proses pengiriman":
-      case "processing":
       case "menunggu penjual":
+      case "diproses penjual":
+      case "menunggu kurir":
         return <Clock className="h-5 w-5 text-yellow-500" />;
       case "dibatalkan":
-      case "cancelled":
+      case "dikomplain":
         return <AlertCircle className="h-5 w-5 text-red-500" />;
       default:
         return <Package className="h-5 w-5 text-gray-500" />;
@@ -380,43 +387,52 @@ const HistoryPengiriman = () => {
         </span>
       );
     switch (status.toLowerCase()) {
-        case "diterima pembeli":
-            return (
-              <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-700 text-white">
-                Diterima Pembeli
-              </span>
-            );
-      case "proses pengiriman":
-      case "processing":
+      case "diterima pembeli":
+        return (
+          <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-700 text-white">
+            Diterima Pembeli
+          </span>
+        );
       case "menunggu penjual":
         return (
           <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
-            {status.toLowerCase() === "menunggu penjual"
-              ? "Menunggu Penjual"
-              : "Proses Pengiriman"}
+            Menunggu Penjual
+          </span>
+        );
+      case "diproses penjual":
+        return (
+          <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+            Diproses Penjual
+          </span>
+        );
+      case "menunggu kurir":
+        return (
+          <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+            Menunggu Kurir
           </span>
         );
       case "dikirim":
-      case "delivered":
+      case "sampai di tujuan":
         return (
           <div className="flex flex-col space-y-2">
             <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 w-max">
-              Dikirim
+              Sampai di Tujuan
             </span>
           </div>
         );
       case "dalam perjalanan":
-      case "in transit":
+      case "sedang dikirim":
+      case "dikirim balik":
         return (
           <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-            Dalam Perjalanan
+            {status}
           </span>
         );
       case "dibatalkan":
-      case "cancelled":
+      case "dikomplain":
         return (
           <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
-            Dibatalkan
+            Dikomplain
           </span>
         );
       default:
@@ -432,7 +448,9 @@ const HistoryPengiriman = () => {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{ background: "linear-gradient(135deg, #4a2362 0%, #08001a 100%)" }}
+        style={{
+          background: "linear-gradient(135deg, #4a2362 0%, #08001a 100%)",
+        }}
       >
         <div className="text-center">
           <svg
@@ -456,7 +474,9 @@ const HistoryPengiriman = () => {
             ></path>
           </svg>
           <p className="text-white text-lg">Memuat riwayat pengiriman...</p>
-          {userId && <p className="text-white text-sm mt-2">User ID: {userId}</p>}
+          {userId && (
+            <p className="text-white text-sm mt-2">User ID: {userId}</p>
+          )}
         </div>
       </div>
     );
@@ -466,11 +486,15 @@ const HistoryPengiriman = () => {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{ background: "linear-gradient(135deg, #4a2362 0%, #08001a 100%)" }}
+        style={{
+          background: "linear-gradient(135deg, #4a2362 0%, #08001a 100%)",
+        }}
       >
         <div className="text-center p-8 bg-white/10 backdrop-blur-md rounded-lg shadow-xl">
           <AlertCircle className="h-12 w-12 mx-auto text-red-400 mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-2">Terjadi Kesalahan</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">
+            Terjadi Kesalahan
+          </h2>
           <p className="text-red-300 mb-4">{error}</p>
           <button
             onClick={() => window.location.reload()}
@@ -490,8 +514,11 @@ const HistoryPengiriman = () => {
         background: "linear-gradient(135deg, #4a2362 0%, #08001a 100%)",
       }}
     >
-      <div className="container rounded-2xl mx-auto px-4 py-8 max-w-4xl shadow-2xl">
-        <div onClick={homepage} className="flex items-center mb-6 cursor-pointer group">
+      <div className="container rounded-2xl mx-auto px-4 py-8 max-w-6xl shadow-2xl">
+        <div
+          onClick={homepage}
+          className="flex items-center mb-6 cursor-pointer group"
+        >
           <HomeIcon className="h-6 w-6 mr-2 text-white group-hover:text-purple-300 transition-colors" />
           <p className="text-xl font-bold text-white group-hover:text-purple-300 transition-colors">
             Kembali
@@ -503,48 +530,53 @@ const HistoryPengiriman = () => {
           <h1 className="text-2xl font-bold text-white">History Pengiriman</h1>
         </div>
 
-        {userId && <p className="text-xs text-gray-400 mb-4">User ID: {userId}</p>}
+        {userId && (
+          <p className="text-xs text-gray-400 mb-4">User ID: {userId}</p>
+        )}
 
         <div className="mb-6">
-          <div className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-5 bg-[#ffffff22] p-1 rounded-lg">
+          <div className="grid w-full grid-cols-3 sm:grid-cols-4 md:grid-cols-8 bg-[#ffffff22] p-1 rounded-lg">
             {[
               "all",
-              "Processing",
-              "In Transit",
-              "Delivered",
-              "Cancelled",
               "Menunggu Penjual",
+              "Diproses Penjual",
+              "Menunggu Kurir",
+              "Sedang Dikirim",
+              "Sampai di Tujuan",
               "Diterima Pembeli",
-            ].map(
-              (tab) => (
-                <button
-                  key={tab}
-                  className={`py-2 px-1 cursor-pointer text-xs sm:text-sm font-medium rounded-md transition-colors text-white ${
-                    activeTab === tab
-                      ? "bg-black bg-opacity-50 text-[#a774d0] shadow"
-                      : "hover:bg-[#ffffff33]"
-                  }`}
-                  onClick={() => {
-                    setStatusFilter(tab.toLowerCase());
-                    setActiveTab(tab);
-                  }}
-                >
-                  {tab === "all"
-                    ? "Semua"
-                    : tab === "Processing"
-                    ? "Proses"
-                    : tab === "In Transit"
-                    ? "Dikirim"
-                    : tab === "Delivered"
-                    ? "Dikirim (Tujuan)"
-                    : tab === "Cancelled"
-                    ? "Batal"
-                    : tab === "Menunggu Penjual"
-                    ? "Menunggu Penjual"
-                    : "Diterima Pembeli"}
-                </button>
-              )
-            )}
+              "Dikomplain",
+            ].map((tab) => (
+              <button
+                key={tab}
+                className={`py-2 px-1 cursor-pointer text-xs sm:text-sm font-medium rounded-md transition-colors text-white ${
+                  activeTab === tab
+                    ? "bg-black bg-opacity-50 text-[#a774d0] shadow"
+                    : "hover:bg-[#ffffff33]"
+                }`}
+                onClick={() => {
+                  setStatusFilter(tab.toLowerCase());
+                  setActiveTab(tab);
+                }}
+              >
+                {tab === "all"
+                  ? "Semua"
+                  : tab === "Menunggu Penjual"
+                  ? "Menunggu Penjual"
+                  : tab === "Diproses Penjual"
+                  ? "Diproses Penjual"
+                  : tab === "Menunggu Kurir"
+                  ? "Menunggu Kurir"
+                  : tab === "Sedang Dikirim"
+                  ? "Sedang Dikirim"
+                  : tab === "Sampai di Tujuan"
+                  ? "Sampai di Tujuan"
+                  : tab === "Dikomplain"
+                  ? "Dikomplain"
+                  : tab === "Diterima Pembeli"
+                  ? "Diterima Pembeli"
+                  : "Status Tidak Diketahui"}
+              </button>
+            ))}
           </div>
 
           <div className="mt-4 bg-white border border-[#75379944] rounded-lg p-4 text-[#100428]">
@@ -556,35 +588,46 @@ const HistoryPengiriman = () => {
                 </p>
               </div>
             )}
-            {activeTab === "Processing" && (
+            {activeTab === "Diproses Penjual" && (
               <div>
                 <h2 className="text-lg font-semibold">Proses Pengiriman</h2>
                 <p className="text-sm text-gray-600">
-                  Barang telah diproses dan siap untuk dikirim.
+                  Barang sedang diproses oleh penjual agar siap untuk dikirim.
                 </p>
               </div>
             )}
-            {activeTab === "In Transit" && (
+            {activeTab === "Menunggu Kurir" && (
               <div>
-                <h2 className="text-lg font-semibold">Dalam Perjalanan</h2>
+                <h2 className="text-lg font-semibold">Menunggu Kurir</h2>
                 <p className="text-sm text-gray-600">
-                  Pesanan sedang dalam perjalanan menuju alamat Anda.
+                  Barang telah diproses dan menunggu kurir untuk mengambil
+                  barang Anda.
                 </p>
               </div>
             )}
-            {activeTab === "Delivered" && (
+            {activeTab === "Sedang Dikirim" && (
               <div>
-                <h2 className="text-lg font-semibold">Pesanan Sampai di Tujuan</h2>
+                <h2 className="text-lg font-semibold">Sedang Dikirim</h2>
+                <p className="text-sm text-gray-600">
+                  Pesanan sedang dalam proses pengiriman.
+                </p>
+              </div>
+            )}
+            {activeTab === "Sampai di Tujuan" && (
+              <div>
+                <h2 className="text-lg font-semibold">
+                  Pesanan Sampai di Tujuan
+                </h2>
                 <p className="text-sm text-gray-600">
                   Pesanan telah tiba di tujuan, menunggu konfirmasi penerimaan.
                 </p>
               </div>
             )}
-            {activeTab === "Cancelled" && (
+            {activeTab === "Dikomplain" && (
               <div>
-                <h2 className="text-lg font-semibold">Pesanan Dibatalkan</h2>
+                <h2 className="text-lg font-semibold">Pesanan Dikomplain</h2>
                 <p className="text-sm text-gray-600">
-                  Pesanan yang telah dibatalkan.
+                  Pesanan yang telah dikomplain.
                 </p>
               </div>
             )}
@@ -592,7 +635,8 @@ const HistoryPengiriman = () => {
               <div>
                 <h2 className="text-lg font-semibold">Menunggu Penjual</h2>
                 <p className="text-sm text-gray-600">
-                  Pesanan Anda sedang menunggu konfirmasi atau persiapan dari penjual.
+                  Pesanan Anda sedang menunggu konfirmasi atau persiapan dari
+                  penjual.
                 </p>
               </div>
             )}
@@ -627,8 +671,8 @@ const HistoryPengiriman = () => {
               Tidak ada riwayat pengiriman ditemukan
             </h3>
             <p className="text-gray-300">
-              Coba sesuaikan pencarian atau filter Anda, atau Anda belum memiliki
-              pesanan.
+              Coba sesuaikan pencarian atau filter Anda, atau Anda belum
+              memiliki pesanan.
             </p>
           </div>
         ) : (
@@ -685,35 +729,53 @@ const HistoryPengiriman = () => {
                         </h4>
                         <div className="space-y-1">
                           <p className="text-sm text-gray-600">
-                            <span className="font-medium">Tanggal Pemesanan:</span>{" "}
+                            <span className="font-medium">
+                              Tanggal Pemesanan:
+                            </span>{" "}
                             {delivery.date}
                           </p>
-                          {(delivery.status.toLowerCase() === "dikirim" ||
-                           delivery.status.toLowerCase() === "diterima pembeli") && (
+                          {(delivery.status.toLowerCase() ===
+                            "sampai di tujuan" ||
+                            delivery.status.toLowerCase() ===
+                              "diterima pembeli") && (
                             <p className="text-sm text-gray-600">
-                              <span className="font-medium">Diterima pada:</span>{" "}
+                              <span className="font-medium">
+                                Diterima pada:
+                              </span>{" "}
                               {delivery.deliveredDate} via {delivery.carrier}
                             </p>
                           )}
-                          {(delivery.status.toLowerCase() === "in transit" ||
-                            delivery.status.toLowerCase() === "dalam perjalanan") && (
+                          {(delivery.status.toLowerCase() ===
+                            "sedang dikirim" ||
+                            delivery.status.toLowerCase() ===
+                              "dalam perjalanan") && (
                             <p className="text-sm text-gray-600">
-                              <span className="font-medium">Estimasi diterima:</span>{" "}
-                              {delivery.estimatedDelivery} via {delivery.carrier}
+                              <span className="font-medium">
+                                Estimasi diterima:
+                              </span>{" "}
+                              {delivery.estimatedDelivery} via{" "}
+                              {delivery.carrier}
                             </p>
                           )}
-                          {(delivery.status.toLowerCase() === "processing" ||
-                            delivery.status.toLowerCase() === "proses pengiriman" ||
-                            delivery.status.toLowerCase() === "menunggu penjual") && (
+                          {(delivery.status.toLowerCase() ===
+                            "menunggu penjual" ||
+                            delivery.status.toLowerCase() ===
+                              "diproses penjual" ||
+                            delivery.status.toLowerCase() ===
+                              "menunggu kurir") && (
                             <p className="text-sm text-gray-600">
-                              <span className="font-medium">Estimasi pengiriman:</span>{" "}
+                              <span className="font-medium">
+                                Estimasi pengiriman:
+                              </span>{" "}
                               {delivery.estimatedShipping}
                             </p>
                           )}
-                          {(delivery.status.toLowerCase() === "cancelled" ||
+                          {(delivery.status.toLowerCase() === "dikomplain" ||
                             delivery.status.toLowerCase() === "dibatalkan") && (
                             <p className="text-sm text-gray-600">
-                              <span className="font-medium">Dibatalkan pada:</span>{" "}
+                              <span className="font-medium">
+                                Dikomplain pada:
+                              </span>{" "}
                               {delivery.cancelledDate} - {delivery.cancelReason}
                             </p>
                           )}
@@ -721,7 +783,8 @@ const HistoryPengiriman = () => {
                       </div>
                     </div>
                     <h4 className="text-sm font-medium mb-2 flex items-center">
-                      <Box className="h-4 w-4 mr-1 text-purple-600" /> Barang Pesanan
+                      <Box className="h-4 w-4 mr-1 text-purple-600" /> Barang
+                      Pesanan
                     </h4>
                     <div className="bg-[#75379911] rounded-md p-3 mb-4">
                       {delivery.items &&
@@ -760,10 +823,12 @@ const HistoryPengiriman = () => {
                     </div>
 
                     {(delivery.status.toLowerCase() === "dikirim" ||
-                      delivery.status.toLowerCase() === "delivered") && (
+                      delivery.status.toLowerCase() === "sampai di tujuan") && (
                       <div className="mb-4 text-right">
                         <button
-                          onClick={() => handleConfirmDelivery(delivery.id, delivery.items)}
+                          onClick={() =>
+                            handleConfirmDelivery(delivery.id, delivery.items)
+                          }
                           disabled={isUpdating}
                           className={`px-4 py-2 rounded-md transition-colors ${
                             isUpdating
@@ -771,25 +836,30 @@ const HistoryPengiriman = () => {
                               : "bg-purple-600 hover:bg-purple-700 text-white"
                           }`}
                         >
-                          {isUpdating ? "Memproses..." : "Konfirmasi Barang Diterima"}
+                          {isUpdating
+                            ? "Memproses..."
+                            : "Konfirmasi Barang Diterima"}
                         </button>
                       </div>
                     )}
 
-                    {(delivery.status.toLowerCase() === "dikirim" ||
+                    {(delivery.status.toLowerCase() === "sampai di tujuan" ||
                       delivery.status.toLowerCase() === "diterima pembeli" ||
-                      delivery.status.toLowerCase() === "in transit" ||
+                      delivery.status.toLowerCase() === "sedang dikirim" ||
                       delivery.status.toLowerCase() === "dalam perjalanan") &&
-                      delivery.trackingNumber && delivery.trackingNumber !== "N/A" && (
-                      <div className="mb-4">
-                        <div className="flex items-center gap-2">
-                            <p className="text-sm text-gray-600">No. Resi: {delivery.trackingNumber}</p>
+                      delivery.trackingNumber &&
+                      delivery.trackingNumber !== "N/A" && (
+                        <div className="mb-4">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm text-gray-600">
+                              No. Resi: {delivery.trackingNumber}
+                            </p>
                             <button className="ml-auto px-3 py-1 text-sm border border-[#753799] text-[#753799] rounded-md hover:bg-[#75379922] transition-colors">
-                                Lacak Paket
+                              Lacak Paket
                             </button>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                   </div>
                 )}
               </div>
