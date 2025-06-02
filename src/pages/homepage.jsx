@@ -84,56 +84,6 @@ export default function HomePage() {
     return IconComponent || LucideIcons.Package;
   };
 
-  // const getProductIcon = (iconName) => {
-  //   switch (iconName) {
-  //     case "smartphone":
-  //       return <Smartphone className="h-8 w-8 text-[#753799]" />;
-  //     case "laptop":
-  //       return <Laptop className="h-8 w-8 text-[#753799]" />;
-  //     case "headphones":
-  //       return <Headphones className="h-8 w-8 text-[#753799]" />;
-  //     case "watch":
-  //       return <Watch className="h-8 w-8 text-[#753799]" />;
-  //     case "camera":
-  //       return <Camera className="h-8 w-8 text-[#753799]" />;
-  //     case "tablet":
-  //       return <Tablet className="h-8 w-8 text-[#753799]" />;
-  //     case "cable":
-  //       return <Cable className="h-8 w-8 text-[#753799]" />;
-  //     case "coffee":
-  //       return <Coffee className="h-8 w-8 text-[#753799]" />;
-  //     default:
-  //       return <Package className="h-8 w-8 text-[#753799]" />;
-  //   }
-  // };
-
-  // const getProductIconpreview = (iconName) => {
-  //   switch (iconName) {
-  //     case "smartphone":
-  //       return (
-  //         <Smartphone className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />
-  //       );
-  //     case "laptop":
-  //       return <Laptop className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
-  //     case "headphones":
-  //       return (
-  //         <Headphones className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />
-  //       );
-  //     case "watch":
-  //       return <Watch className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
-  //     case "camera":
-  //       return <Camera className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
-  //     case "tablet":
-  //       return <Tablet className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
-  //     case "cable":
-  //       return <Cable className="h-8 w-8 text-[#753799]" />;
-  //     case "coffee":
-  //       return <Coffee className="h-20 w-20 text-[#753799]" />;
-  //     default:
-  //       return <Package className="h-20 md:h-20 w-20 md:w-20 text-[#753799]" />;
-  //   }
-  // };
-
   const getPaginationButtons = () => {
     const buttons = [];
     const maxVisibleButtons = 5;
@@ -396,7 +346,6 @@ export default function HomePage() {
             {displayedProducts.map((product) => {
               const ProductIconComponent = getLucideIconComponent(product.icon);
               return (
-
                 <div
                   key={product.id}
                   className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden "
@@ -408,7 +357,10 @@ export default function HomePage() {
                     <div className="p-4">
                       <div className="flex items-start">
                         <div className="w-16 h-16 bg-purple-50 rounded-lg flex items-center justify-center mr-4 flex-shrink-0">
-                          <ProductIconComponent size={32} className="text-[#753799]" />
+                          <ProductIconComponent
+                            size={32}
+                            className="text-[#753799]"
+                          />
                         </div>
 
                         <div className="p-4">
@@ -521,10 +473,13 @@ export default function HomePage() {
 
               <div className="w-full md:w-1/2 bg-gray-100 rounded-lg overflow-hidden">
                 <div className="w-full h-full bg-purple-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                  {React.createElement(getLucideIconComponent(previewProduct.icon), {
-                    size: 80, 
-                    className: "text-[#753799]",
-                  })}
+                  {React.createElement(
+                    getLucideIconComponent(previewProduct.icon),
+                    {
+                      size: 80,
+                      className: "text-[#753799]",
+                    }
+                  )}
                 </div>
               </div>
 

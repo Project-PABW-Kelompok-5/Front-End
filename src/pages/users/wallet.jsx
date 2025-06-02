@@ -34,7 +34,6 @@ const WalletTopUp = () => {
   return (
     <div className="min-h-screen bg-black text-white">
       <Header /> {/* <-- Ganti Navbar dengan Header */}
-
       <div className="max-w-7xl mx-auto py-12 px-4 md:px-10 flex gap-10">
         {/* Bagian Top Up Wallet */}
         <div className="flex-1 bg-gray-900 p-6 rounded-lg">
@@ -139,7 +138,6 @@ const WalletTopUp = () => {
           </button>
         </div>
       </div>
-
       <Footer />
     </div>
   );

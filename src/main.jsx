@@ -1,3 +1,4 @@
+// main.jsx
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
@@ -10,7 +11,7 @@ import ManageProduct from "./pages/admin/ManageProduct.jsx";
 import ManageCourier from "./pages/admin/ManageCourier.jsx";
 import Dashboard from "./pages/admin/Dashboard.jsx";
 import EcommerceDashboard from "./pages/users/DashboardV1.jsx";
-import PrivateRoute from "./components/PrivateRoute.jsx";
+import PrivateRoute from "./components/PrivateRoute.jsx"; 
 import Wallet from "./pages/users/wallet.jsx";
 import Profil from "./pages/profil.jsx";
 import MyOrder from "./pages/myOrder.jsx";
@@ -25,6 +26,7 @@ import KurirBarang from "./pages/kurir/KurirBarang.jsx";
 import Addresses from "./pages/Addressses.jsx";
 import VerifikasiEmail from "./pages/verifikasiEmail.jsx";
 import HistoryPenjualan from "./pages/users/historyPenjualan.jsx";
+import ErrorSection7 from "./pages/ErrorSection7.jsx";
 
 import { startTokenRefreshListener } from "./authListener";
 
@@ -36,33 +38,30 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        {/* Public Routes */}
-        {/* Hapus atau ubah rute ini jika Dashboard hanya untuk Admin. */}
-        {/* <Route path="/dashboard" element={<Dashboard />} /> */}
+        {/* Error Route */}
+        <Route path="*" element={<ErrorSection7 />} />
+        {/* Public Routes yang dibatasi untuk Admin/Kurir */}
+        {/* Jika admin/kurir sudah login, mereka akan dialihkan dari sini */}
+        <Route element={<PrivateRoute allowLoggedInUser={false} />}>
+          <Route path="/" element={<Homepage />} />
+        </Route>
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/verifikasi-email" element={<VerifikasiEmail />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<Homepage />} />
-        <Route path="/wallet" element={<Wallet />} />
-        <Route path="/profile" element={<Profil />} />
-        <Route path="/myOrder" element={<MyOrder />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<Checkout />} />
-        {/* Rute ini dipindahkan ke Protected Kurir Routes */}
-        {/* <Route path="/history" element={<DeliveryHistory />} /> */}
-        <Route path="/wishlist" element={<Wishlist />} />
-        <Route path="/managebarang" element={<ManageBarang />} />
-        {/* Rute ini dipindahkan ke Protected Kurir Routes */}
-        {/* <Route path="/kurir/dashboard" element={<DashboardKurir />} /> */}
-        {/* Rute ini dipindahkan ke Protected Kurir Routes */}
-        {/* <Route path="/kurir/barang" element={<KurirBarang />} /> */}
-        <Route path="/addresses" element={<Addresses />} />
-        <Route path="/history" element={<DeliveryHistory />} />
-        <Route path="/history-penjualan" element={<HistoryPenjualan />} />
 
         {/* Protected User Routes */}
         <Route element={<PrivateRoute role="User" />}>
           <Route path="/users/dashboard" element={<EcommerceDashboard />} />
+          <Route path="/wallet" element={<Wallet />} />
+          <Route path="/profile" element={<Profil />} />
+          <Route path="/myOrder" element={<MyOrder />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/managebarang" element={<ManageBarang />} />
+          <Route path="/addresses" element={<Addresses />} />
+          <Route path="/history" element={<DeliveryHistory />} />
+          <Route path="/history-penjualan" element={<HistoryPenjualan />} />
         </Route>
 
         {/* Protected Admin Routes */}
@@ -75,10 +74,10 @@ createRoot(document.getElementById("root")).render(
         </Route>
 
         {/* --- Protected Kurir Routes --- */}
-        <Route element={<PrivateRoute role="kurir" />}>
+        {/* <Route element={<PrivateRoute role="kurir" />}>
           <Route path="/kurir/dashboard" element={<DashboardKurir />} />
           <Route path="/kurir/barang" element={<KurirBarang />} />
-        </Route>
+        </Route> */}
       </Routes>
     </BrowserRouter>
   </StrictMode>

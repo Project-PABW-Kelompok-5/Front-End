@@ -12,6 +12,10 @@ import AdminSidebar from "../../components/AdminSidebar.jsx";
 import { useState, useEffect } from "react";
 import { db } from "../../firebase.js";
 import { collection, getDocs } from "firebase/firestore";
+import { LogOut } from "lucide-react"; // Import icon LogOut
+import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { getAuth, signOut } from "firebase/auth"; // Import Firebase auth functions
+import { app } from "../../firebase.js"; // Import Firebase app instance
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -25,9 +29,25 @@ const Dashboard = () => {
   const [showAlertDialog, setShowAlertDialog] = useState(false);
   const [dialogMessage, setDialogMessage] = useState("");
 
+  const navigate = useNavigate(); // Inisialisasi useNavigate
+  const auth = getAuth(app); // Inisialisasi Firebase Auth
+
   const showCustomDialog = (message) => {
     setDialogMessage(message);
     setShowAlertDialog(true);
+  };
+
+  // Fungsi handleLogout untuk tombol di header
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      navigate("/login");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      showCustomDialog("Terjadi kesalahan saat logout. Silakan coba lagi.");
+    }
   };
 
   useEffect(() => {
@@ -149,7 +169,18 @@ const Dashboard = () => {
       <div className="flex font-sans">
         <AdminSidebar activePage="Dashboard" />
         <div className="flex-1 p-6 bg-gray-100 min-h-screen overflow-y-auto">
-          <h1 className="text-3xl font-bold text-gray-800 mb-6">Dashboard Admin</h1>
+          {/* Header dengan judul dan tombol logout */}
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-3xl font-bold text-gray-800">Dashboard Admin</h1>
+            <button
+              onClick={handleLogout}
+              className="flex items-center px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-200 shadow-md"
+              title="Logout"
+            >
+              <LogOut size={20} className="mr-2" />
+              <span>Logout</span>
+            </button>
+          </div>
 
           {loading ? (
             <div className="text-center py-8 text-gray-600">

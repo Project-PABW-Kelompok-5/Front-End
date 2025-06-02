@@ -7,19 +7,41 @@ import {
   doc,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "../../../src/firebase.js";
+import { getAuth, signOut } from "firebase/auth"; // Import getAuth dan signOut
+import { db } from "../../../src/firebase.js"; // Pastikan db diimpor dengan benar
 import KurirSidebar from "../../components/KurirSidebar.jsx";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
+
+// Inisialisasi auth di luar komponen atau pastikan sudah diimpor dari firebase.js
+// Jika firebase.js mengekspor auth, Anda bisa mengimpornya seperti db.
+// Contoh: import { db, auth } from "../../../src/firebase.js";
+// Jika tidak, Anda bisa inisialisasi di sini jika 'app' tersedia:
+const auth = getAuth(); // Mengambil instance auth dari Firebase app yang sudah diinisialisasi
 
 const KurirDashboard = () => {
   const [selectedStatus, setSelectedStatus] = useState("menunggu kurir");
   const [filteredOrders, setFilteredOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
   const [sellersMap, setSellersMap] = useState({});
-  const [sellersLoading, setSellersLoading] = useState(true); // Default ke true saat pertama kali
   const [statusCounts, setStatusCounts] = useState({});
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [sellersLoading, setSellersLoading] = useState(true);
+
+  const navigate = useNavigate(); // Inisialisasi useNavigate
+
+  // Fungsi untuk logout
+  const handleLogout = async () => {
+    try {
+      await signOut(auth); // Melakukan proses logout
+      localStorage.removeItem("user"); // Hapus data user dari localStorage
+      navigate("/login"); // Arahkan pengguna ke halaman login
+      alert("Anda telah berhasil logout.");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      alert("Gagal logout. Silakan coba lagi.");
+    }
+  };
 
   useEffect(() => {
     const fetchSellersData = async () => {
@@ -28,7 +50,6 @@ const KurirDashboard = () => {
         setSellersLoading(false);
         return;
       }
-      setSellersLoading(true);
 
       const sellerIdsToFetch = new Set();
 
@@ -103,7 +124,6 @@ const KurirDashboard = () => {
     setError(null);
     try {
       const q = query(collection(db, "orders"));
-
       const snap = await getDocs(q);
       const allOrders = [];
 
@@ -155,7 +175,6 @@ const KurirDashboard = () => {
       );
 
       setFilteredOrders(clientFiltered);
-      console.log("Fetched and filtered orders (client-side):", clientFiltered);
     } catch (err) {
       console.error("Gagal mengambil data:", err);
       setError("Gagal memuat pesanan. Silakan coba lagi.");
@@ -212,7 +231,7 @@ const KurirDashboard = () => {
       );
       return true;
     } catch (error) {
-      console.error("Gagal memperbarui status barang di Firestore:", error);
+      console.error("Gagal update status:", error);
       return false;
     }
   };
@@ -344,12 +363,8 @@ const KurirDashboard = () => {
     }
   };
 
-  const formatCurrency = (amount) => {
-    return amount?.toLocaleString("id-ID", {
-      style: "currency",
-      currency: "IDR",
-    });
-  };
+  const formatCurrency = (amount) =>
+    amount?.toLocaleString("id-ID", { style: "currency", currency: "IDR" });
 
   const statusOptions = [
     {
@@ -377,9 +392,22 @@ const KurirDashboard = () => {
   return (
     <div className="flex">
       <KurirSidebar activePage="Dashboard" />
-      <div className="flex-1 p-6 bg-gray-100 min-h-screen overflow-y-auto">
+      <div className="flex-1 p-6 bg-gray-100 min-h-screen overflow-y-auto relative">
+        {" "}
+        {/* Tambahkan relative di sini */}
+        <div className="absolute top-4 right-4">
+          {" "}
+          {/* Posisi tombol logout */}
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md shadow-md flex items-center space-x-2"
+          >
+            <span>Logout</span>
+            {/* Anda bisa menambahkan ikon logout dari lucide-react jika diinginkan */}
+            {/* <LogOut size={18} /> */}
+          </button>
+        </div>
         <h1 className="text-2xl font-bold mb-4">Dashboard Kurir</h1>
-
         <div className="mb-4">
           <label className="text-sm text-gray-600 mr-2" htmlFor="status-filter">
             Filter Status:
@@ -461,7 +489,6 @@ const KurirDashboard = () => {
             </div>
           )}
         </div>
-
         <div className="bg-white rounded-xl shadow overflow-x-auto">
           <table className="min-w-full table-auto text-sm">
             <thead className="bg-gray-200 text-gray-700">
@@ -482,20 +509,20 @@ const KurirDashboard = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="11" className="text-center py-4 text-blue-500">
-                    Memuat pesanan...
+                  <td colSpan="7" className="text-center p-4">
+                    Memuat data...
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan="11" className="text-center py-4 text-red-500">
+                  <td colSpan="7" className="text-center text-red-500 p-4">
                     {error}
                   </td>
                 </tr>
               ) : filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan="11" className="text-center py-4 text-gray-500">
-                    Tidak ada pesanan dengan status ini.
+                  <td colSpan="7" className="text-center p-4">
+                    Tidak ada pesanan untuk status ini.
                   </td>
                 </tr>
               ) : (

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   collection,
   getDocs,
@@ -7,10 +8,10 @@ import {
   deleteDoc,
   doc,
   query,
-  where
+  where,
 } from "firebase/firestore";
-import Navbar from "../../components/header";
-import { firestore } from "../../firebase"; 
+// import Navbar from "../../components/header";
+import { firestore } from "../../firebase";
 import * as LucideIcons from "lucide-react";
 import { Pencil, Trash2 } from "lucide-react";
 
@@ -24,37 +25,125 @@ function ProductModal({ isOpen, onClose, onSave, initialData }) {
   const [icon, setIcon] = useState("");
 
   const kategoriList = {
-  Elektronik: [
-    "Smartphone",
-    "Laptop",
-    "Tv",
-    "Gamepad",
-    "Headphones",
-    "Camera",
-    "Watch",
-    "Mouse",
-    "Fan",
-    "WashingMachine",
-    "Refrigerator", 
-    "Microwave",
-    "Speaker",
-    "Printer",
-    "Projector", 
-    "Tablet", 
-    "Keyboard",
-    "Router",
-    "Cable",
-  ],
-  Fashion: ["Shirt", "Shoe", "Watch", "Glasses", "Dress", "Hat", "Bag", "Scarf"],
-  "Kesehatan & Kecantikan": ["HeartPulse", "Droplet", "Vial", "HandSoap", "Stethoscope", "Pill", "Thermometer", "Toothbrush"],
-  "Rumah & Dapur": ["Home", "Utensils", "Bed", "Lamp", "Chair", "Sofa", "Refrigerator", "CookingPot"],
-  "Makanan & Minuman": ["Pizza", "CupSoda", "Drumstick", "IceCream", "Coffee", "Milk", "Cake", "Utensils", "Soup", "Candy", "Burger", "Cookie", "Dessert", "Donut", "CookingPot"],
-  "Ibu & Anak": ["Baby", "Stroller", "BookOpen", "TeddyBear", "Rattle", "Crayon", "ToyCar", "Diaper"],
-  Hobi: ["Music", "Book", "Gamepad2", "Brush", "Palette", "Globe", "Microphone", "Camera"],
-  Olahraga: ["Dumbbell", "Bicycle", "Running", "Football", "Basketball", "Award", "Target", "Tent"],
-  Otomotif: ["Car", "Bike", "Fuel", "Wrench", "SteeringWheel", "Tyre", "Motorbike", "BatteryCharging"],
-  Perkakas: ["Hammer", "Tool", "Screwdriver", "Plug", "Drill", "Saw", "TapeMeasure", "Bolt"],
-};
+    Elektronik: [
+      "Smartphone",
+      "Laptop",
+      "Tv",
+      "Gamepad",
+      "Headphones",
+      "Camera",
+      "Watch",
+      "Mouse",
+      "Fan",
+      "WashingMachine",
+      "Refrigerator",
+      "Microwave",
+      "Speaker",
+      "Printer",
+      "Projector",
+      "Tablet",
+      "Keyboard",
+      "Router",
+      "Cable",
+    ],
+    Fashion: [
+      "Shirt",
+      "Shoe",
+      "Watch",
+      "Glasses",
+      "Dress",
+      "Hat",
+      "Bag",
+      "Scarf",
+    ],
+    "Kesehatan & Kecantikan": [
+      "HeartPulse",
+      "Droplet",
+      "Vial",
+      "HandSoap",
+      "Stethoscope",
+      "Pill",
+      "Thermometer",
+      "Toothbrush",
+    ],
+    "Rumah & Dapur": [
+      "Home",
+      "Utensils",
+      "Bed",
+      "Lamp",
+      "Chair",
+      "Sofa",
+      "Refrigerator",
+      "CookingPot",
+    ],
+    "Makanan & Minuman": [
+      "Pizza",
+      "CupSoda",
+      "Drumstick",
+      "IceCream",
+      "Coffee",
+      "Milk",
+      "Cake",
+      "Utensils",
+      "Soup",
+      "Candy",
+      "Burger",
+      "Cookie",
+      "Dessert",
+      "Donut",
+      "CookingPot",
+    ],
+    "Ibu & Anak": [
+      "Baby",
+      "Stroller",
+      "BookOpen",
+      "TeddyBear",
+      "Rattle",
+      "Crayon",
+      "ToyCar",
+      "Diaper",
+    ],
+    Hobi: [
+      "Music",
+      "Book",
+      "Gamepad2",
+      "Brush",
+      "Palette",
+      "Globe",
+      "Microphone",
+      "Camera",
+    ],
+    Olahraga: [
+      "Dumbbell",
+      "Bicycle",
+      "Running",
+      "Football",
+      "Basketball",
+      "Award",
+      "Target",
+      "Tent",
+    ],
+    Otomotif: [
+      "Car",
+      "Bike",
+      "Fuel",
+      "Wrench",
+      "SteeringWheel",
+      "Tyre",
+      "Motorbike",
+      "BatteryCharging",
+    ],
+    Perkakas: [
+      "Hammer",
+      "Tool",
+      "Screwdriver",
+      "Plug",
+      "Drill",
+      "Saw",
+      "TapeMeasure",
+      "Bolt",
+    ],
+  };
 
   const User = JSON.parse(localStorage.getItem("user"));
   const uid = User ? User.id : null;
@@ -76,7 +165,7 @@ function ProductModal({ isOpen, onClose, onSave, initialData }) {
       setKategori("");
       setIcon("");
     }
-  },[initialData]);
+  }, [initialData]);
 
   // Reset form setiap kali modal dibuka
   useEffect(() => {
@@ -100,7 +189,7 @@ function ProductModal({ isOpen, onClose, onSave, initialData }) {
       stok: Number(stok),
       kategori,
       id_user: uid,
-      icon
+      icon,
     });
   };
 
@@ -232,11 +321,12 @@ export default function ProductManagement() {
   const [editProduct, setEditProduct] = useState(null);
   // State error message
   const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
-    // Fungsi untuk mendapatkan komponen ikon Lucide berdasarkan nama string
+  // Fungsi untuk mendapatkan komponen ikon Lucide berdasarkan nama string
   const getLucideIconComponent = (iconName) => {
     const IconComponent = LucideIcons[iconName];
-    return IconComponent || LucideIcons.Package; 
+    return IconComponent || LucideIcons.Package;
   };
 
   // Fungsi format harga ke Rupiah
@@ -266,7 +356,8 @@ export default function ProductManagement() {
     } catch (err) {
       setError("Gagal mengambil data produk: " + err.message);
       console.error("Error fetching products:", err);
-    } finally { // Use finally to ensure loading is always set to false
+    } finally {
+      // Use finally to ensure loading is always set to false
       setLoading(false);
     }
   }, [uid]);
@@ -304,9 +395,12 @@ export default function ProductManagement() {
         await updateDoc(productRef, productData);
       } else {
         // Tambah produk baru
-        const newBarangRef = await addDoc(collection(firestore, "barang"), productData);
+        const newBarangRef = await addDoc(
+          collection(firestore, "barang"),
+          productData
+        );
         await updateDoc(newBarangRef, {
-          id_barang: newBarangRef.id
+          id_barang: newBarangRef.id,
         });
       }
       closeModal();
@@ -330,14 +424,25 @@ export default function ProductManagement() {
   };
 
   return (
-    <div>
-      <Navbar />
+    <div
+      className="min-h-screen w-full"
+      style={{
+        background: "linear-gradient(135deg, #4a2362 0%, #08001a 100%)",
+      }}
+    >
+      {/* <Navbar /> */}
       <div className="px-6 md:px-10 lg:px-20 py-8 max-w-7xl mx-auto">
         <div className="flex justify-between items-center mt-2 mb-6">
-          <h1 className="text-2xl font-bold">Manajemen Produk</h1>
+          <button
+            onClick={() => navigate(-1)}
+            className="mb-6 px-5 py-2 bg-purple-900 text-white rounded hover:bg-gray-700 transition"
+          >
+            &larr; Kembali
+          </button>
+          <h1 className="text-2xl font-bold text-white">Manajemen Produk</h1>
           <button
             onClick={openAddModal}
-            className="flex items-center gap-2 px-5 py-2 bg-black text-white rounded hover:bg-gray-800 transition"
+            className="flex items-center gap-2 px-5 py-2 bg-purple-500 text-white rounded hover:bg-gray-800 transition"
           >
             + Tambah Produk
           </button>
@@ -352,21 +457,31 @@ export default function ProductManagement() {
         {loading ? (
           <p className="text-gray-600">Loading produk...</p>
         ) : (
-          <div className="overflow-x-auto border border-gray-200 rounded-md">
+          <div className="overflow-x-auto rounded-md">
             <table className="min-w-full">
-              <thead className="bg-gray-100 text-sm">
+              <thead className="bg-purple-950 text-sm">
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium">
+                  <th className="px-4 py-3 text-left font-medium text-white">
                     Nama Produk
                   </th>
-                  <th className="px-4 py-3 text-left font-medium">Kategori</th>
-                  <th className="px-4 py-3 text-left font-medium">Harga</th>
-                  <th className="px-4 py-3 text-left font-medium">Stok</th>
-                  <th className="px-4 py-3 text-left font-medium">Status</th>
-                  <th className="px-4 py-3 text-left font-medium">Aksi</th>
+                  <th className="px-4 py-3 text-left font-medium text-white">
+                    Kategori
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-white">
+                    Harga
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-white">
+                    Stok
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-white">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-white">
+                    Aksi
+                  </th>
                 </tr>
               </thead>
-              <tbody className="text-sm">
+              <tbody className="text-sm ">
                 {products.length === 0 && (
                   <tr>
                     <td
@@ -379,29 +494,36 @@ export default function ProductManagement() {
                 )}
                 {products.map((product) => {
                   const isAvailable = product.stok > 0;
-                  const ProductIconComponent = getLucideIconComponent(product.icon);
+                  const ProductIconComponent = getLucideIconComponent(
+                    product.icon
+                  );
                   return (
                     <tr
                       key={product.id}
-                      className="hover:bg-gray-50 transition-colors"
+                      className="hover:bg-gray-50 transition-colors "
                     >
-                      <td className="px-4 py-3 border-t font-semibold text-gray-900">
-                        <div className="flex items-center gap-2">
+                      <td className="px-4 py-3  font-semibold  text-white bg-purple-500">
+                        <div className="flex items-center gap-2 ">
                           {/* Render ikon produk */}
-                          <ProductIconComponent size={28} className="text-[#753799]" />
+                          <ProductIconComponent
+                            size={28}
+                            className="text-white"
+                          />
                           <span>{product.nama_barang}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 border-t text-gray-700">
+                      <td className="px-4 py-3 text-white bg-purple-500">
                         {product.kategori}
                       </td>
-                      <td className="px-4 py-3 border-t text-gray-700">
+                      <td className="px-4 py-3  text-white bg-purple-500">
                         {formatRupiah(product.harga)}
                       </td>
-                      <td className="px-4 py-3 border-t">{product.stok}</td>
-                      <td className="px-4 py-3 border-t">
+                      <td className="px-4 py-3  text-white bg-purple-500">
+                        {product.stok}
+                      </td>
+                      <td className="px-4 py-3  bg-purple-500">
                         <span
-                          className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                          className={`inline-block px-3 py-1 rounded-sm text-xs font-bold ${
                             isAvailable
                               ? "bg-green-100 text-green-700"
                               : "bg-red-100 text-red-700"
@@ -410,8 +532,8 @@ export default function ProductManagement() {
                           {isAvailable ? "Stok Tersedia" : "Stok Kosong"}
                         </span>
                       </td>
-                      <td className="px-4 py-3 border-t">
-                        <div className="flex items-center space-x-2">
+                      <td className="px-4 py-3  bg-purple-500">
+                        <div className="flex items-center space-x-2 ">
                           <button
                             onClick={() => openEditModal(product)}
                             className="p-2 bg-yellow-400 hover:bg-yellow-500 text-white rounded"
