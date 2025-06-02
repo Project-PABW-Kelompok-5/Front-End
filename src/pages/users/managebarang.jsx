@@ -9,7 +9,7 @@ import {
   query,
   where,
 } from "firebase/firestore";
-import Navbar from "../../components/header";
+// import Navbar from "../../components/header";
 import { firestore } from "../../firebase";
 import * as LucideIcons from "lucide-react";
 import { Pencil, Trash2 } from "lucide-react";
@@ -422,8 +422,8 @@ export default function ProductManagement() {
   };
 
   return (
-    <div>
-      <Navbar />
+    <div className="bg-pink-950">
+      {/* <Navbar /> */}
       <div className="px-6 md:px-10 lg:px-20 py-8 max-w-7xl mx-auto">
         <div className="flex justify-between items-center mt-2 mb-6">
           <h1 className="text-2xl font-bold">Manajemen Produk</h1>
@@ -446,16 +446,26 @@ export default function ProductManagement() {
         ) : (
           <div className="overflow-x-auto border border-gray-200 rounded-md">
             <table className="min-w-full">
-              <thead className="bg-gray-100 text-sm">
+              <thead className="bg-purple-950 text-sm">
                 <tr>
-                  <th className="px-4 py-3 text-left font-medium">
+                  <th className="px-4 py-3 text-left font-medium text-white">
                     Nama Produk
                   </th>
-                  <th className="px-4 py-3 text-left font-medium">Kategori</th>
-                  <th className="px-4 py-3 text-left font-medium">Harga</th>
-                  <th className="px-4 py-3 text-left font-medium">Stok</th>
-                  <th className="px-4 py-3 text-left font-medium">Status</th>
-                  <th className="px-4 py-3 text-left font-medium">Aksi</th>
+                  <th className="px-4 py-3 text-left font-medium text-white">
+                    Kategori
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-white">
+                    Harga
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-white">
+                    Stok
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-white">
+                    Status
+                  </th>
+                  <th className="px-4 py-3 text-left font-medium text-white">
+                    Aksi
+                  </th>
                 </tr>
               </thead>
               <tbody className="text-sm">
@@ -479,7 +489,7 @@ export default function ProductManagement() {
                       key={product.id}
                       className="hover:bg-gray-50 transition-colors"
                     >
-                      <td className="px-4 py-3 border-t font-semibold text-gray-900">
+                      <td className="px-4 py-3 border-t font-semibold text-gray-900 bg-purple-300">
                         <div className="flex items-center gap-2">
                           {/* Render ikon produk */}
                           <ProductIconComponent
@@ -489,16 +499,18 @@ export default function ProductManagement() {
                           <span>{product.nama_barang}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 border-t text-gray-700">
+                      <td className="px-4 py-3 border-t text-gray-700 bg-purple-300">
                         {product.kategori}
                       </td>
-                      <td className="px-4 py-3 border-t text-gray-700">
+                      <td className="px-4 py-3 border-t text-gray-700 bg-purple-300">
                         {formatRupiah(product.harga)}
                       </td>
-                      <td className="px-4 py-3 border-t">{product.stok}</td>
-                      <td className="px-4 py-3 border-t">
+                      <td className="px-4 py-3 border-t bg-purple-300">
+                        {product.stok}
+                      </td>
+                      <td className="px-4 py-3 border-t bg-purple-300">
                         <span
-                          className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                          className={`inline-block px-3 py-1 rounded-sm text-xs font-bold ${
                             isAvailable
                               ? "bg-green-100 text-green-700"
                               : "bg-red-100 text-red-700"
@@ -507,8 +519,8 @@ export default function ProductManagement() {
                           {isAvailable ? "Stok Tersedia" : "Stok Kosong"}
                         </span>
                       </td>
-                      <td className="px-4 py-3 border-t">
-                        <div className="flex items-center space-x-2">
+                      <td className="px-4 py-3 border-t bg-purple-300">
+                        <div className="flex items-center space-x-2 ">
                           <button
                             onClick={() => openEditModal(product)}
                             className="p-2 bg-yellow-400 hover:bg-yellow-500 text-white rounded"
