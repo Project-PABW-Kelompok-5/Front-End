@@ -11,7 +11,7 @@ import ManageProduct from "./pages/admin/ManageProduct.jsx";
 import ManageCourier from "./pages/admin/ManageCourier.jsx";
 import Dashboard from "./pages/admin/Dashboard.jsx";
 import EcommerceDashboard from "./pages/users/DashboardV1.jsx";
-import PrivateRoute from "./components/PrivateRoute.jsx"; // Pastikan ini diimpor
+import PrivateRoute from "./components/PrivateRoute.jsx"; 
 import Wallet from "./pages/users/wallet.jsx";
 import Profil from "./pages/profil.jsx";
 import MyOrder from "./pages/myOrder.jsx";
