@@ -1,10 +1,14 @@
 import { useState } from "react";
 import reactLogo from "./assets/react.svg";
 import viteLogo from "/vite.svg";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Navbar from "./components/navbaro";
+import Home from "./pages/homepage";
 import "./App.css";
 
 function App() {
   const [count, setCount] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
 
   return (
     <>
@@ -28,6 +32,13 @@ function App() {
       <p className="read-the-docs">
         Click on the Vite and React logos to learn more
       </p>
+
+      <Router>
+        <Navbar setSearchTerm={setSearchTerm} />
+        <Routes>
+          <Route path="/" element={<Home searchTerm={searchTerm} />} />
+        </Routes>
+      </Router>
     </>
   );
 }
