@@ -26,6 +26,7 @@ import KurirBarang from "./pages/kurir/KurirBarang.jsx";
 import Addresses from "./pages/Addressses.jsx";
 import VerifikasiEmail from "./pages/verifikasiEmail.jsx";
 import HistoryPenjualan from "./pages/users/historyPenjualan.jsx";
+import ErrorSection7 from "./pages/ErrorSection7.jsx";
 
 import { startTokenRefreshListener } from "./authListener";
 
@@ -37,6 +38,8 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
+        {/* Error Route */}
+        <Route path="*" element={<ErrorSection7 />} />
         {/* Public Routes yang dibatasi untuk Admin/Kurir */}
         {/* Jika admin/kurir sudah login, mereka akan dialihkan dari sini */}
         <Route element={<PrivateRoute allowLoggedInUser={false} />}>

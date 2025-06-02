@@ -156,7 +156,7 @@ const LoginPage = () => {
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email or phone number"
+              placeholder="Enter your email"
               style={{
                 width: "93%",
                 padding: "12px",
