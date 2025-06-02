@@ -1,10 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  collection,
-  onSnapshot,
-  updateDoc,
-  doc,
-} from "firebase/firestore";
+import { collection, onSnapshot, updateDoc, doc } from "firebase/firestore";
 import { db } from "../../firebase";
 import KurirSidebar from "../../components/KurirSidebar";
 
@@ -41,13 +36,17 @@ const KurirOrder = () => {
         return (
           <div className="space-x-2">
             <button
-              onClick={() => handleUpdateItemStatus(orderId, index, "sedang dikirim")}
+              onClick={() =>
+                handleUpdateItemStatus(orderId, index, "sedang dikirim")
+              }
               className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
             >
               Kirim
             </button>
             <button
-              onClick={() => handleUpdateItemStatus(orderId, index, "dikirim balik")}
+              onClick={() =>
+                handleUpdateItemStatus(orderId, index, "dikirim balik")
+              }
               className="bg-yellow-600 text-white px-3 py-1 rounded hover:bg-yellow-700"
             >
               Kirim Balik
@@ -57,7 +56,9 @@ const KurirOrder = () => {
       case "sedang dikirim":
         return (
           <button
-            onClick={() => handleUpdateItemStatus(orderId, index, "sampai di tujuan")}
+            onClick={() =>
+              handleUpdateItemStatus(orderId, index, "sampai di tujuan")
+            }
             className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
           >
             Sampai Tujuan
@@ -66,7 +67,9 @@ const KurirOrder = () => {
       case "dikirim balik":
         return (
           <button
-            onClick={() => handleUpdateItemStatus(orderId, index, "menunggu penjual")}
+            onClick={() =>
+              handleUpdateItemStatus(orderId, index, "menunggu penjual")
+            }
             className="bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
           >
             Kembali ke Penjual

@@ -46,7 +46,6 @@ createRoot(document.getElementById("root")).render(
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/verifikasi-email" element={<VerifikasiEmail />} />
 
-
         {/* Protected User Routes */}
         <Route element={<PrivateRoute role="User" />}>
           <Route path="/users/dashboard" element={<EcommerceDashboard />} />
@@ -72,10 +71,10 @@ createRoot(document.getElementById("root")).render(
         </Route>
 
         {/* --- Protected Kurir Routes --- */}
-        <Route element={<PrivateRoute role="kurir" />}>
+        {/* <Route element={<PrivateRoute role="kurir" />}>
           <Route path="/kurir/dashboard" element={<DashboardKurir />} />
           <Route path="/kurir/barang" element={<KurirBarang />} />
-        </Route>
+        </Route> */}
       </Routes>
     </BrowserRouter>
   </StrictMode>
