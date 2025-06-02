@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   query,
   getDocs,
@@ -10,13 +10,6 @@ import {
 import { db } from "../../../src/firebase.js";
 import KurirSidebar from "../../components/KurirSidebar.jsx";
 
-const statusOptions = [
-  { value: "menunggu kurir", label: "📦 Menunggu Kurir" },
-  { value: "sedang dikirim", label: "🚚 Sedang Dikirim" },
-  { value: "menunggu dikirim balik", label: "📦 Menunggu Dikirim Balik" },
-  { value: "dikirim balik", label: "🔁 Dikirim Balik" }
-];
-
 const KurirDashboard = () => {
   const [selectedStatus, setSelectedStatus] = useState("menunggu kurir");
   const [filteredOrders, setFilteredOrders] = useState([]);
@@ -25,6 +18,8 @@ const KurirDashboard = () => {
 
   const [sellersMap, setSellersMap] = useState({});
   const [sellersLoading, setSellersLoading] = useState(true); // Default ke true saat pertama kali
+  const [statusCounts, setStatusCounts] = useState({});
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
     const fetchSellersData = async () => {
@@ -35,59 +30,67 @@ const KurirDashboard = () => {
       }
       setSellersLoading(true);
 
-      const newSellersMap = { ...sellersMap };
       const sellerIdsToFetch = new Set();
 
       filteredOrders.forEach((order) => {
         order.items.forEach((item) => {
-          if (item.id_penjual && !newSellersMap[item.id_penjual]) {
+          if (item.id_penjual) {
             sellerIdsToFetch.add(item.id_penjual);
           }
         });
       });
 
       if (sellerIdsToFetch.size === 0) {
-        setSellersLoading(false); 
+        setSellersLoading(false);
         return;
       }
 
+      let fetchedSellerDetails = [];
       try {
-        const sellerPromises = Array.from(sellerIdsToFetch).map(
-          async (sellerId) => {
-            // Mengambil data dari Firestore collection 'users'
-            const userDocRef = doc(db, "users", sellerId); // Membuat referensi ke dokumen user
-            const userSnap = await getDoc(userDocRef); // Mengambil snapshot dokumen
+        const promises = Array.from(sellerIdsToFetch).map(async (sellerId) => {
+          const userDocRef = doc(db, "users", sellerId);
+          const userSnap = await getDoc(userDocRef);
 
-            if (userSnap.exists()) {
-              // Dokumen ditemukan, ambil field username
-              const userData = userSnap.data();
-              return {
-                id: sellerId,
-                username: userData.username || "Username Tdk Ada",
-              }; // Fallback jika field username tidak ada
-            } else {
-              // Dokumen tidak ditemukan
-              console.warn(`User document with ID ${sellerId} not found.`);
-              return { id: sellerId, username: "Penjual Tdk Ditemukan" };
-            }
-          }
-        );
-
-        const sellersData = await Promise.all(sellerPromises);
-        sellersData.forEach((seller) => {
-          if (seller) {
-            newSellersMap[seller.id] = seller.username;
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            return {
+              id: sellerId,
+              username: userData.username || "Username Tidak Ada",
+            };
+          } else {
+            // Dokumen tidak ditemukan
+            console.warn(`User document with ID ${sellerId} not found.`);
+            return { id: sellerId, username: "Penjual Tdk Ditemukan" };
           }
         });
-        setSellersMap(newSellersMap);
+        fetchedSellerDetails = await Promise.all(promises);
       } catch (err) {
-        console.error("Error fetching sellers data from Firestore:", err);
-        // Untuk ID yang gagal, Anda bisa menandainya di map
-        sellerIdsToFetch.forEach((id) => {
-          if (!newSellersMap[id]) newSellersMap[id] = "Gagal Memuat";
-        });
-        setSellersMap(newSellersMap); // Pastikan map diperbarui meskipun ada error
+        console.error("Error fetching seller details:", err);
       } finally {
+        setSellersMap((prevSellersMap) => {
+          const newMap = { ...prevSellersMap };
+          let mapChanged = false;
+
+          fetchedSellerDetails.forEach((seller) => {
+            if (seller && !newMap[seller.id]) {
+              newMap[seller.id] = seller.username;
+              mapChanged = true;
+            }
+          });
+
+          // Tandai penjual yang gagal diambil (jika belum ada di map dan belum berhasil diambil)
+          Array.from(sellerIdsToFetch).forEach((id) => {
+            if (!newMap[id] && !fetchedSellerDetails.some((s) => s.id === id)) {
+              newMap[id] = "Gagal Memuat";
+              mapChanged = true;
+            }
+          });
+
+          if (!mapChanged) {
+            return prevSellersMap;
+          }
+          return newMap;
+        });
         setSellersLoading(false);
       }
     };
@@ -95,7 +98,7 @@ const KurirDashboard = () => {
     fetchSellersData();
   }, [filteredOrders]);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -108,9 +111,8 @@ const KurirDashboard = () => {
         const order = doc.data();
         allOrders.push({
           id: doc.id,
-          // *** PERUBAHAN DI SINI: Akses melalui 'alamat' ***
-          namaPenerima: order.alamat?.namaPenerima || "-", // Gunakan optional chaining dan fallback
-          teleponPenerima: order.alamat?.teleponPenerima || "-", // Gunakan optional chaining dan fallback
+          namaPenerima: order.alamat?.namaPenerima || "-",
+          teleponPenerima: order.alamat?.teleponPenerima || "-",
           alamatLengkap: order.alamat?.alamatLengkap || "-",
           items: order.items || [],
           firestoreShippingStatus: order.status_pengiriman,
@@ -132,28 +134,25 @@ const KurirDashboard = () => {
         });
       });
 
-      const clientFiltered = allOrders
-        .filter((order) =>
-          order.items.some((item) => {
-            if (
-              item.status_barang === "menunggu kurir" &&
-              selectedStatus === "menunggu kurir"
-            ) {
-              return true;
-            }
-            return item.status_barang === selectedStatus;
-          })
-        )
-        .map((order) => ({
-          ...order,
-          status: order.items.some(
-            (item) =>
-              item.status_barang === "menunggu kurir" &&
-              selectedStatus === "menunggu kurir"
-          )
-            ? "menunggu kurir"
-            : selectedStatus,
-        }));
+      const counts = {
+        "menunggu kurir": 0,
+        "sedang dikirim": 0,
+        "menunggu dikirim balik": 0,
+        "dikirim balik": 0,
+      };
+
+      allOrders.forEach((order) => {
+        order.items.forEach((item) => {
+          if (item.status_barang && item.status_barang in counts) {
+            counts[item.status_barang]++;
+          }
+        });
+      });
+      setStatusCounts(counts);
+
+      const clientFiltered = allOrders.filter((order) =>
+        order.items.some((item) => item.status_barang === selectedStatus)
+      );
 
       setFilteredOrders(clientFiltered);
       console.log("Fetched and filtered orders (client-side):", clientFiltered);
@@ -163,43 +162,54 @@ const KurirDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    selectedStatus,
+    setStatusCounts,
+    setFilteredOrders,
+    setLoading,
+    setError,
+  ]);
 
   useEffect(() => {
     fetchOrders();
-  }, [selectedStatus]);
+  }, [fetchOrders]);
 
-  const handleStatusChange = (e) => {
-    setSelectedStatus(e.target.value);
+  const handleCustomStatusChange = (value) => {
+    setSelectedStatus(value);
+    setIsDropdownOpen(false);
   };
 
-  const updateItemStatusInFirestore = async (orderId, oldStatus, newStatus) => {
+  const updateItemStatusInFirestore = async (
+    orderId,
+    productIdToUpdate,
+    newStatus
+  ) => {
     try {
       const orderRef = doc(db, "orders", orderId);
-      // Gunakan getDoc untuk mengambil satu dokumen
       const orderSnap = await getDoc(orderRef);
 
-      if (!orderSnap.exists()) { // Periksa apakah dokumen ada menggunakan orderSnap.exists()
+      if (!orderSnap.exists()) {
         console.error("Dokumen pesanan tidak ditemukan:", orderId);
         return false;
       }
 
-      const orderData = orderSnap.data(); // Akses data menggunakan orderSnap.data()
+      const orderData = orderSnap.data();
 
       // Memperbarui status_barang dalam array items
       const updatedItems = orderData.items.map((item) => {
-        if (item.status_barang === oldStatus) {
+        if (item.productId === productIdToUpdate) {
           return { ...item, status_barang: newStatus };
         }
         return item;
       });
 
-      // Hanya perbarui field 'items' di Firestore
       await updateDoc(orderRef, {
         items: updatedItems,
       });
 
-      console.log(`Status barang untuk order ${orderId} berhasil diperbarui dari '${oldStatus}' menjadi '${newStatus}'.`);
+      console.log(
+        `Status barang dengan productId ${productIdToUpdate} di order ${orderId} berhasil diperbarui menjadi '${newStatus}'.`
+      );
       return true;
     } catch (error) {
       console.error("Gagal memperbarui status barang di Firestore:", error);
@@ -207,11 +217,11 @@ const KurirDashboard = () => {
     }
   };
 
-  const handleTakeOrder = async (orderId) => {
+  const handleTakeOrder = async (orderId, productId) => {
     if (window.confirm("Apakah Anda yakin ingin mengambil pesanan ini?")) {
       const success = await updateItemStatusInFirestore(
         orderId,
-        "menunggu kurir",
+        productId,
         "sedang dikirim"
       );
       if (success) {
@@ -225,15 +235,21 @@ const KurirDashboard = () => {
     }
   };
 
-  const handleCompleteOrder = async (orderId) => {
-    if (window.confirm("Apakah Anda yakin ingin konfirmasi pesanan ini sampai ditujuan?")) {
+  const handleCompleteOrder = async (orderId, productId) => {
+    if (
+      window.confirm(
+        "Apakah Anda yakin ingin konfirmasi pesanan ini sampai ditujuan?"
+      )
+    ) {
       const success = await updateItemStatusInFirestore(
         orderId,
-        "sedang dikirim",
+        productId,
         "sampai di tujuan"
       );
       if (success) {
-        alert("Pesanan berhasil dikonfirmasi sampai di tujuan! Status diperbarui menjadi 'Sampai di tujuan'.");
+        alert(
+          "Pesanan berhasil dikonfirmasi sampai di tujuan! Status diperbarui menjadi 'Sampai di tujuan'."
+        );
         fetchOrders();
       } else {
         alert("Terjadi kesalahan saat menyelesaikan pesanan.");
@@ -241,11 +257,15 @@ const KurirDashboard = () => {
     }
   };
 
-  const handleTakeReturn = async (orderId) => {
-    if (window.confirm("Apakah Anda yakin ingin mengambil pengiriman balik pesanan ini?")) {
+  const handleTakeReturn = async (orderId, productId) => {
+    if (
+      window.confirm(
+        "Apakah Anda yakin ingin mengambil pengiriman balik pesanan ini?"
+      )
+    ) {
       const success = await updateItemStatusInFirestore(
         orderId,
-        "menunggu dikirim balik",
+        productId,
         "dikirim balik"
       );
       if (success) {
@@ -259,7 +279,7 @@ const KurirDashboard = () => {
     }
   };
 
-  const handleConfirmReturn = async (orderId) => {
+  const handleConfirmReturn = async (orderId, productId) => {
     if (
       window.confirm(
         "Apakah Anda yakin ingin konfirmasi pengembalian pesanan ini?"
@@ -267,11 +287,13 @@ const KurirDashboard = () => {
     ) {
       const success = await updateItemStatusInFirestore(
         orderId,
-        "dikirim balik",
+        productId,
         "menunggu penjual"
       );
       if (success) {
-        alert("Pengembalian pesanan berhasil dikonfirmasi! Status diperbarui menjadi 'Menunggu penjual'.");
+        alert(
+          "Pengembalian pesanan berhasil dikonfirmasi! Status diperbarui menjadi 'Menunggu penjual'."
+        );
         fetchOrders();
       } else {
         alert("Terjadi kesalahan saat mengkonfirmasi pengembalian.");
@@ -279,12 +301,12 @@ const KurirDashboard = () => {
     }
   };
 
-  const renderActionButton = (status, orderId) => {
+  const renderActionButton = (status, orderId, productId) => {
     switch (status) {
       case "menunggu kurir":
         return (
           <button
-            onClick={() => handleTakeOrder(orderId)}
+            onClick={() => handleTakeOrder(orderId, productId)}
             className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors duration-200"
           >
             Ambil
@@ -293,7 +315,7 @@ const KurirDashboard = () => {
       case "sedang dikirim":
         return (
           <button
-            onClick={() => handleCompleteOrder(orderId)}
+            onClick={() => handleCompleteOrder(orderId, productId)}
             className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded transition-colors duration-200"
           >
             Konfirmasi sampai ditujuan
@@ -302,7 +324,7 @@ const KurirDashboard = () => {
       case "menunggu dikirim balik":
         return (
           <button
-            onClick={() => handleTakeReturn(orderId)}
+            onClick={() => handleTakeReturn(orderId, productId)}
             className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded transition-colors duration-200"
           >
             Ambil pengiriman balik
@@ -311,7 +333,7 @@ const KurirDashboard = () => {
       case "dikirim balik":
         return (
           <button
-            onClick={() => handleConfirmReturn(orderId)}
+            onClick={() => handleConfirmReturn(orderId, productId)}
             className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded transition-colors duration-200"
           >
             Konfirmasi pengembalian
@@ -329,6 +351,29 @@ const KurirDashboard = () => {
     });
   };
 
+  const statusOptions = [
+    {
+      value: "menunggu kurir",
+      label: "📦 Menunggu Kurir",
+      count: statusCounts["menunggu kurir"] || 0,
+    },
+    {
+      value: "sedang dikirim",
+      label: "🚚 Sedang Dikirim",
+      count: statusCounts["sedang dikirim"] || 0,
+    },
+    {
+      value: "menunggu dikirim balik",
+      label: "📦 Menunggu Dikirim Balik",
+      count: statusCounts["menunggu dikirim balik"] || 0,
+    },
+    {
+      value: "dikirim balik",
+      label: "🔁 Dikirim Balik",
+      count: statusCounts["dikirim balik"] || 0,
+    },
+  ];
+
   return (
     <div className="flex">
       <KurirSidebar activePage="Dashboard" />
@@ -339,35 +384,96 @@ const KurirDashboard = () => {
           <label className="text-sm text-gray-600 mr-2" htmlFor="status-filter">
             Filter Status:
           </label>
-          <select
-            id="status-filter"
-            value={selectedStatus}
-            onChange={handleStatusChange}
-            className="p-2 border rounded focus:ring-blue-500 focus:border-blue-500"
-          >
-            {statusOptions.map((status) => (
-              <option key={status.value} value={status.value}>
-                {status.label}
-              </option>
-            ))}
-          </select>
+          <div className="inline-flex items-stretch gap-2">
+            <button
+              type="button"
+              className="p-2 border rounded focus:ring-blue-500 focus:border-blue-500 inline-flex items-center w-60 bg-white" // Hapus justify-between
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            >
+              <span className="flex-1 text-left">
+                {
+                  statusOptions.find((opt) => opt.value === selectedStatus)
+                    ?.label
+                }
+              </span>
+              {statusCounts[selectedStatus] > 0 && (
+                <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-semibold leading-none text-white bg-red-500 rounded-full ml-2">
+                  {statusCounts[selectedStatus]}
+                </span>
+              )}
+              <svg
+                className="ml-2 h-5 w-5"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </button>
+
+            <button
+              type="button"
+              onClick={fetchOrders}
+              className="p-2 border rounded bg-blue-500 hover:bg-blue-600 text-white focus:ring-blue-500 focus:border-blue-500 inline-flex items-center"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                class="size-6 mr-2"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
+                />
+              </svg>
+              Refresh
+            </button>
+          </div>
+
+          {/* Dropdown menu kustom */}
+          {isDropdownOpen && (
+            <div className="absolute z-10 mt-1 w-60 ml-21 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+              <div className="py-1">
+                {statusOptions.map((status) => (
+                  <button
+                    key={status.value}
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                    onClick={() => handleCustomStatusChange(status.value)}
+                  >
+                    {status.label}{" "}
+                    {status.count > 0 && (
+                      <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-semibold leading-none text-white bg-red-500 rounded-full ml-3">
+                        {status.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-xl shadow overflow-x-auto">
           <table className="min-w-full table-auto text-sm">
             <thead className="bg-gray-200 text-gray-700">
               <tr>
-                <th className="px-4 py-2 text-left">Penerima</th>
                 <th className="px-4 py-2 text-left">Penjual</th>
+                <th className="px-4 py-2 text-left">Penerima</th>
                 <th className="px-4 py-2 text-left">Telepon</th>
                 <th className="px-4 py-2 text-left">Alamat</th>
                 <th className="px-4 py-2 text-left">Barang</th>
                 <th className="px-4 py-2 text-left">Qty</th>{" "}
-                {/* Kolom baru untuk Qty Item */}
                 <th className="px-4 py-2 text-left">Subtotal Barang</th>{" "}
-                {/* Nama kolom diperjelas */}
                 <th className="px-4 py-2 text-left">Ongkir Order</th>{" "}
-                {/* Nama kolom diperjelas */}
                 <th className="px-4 py-2 text-left">Status</th>
                 <th className="px-4 py-2 text-left">Tanggal Pesan</th>
                 <th className="px-4 py-2 text-left">Aksi</th>
@@ -395,7 +501,7 @@ const KurirDashboard = () => {
               ) : (
                 filteredOrders.flatMap((order) =>
                   order.items
-                    .filter((item) => item.status_barang === selectedStatus) // <-- PERUBAHAN DI SINI
+                    .filter((item) => item.status_barang === selectedStatus)
                     .map((item, itemIndex) => {
                       const sellerUsername =
                         sellersLoading && !sellersMap[item.id_penjual]
@@ -403,31 +509,31 @@ const KurirDashboard = () => {
                           : sellersMap[item.id_penjual] || "N/A";
                       return (
                         <tr
-                          key={`${order.id}-${item.id || itemIndex}`} // Pastikan item memiliki 'id' atau gunakan index sebagai fallback
+                          key={`${order.id}-${item.id || itemIndex}`}
                           className="border-t align-top hover:bg-gray-50"
                         >
-                          <td className="px-4 py-2">{order.namaPenerima}</td>
                           <td className="px-4 py-2">{sellerUsername}</td>
+                          <td className="px-4 py-2">{order.namaPenerima}</td>
                           <td className="px-4 py-2">{order.teleponPenerima}</td>
                           <td className="px-4 py-2">{order.alamatLengkap}</td>
                           <td className="px-4 py-2">{item.nama}</td>
                           <td className="px-4 py-2">{item.qty}</td>
                           <td className="px-4 py-2">
-                            {/* Asumsi subtotal di sini adalah subtotal keseluruhan order, bukan per item */}
-                            {/* Jika Anda memiliki subtotal per item, gunakan item.subtotal */}
                             {formatCurrency(item.subtotal)}
                           </td>
                           <td className="px-4 py-2">
                             {formatCurrency(order.shippingCost)}
                           </td>
                           <td className="px-4 py-2 capitalize">
-                            {item.status_barang} {/* Akan selalu sama dengan selectedStatus */}
+                            {item.status_barang}
                           </td>
                           <td className="px-4 py-2">{order.createdAt}</td>
                           <td className="px-4 py-2">
-                            {/* order.status sudah disesuaikan di fetchOrders berdasarkan selectedStatus */}
-                            {/* Jadi, ini seharusnya sudah benar untuk menampilkan tombol aksi yang sesuai */}
-                            {renderActionButton(order.status, order.id)}
+                            {renderActionButton(
+                              item.status_barang,
+                              order.id,
+                              item.productId
+                            )}
                           </td>
                         </tr>
                       );
