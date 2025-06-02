@@ -74,10 +74,10 @@ createRoot(document.getElementById("root")).render(
         </Route>
 
         {/* --- Protected Kurir Routes --- */}
-        {/* <Route element={<PrivateRoute role="kurir" />}>
+        <Route element={<PrivateRoute role="kurir" />}>
           <Route path="/kurir/dashboard" element={<DashboardKurir />} />
           <Route path="/kurir/barang" element={<KurirBarang />} />
-        </Route> */}
+        </Route>
       </Routes>
     </BrowserRouter>
   </StrictMode>

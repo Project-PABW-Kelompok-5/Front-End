@@ -57,7 +57,7 @@ const Dashboard = () => {
         const usersCollectionRef = collection(db, "users");
         const couriersCollectionRef = collection(db, "kurir");
         const productsCollectionRef = collection(db, "barang");
-        const transactionsCollectionRef = collection(db, "pesanan");
+        const transactionsCollectionRef = collection(db, "orders");
 
         const [usersSnapshot, couriersSnapshot, productsSnapshot, transactionsSnapshot] = await Promise.all([
           getDocs(usersCollectionRef),
@@ -208,7 +208,7 @@ const Dashboard = () => {
                 </div>
                 <div className="bg-white p-5 rounded-xl shadow-md border border-gray-200 transform hover:scale-105 transition-transform duration-200 col-span-full md:col-span-2 lg:col-span-4">
                   <p className="text-gray-600 text-sm font-medium mb-1">Saldo Beredar</p>
-                  <h2 className="text-3xl font-extrabold text-purple-600">Rp {balanceData.toLocaleString('id-ID')}</h2>
+                  <h2 className="text-3xl font-extrabold text-[#6F2DA8]">Rp {balanceData.toLocaleString('id-ID')}</h2>
                 </div>
               </div>
 

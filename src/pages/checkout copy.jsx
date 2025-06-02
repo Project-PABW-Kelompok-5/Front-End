@@ -96,8 +96,8 @@ const Checkout = () => {
 
     setAddressList(updatedList);
     setSelectedAddressIndex(updatedList.length - 1);
-    setShowAddressModal(false); // pastikan modal ditutup di sini
-    setShowSelectModal(true); // jika mau munculkan pemilih alamat
+    setShowAddressModal(false);
+    setShowSelectModal(true); 
   };
 
   const handleEditAddress = (index) => {

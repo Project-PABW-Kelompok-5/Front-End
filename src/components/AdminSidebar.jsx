@@ -23,20 +23,20 @@ const AdminSidebar = ({ activePage }) => {
   return (
     <Sidebar>
       <SidebarItem
-        icon={<LayoutDashboard size={20} />} text="Dashboard" to="/admin/dashboard" active={activePage === "Dashboard"} />
+        icon={<LayoutDashboard size={20} color="white" />} text={<span style={{ color: "white" }}>Dashboard</span>} to="/admin/dashboard" active={activePage === "Dashboard"} />
       <SidebarItem
-        icon={<UserCog size={20} />} text="Manage Users" to="/admin/manageUsers" active={activePage === "Manage Users"} />
+        icon={<UserCog size={20} color="white" />} text={<span style={{ color: "white" }}>Manage Users</span>} to="/admin/manageUsers" active={activePage === "Manage Users"} />
       <SidebarItem
-        icon={<Truck size={20} />} text="Manage Courier" to="/admin/manageCourier" active={activePage === "Manage Courier"} />
+        icon={<Truck size={20} color="white" />} text={<span style={{ color: "white" }}>Manage Courier</span>} to="/admin/manageCourier" active={activePage === "Manage Courier"} />
       <SidebarItem
-        icon={<Package size={20} />} text="Manage Product" to="/admin/manageProduct" active={activePage === "Manage Product"} />
+        icon={<Package size={20} color="white" />} text={<span style={{ color: "white" }}>Manage Product</span>} to="/admin/manageProduct" active={activePage === "Manage Product"} />
       <SidebarItem
-        icon={<Wallet size={20} />} text="Manage Balance" to="/admin/manageBalance" active={activePage === "Manage Balance"} />
+        icon={<Wallet size={20} color="white" />} text={<span style={{ color: "white" }}>Manage Balance</span>} to="/admin/manageBalance" active={activePage === "Manage Balance"} />
       <hr className="my-3" />
       <SidebarItem
-        icon={<Settings size={20} />} text="Settings" active={activePage === "Settings"} />
+        icon={<Settings size={20} color="white" />} text={<span style={{ color: "white" }}>Settings</span>} active={activePage === "Settings"} />
       <SidebarItem
-        icon={<LifeBuoy size={20} />} text="Help" active={activePage === "Help"} />
+        icon={<LifeBuoy size={20} color="white" />} text={<span style={{ color: "white" }}>Help</span>} active={activePage === "Help"} />
     </Sidebar>
   );
 };

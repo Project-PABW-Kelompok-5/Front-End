@@ -9,16 +9,13 @@ import {
   doc,
   updateDoc,
 } from "firebase/firestore";
-import { getAuth, signOut } from "firebase/auth"; // Import getAuth dan signOut
-import { db } from "../../../src/firebase.js"; // Pastikan db diimpor dengan benar
+import { getAuth, signOut } from "firebase/auth";
+import { db } from "../../../src/firebase.js"; 
 import KurirSidebar from "../../components/KurirSidebar.jsx";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { useNavigate } from "react-router-dom";
+import { LogOut } from "lucide-react"; // Import ikon LogOut
 
-// Inisialisasi auth di luar komponen atau pastikan sudah diimpor dari firebase.js
-// Jika firebase.js mengekspor auth, Anda bisa mengimpornya seperti db.
-// Contoh: import { db, auth } from "../../../src/firebase.js";
-// Jika tidak, Anda bisa inisialisasi di sini jika 'app' tersedia:
-const auth = getAuth(); // Mengambil instance auth dari Firebase app yang sudah diinisialisasi
+const auth = getAuth(); 
 
 const statusOptions = [
   { value: "menunggu kurir", label: "📦 Menunggu Kurir" },
@@ -252,14 +249,15 @@ const KurirDashboard = () => {
     <div className="flex">
       <KurirSidebar activePage="Dashboard" />
       <div className="flex-1 p-6 bg-gray-100 min-h-screen overflow-y-auto relative"> {/* Tambahkan relative di sini */}
-        <div className="absolute top-4 right-4"> {/* Posisi tombol logout */}
+        <div className="absolute top-4 right-4"> 
           <button
             onClick={handleLogout}
             className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md shadow-md flex items-center space-x-2"
           >
+            <LogOut size={18} />
             <span>Logout</span>
             {/* Anda bisa menambahkan ikon logout dari lucide-react jika diinginkan */}
-            {/* <LogOut size={18} /> */}
+            
           </button>
         </div>
 

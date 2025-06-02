@@ -67,7 +67,7 @@ const MyOrder = () => {
 
   return (
     <div
-      className="min-h-screen flex flex-col bg-cover bg-center"
+      className="min-h-screen flex flex-col bg-cover bg-center font-montserrat"
       style={{ backgroundImage: `url(${Bg})` }}
     >
       <div className="absolute inset-0 bg-black opacity-70"></div>
