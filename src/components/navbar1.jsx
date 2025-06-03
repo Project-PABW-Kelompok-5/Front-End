@@ -18,7 +18,7 @@ import { firestore } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
-import LogoIcon from "../assets/homepage/logo.svg";
+import LogoIcon from "../assets/homepage/logo putih.png";
 
 export default function Navbar1({
   cartItems = [],

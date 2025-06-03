@@ -26,17 +26,6 @@ const KurirSidebar = ({ activePage }) => {
       to="/kurir/barang" 
       active={activePage === "barang"} 
       />
-      <hr className="my-3" />
-      <SidebarItem 
-      icon={<Settings size={20} color="white" />} 
-      text={<span style={{ color: "white" }}>Settings</span>} 
-      active={activePage === "Settings"} 
-      />
-      <SidebarItem 
-      icon={<LifeBuoy size={20} color="white" />} 
-      text={<span style={{ color: "white" }}>Help</span>} 
-      active={activePage === "Help"} 
-      />
     </Sidebar>
     );
 };

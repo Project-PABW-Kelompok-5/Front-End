@@ -32,11 +32,6 @@ const AdminSidebar = ({ activePage }) => {
         icon={<Package size={20} color="white" />} text={<span style={{ color: "white" }}>Manage Product</span>} to="/admin/manageProduct" active={activePage === "Manage Product"} />
       <SidebarItem
         icon={<Wallet size={20} color="white" />} text={<span style={{ color: "white" }}>Manage Balance</span>} to="/admin/manageBalance" active={activePage === "Manage Balance"} />
-      <hr className="my-3" />
-      <SidebarItem
-        icon={<Settings size={20} color="white" />} text={<span style={{ color: "white" }}>Settings</span>} active={activePage === "Settings"} />
-      <SidebarItem
-        icon={<LifeBuoy size={20} color="white" />} text={<span style={{ color: "white" }}>Help</span>} active={activePage === "Help"} />
     </Sidebar>
   );
 };
