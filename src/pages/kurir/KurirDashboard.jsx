@@ -12,6 +12,8 @@ import { db } from "../../../src/firebase.js";
 import KurirSidebar from "../../components/KurirSidebar.jsx";
 import { useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react"; // Import ikon LogOut
+import {  toast, ToastContainer } from "react-toastify"; // Import toast untuk notifikasi
+
 
 const auth = getAuth(); 
 
@@ -40,10 +42,10 @@ const KurirDashboard = () => {
       await signOut(auth); // Melakukan proses logout
       localStorage.removeItem("user"); // Hapus data user dari localStorage
       navigate("/login"); // Arahkan pengguna ke halaman login
-      alert("Anda telah berhasil logout.");
+      toast.success("Anda telah berhasil logout.");
     } catch (error) {
       console.error("Error during logout:", error);
-      alert("Gagal logout. Silakan coba lagi.");
+      toast.error("Gagal logout. Silakan coba lagi.");
     }
   };
 

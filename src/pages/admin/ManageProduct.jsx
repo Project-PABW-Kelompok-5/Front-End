@@ -256,25 +256,19 @@ const ManageProduct = () => {
       <div className="flex-1 p-6 bg-gray-100 min-h-screen">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-semibold text-gray-800">Manajemen Barang</h1>
-          <button
-            onClick={handleAddClick}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75"
-          >
-            + Tambah Barang
-          </button>
         </div>
 
         <div className="bg-white shadow-md rounded-xl overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-gray-100 border-b border-gray-200">
+            <thead className="bg-[#753799]  border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-gray-700 font-medium">Nama</th>
-                <th className="px-6 py-3 text-gray-700 font-medium">Stok</th>
-                <th className="px-6 py-3 text-gray-700 font-medium">Kategori</th>
-                <th className="px-6 py-3 text-gray-700 font-medium">Harga</th>
-                <th className="px-6 py-3 text-gray-700 font-medium">Status</th>
-                <th className="px-6 py-3 text-gray-700 font-medium">Deskripsi</th>
-                <th className="px-6 py-3 text-gray-700 font-medium">Aksi</th>
+                <th className="px-6 py-3 text-white font-medium">Nama</th>
+                <th className="px-6 py-3 text-white font-medium">Stok</th>
+                <th className="px-6 py-3 text-white font-medium">Kategori</th>
+                <th className="px-6 py-3 text-white font-medium">Harga</th>
+                <th className="px-6 py-3 text-white font-medium">Status</th>
+                <th className="px-6 py-3 text-white font-medium">Deskripsi</th>
+                <th className="px-6 py-3 text-white font-medium">Aksi</th>
               </tr>
             </thead>
             <tbody>

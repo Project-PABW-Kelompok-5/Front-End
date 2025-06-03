@@ -156,12 +156,12 @@ const ManageCourier = () => {
 
         <div className="bg-white shadow-md rounded-xl overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-gray-100 border-b border-gray-200">
+            <thead className="bg-[#753799] border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-gray-700 font-medium">Nama</th>
-                <th className="px-6 py-3 text-gray-700 font-medium">Email</th>
-                <th className="px-6 py-3 text-gray-700 font-medium">No Telepon</th>
-                <th className="px-6 py-3 text-gray-700 font-medium">Aksi</th>
+                <th className="px-6 py-3 text-white font-medium">Nama</th>
+                <th className="px-6 py-3 text-white font-medium">Email</th>
+                <th className="px-6 py-3 text-white font-medium">No Telepon</th>
+                <th className="px-6 py-3 text-white font-medium">Aksi</th>
               </tr>
             </thead>
             <tbody>

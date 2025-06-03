@@ -11,7 +11,7 @@ export default function Sidebar({ children }) {
   return (
     <>
       <aside className="min-h-screen sticky top-0">
-        <nav className="h-full flex flex-col bg-[#924DBF] items-center border-r shadow-sm">
+        <nav className="h-full flex flex-col bg-gradient-to-r from-[#753799] to-[#100428] items-center border-r shadow-sm">
           <div className="p-4 pb-2 flex items-center w-full">
             <div className="flex-1 flex justify-center">
               <img

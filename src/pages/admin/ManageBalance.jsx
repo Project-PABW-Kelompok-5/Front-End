@@ -125,12 +125,12 @@ const ManageBalance = () => {
 
         <div className="bg-white shadow-md rounded-xl overflow-x-auto">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-gray-100 border-b border-gray-200">
+            <thead className="bg-[#753799] border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-gray-700 font-medium">Username</th>
-                <th className="px-6 py-3 text-gray-700 font-medium">Email</th>
-                <th className="px-6 py-3 text-gray-700 font-medium">Saldo</th>
-                <th className="px-6 py-3 text-gray-700 font-medium">Aksi</th>
+                <th className="px-6 py-3 text-white font-medium">Username</th>
+                <th className="px-6 py-3 text-white font-medium">Email</th>
+                <th className="px-6 py-3 text-white font-medium">Saldo</th>
+                <th className="px-6 py-3 text-white font-medium">Aksi</th>
               </tr>
             </thead>
             <tbody>
@@ -146,7 +146,7 @@ const ManageBalance = () => {
                     <td className="px-6 py-3 text-gray-800">{user.username}</td>
                     <td className="px-6 py-3 text-gray-800">{user.email}</td>
                     <td className="px-6 py-3 text-gray-800">
-                      {typeof user.saldo === 'number' ? `Rp ${user.saldo.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).replace('IDR', '').trim()}` : 'Rp 0'}
+                      {typeof user.saldo === 'number' ? ` ${user.saldo.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).replace('IDR', '').trim()}` : 'Rp 0'}
                     </td>
                     <td className="px-6 py-3">
                       <div className="flex items-center space-x-2"> {/* Modifikasi di sini */}
