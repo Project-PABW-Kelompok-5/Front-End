@@ -1,47 +1,58 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Logo from "../assets/dashboardAdmin/logo.png"; // Pastikan path ini sesuai dengan struktur folder Anda
+import Logo from "../assets/dashboardAdmin/logo.png";
 import { auth } from "../firebase";
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
 } from "firebase/auth";
+import { toast } from "react-toastify"; // Example for Toastify
 
 const RegisterPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState(""); // New state for confirmation
   const [username, setUsername] = useState("");
   const [noTelepon, setNoTelepon] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Fungsi untuk memvalidasi format email
   const isValidEmail = (email) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email);
   };
 
-  // Handler untuk submit form registrasi
+  const isValidPhoneNumber = (phoneNumber) => {
+    const regex = /^\+?[0-9]{7,15}$/; // Basic regex for 7-15 digits, optional leading '+'
+    return regex.test(phoneNumber);
+  };
+
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Mencegah perilaku default form submit
+    e.preventDefault();
 
-    // Validasi input kosong
-    if (!email || !password || !username || !noTelepon) {
-      // Menggunakan alert sederhana, pertimbangkan modal kustom untuk UX yang lebih baik
-      alert("Semua field wajib diisi.");
+    if (!email || !password || !confirmPassword || !username || !noTelepon) {
+      toast.error("All fields are required.");
       return;
     }
 
-    // Validasi format email
     if (!isValidEmail(email)) {
-      alert("Format email tidak valid.");
+      toast.error("Invalid email format.");
       return;
     }
 
-    setIsLoading(true); // Aktifkan status loading
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+
+    if (!isValidPhoneNumber(noTelepon)) {
+      toast.error("Invalid phone number format. Please use 7-15 digits.");
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
-      // Membuat user baru dengan email dan password menggunakan Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
@@ -49,13 +60,12 @@ const RegisterPage = () => {
       );
       const user = userCredential.user;
 
-      // Mengirim email verifikasi ke user
       await sendEmailVerification(user);
 
-      alert("Registrasi berhasil! Silakan cek email Anda untuk verifikasi.");
+      toast.success("Registration successful! Please check your email for verification.");
 
-      // Menyimpan data user sementara di localStorage untuk digunakan setelah verifikasi email
-      localStorage.setItem(
+      // Using sessionStorage for temporary data
+      sessionStorage.setItem(
         "pendingUser",
         JSON.stringify({
           username,
@@ -65,70 +75,47 @@ const RegisterPage = () => {
         })
       );
 
-      // Navigasi ke halaman verifikasi email setelah registrasi berhasil
       navigate("/verifikasi-email");
     } catch (error) {
-      console.error("Firebase Error:", error.message); // Log error ke console
-
-      // Menentukan pesan error yang lebih user-friendly
-      let errorMessage = "Registrasi gagal. Silakan coba lagi.";
+      console.error("Firebase Error:", error.message);
+      let errorMessage = "Registration failed. Please try again.";
       if (error.code === "auth/email-already-in-use") {
-        errorMessage = "Email sudah terdaftar. Silakan gunakan email lain atau login.";
+        errorMessage = "This email is already registered. Please use another email or login.";
       } else if (error.code === "auth/weak-password") {
-        errorMessage = "Password terlalu lemah. Minimal 6 karakter.";
+        errorMessage = "Password is too weak. It should be at least 6 characters and ideally include a mix of uppercase, lowercase, numbers, and symbols.";
       } else if (error.message) {
         errorMessage = error.message;
       }
-      alert("Registrasi gagal: " + errorMessage); // Tampilkan pesan error
+      toast.error("Registration failed: " + errorMessage);
     } finally {
-      setIsLoading(false); // Nonaktifkan status loading setelah proses selesai (berhasil/gagal)
+      setIsLoading(false);
     }
   };
 
   return (
-    <div
-      className="relative flex flex-col items-center justify-center min-h-screen bg-white overflow-hidden"
-    >
-      {/* Overlay: Menggunakan overlay hitam transparan untuk kontras dengan teks judul */}
-      <div className="absolute inset-0 bg-gray-100 z-0" />
-
-      {/* Kontainer form: flexbox untuk centering, mengambil tinggi penuh viewport, padding responsif */}
+    <div className="relative flex flex-col items-center justify-center min-h-screen bg-white overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-r from-[#753799] to-[#100428]  z-0" />
       <div
         className="flex flex-col items-center justify-center w-full z-20 p-4 sm:p-6 md:p-8 lg:p-10"
-        style={{ minHeight: '100vh' }} // Memastikan kontainer ini juga mengambil tinggi penuh viewport
+        style={{ minHeight: '100vh' }}
       >
-        {/* Judul atas form: Ukuran font dan margin disesuaikan agar lebih responsif */}
-        <h1 className="text-white text-2xl sm:text-3xl text-center font-bold font-poppins mb-6 sm:mb-8 md:mb-10">
-          Start Your Shopping Journey!
-        </h1>
-
-        {/* Form registrasi: max-width untuk kontrol lebar, padding responsif, flex-col untuk layout vertikal */}
         <form
           onSubmit={handleSubmit}
           className="w-full max-w-sm p-5 sm:p-6 rounded-lg bg-white shadow-lg border border-gray-200 flex flex-col justify-center"
         >
-          {/* Bagian Logo: Centered dan ukuran disesuaikan */}
           <div className="text-center mb-6">
             <img
               src={Logo}
               alt="Logo"
-              className="w-24 h-auto block mx-auto" // Lebar 96px, di tengah secara horizontal
+              className="w-24 h-auto block mx-auto"
             />
           </div>
-
-          {/* Judul dalam form: Ukuran font dan margin disesuaikan */}
           <h2 className="text-center text-2xl font-poppins font-semibold mb-5 text-gray-800">
             Register
           </h2>
 
-          {/* Email Input */}
-          <div className="mb-3"> {/* Margin-bottom dikurangi */}
-            <label
-              htmlFor="email"
-              className="block text-xs sm:text-sm font-medium text-gray-700 mb-1" // Ukuran font dan margin dikurangi
-            >
-              Email
-            </label>
+          <div className="mb-3">
+            <label htmlFor="email" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Email</label>
             <input
               type="email"
               id="email"
@@ -136,18 +123,13 @@ const RegisterPage = () => {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
               required
-              className="w-full p-2 sm:p-2.5 rounded-lg border border-gray-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" // Padding dan ukuran teks dikurangi
+              className="w-full p-2 sm:p-2.5 rounded-lg border border-gray-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isLoading} // Disable input while loading
             />
           </div>
 
-          {/* Password Input */}
-          <div className="mb-3"> {/* Margin-bottom dikurangi */}
-            <label
-              htmlFor="password"
-              className="block text-xs sm:text-sm font-medium text-gray-700 mb-1"
-            >
-              Password
-            </label>
+          <div className="mb-3">
+            <label htmlFor="password" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Password</label>
             <input
               type="password"
               id="password"
@@ -156,17 +138,26 @@ const RegisterPage = () => {
               placeholder="Enter your password"
               required
               className="w-full p-2 sm:p-2.5 rounded-lg border border-gray-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isLoading}
             />
           </div>
 
-          {/* Username Input */}
-          <div className="mb-3"> {/* Margin-bottom dikurangi */}
-            <label
-              htmlFor="username"
-              className="block text-xs sm:text-sm font-medium text-gray-700 mb-1"
-            >
-              Username
-            </label>
+          <div className="mb-3">
+            <label htmlFor="confirmPassword" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm your password"
+              required
+              className="w-full p-2 sm:p-2.5 rounded-lg border border-gray-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="mb-3">
+            <label htmlFor="username" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Username</label>
             <input
               type="text"
               id="username"
@@ -175,39 +166,33 @@ const RegisterPage = () => {
               placeholder="Enter your username"
               required
               className="w-full p-2 sm:p-2.5 rounded-lg border border-gray-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isLoading}
             />
           </div>
 
-          {/* Phone Number Input */}
-          <div className="mb-4"> {/* Margin-bottom dikurangi */}
-            <label
-              htmlFor="phone"
-              className="block text-xs sm:text-sm font-medium text-gray-700 mb-1"
-            >
-              Phone Number
-            </label>
+          <div className="mb-4">
+            <label htmlFor="phone" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Phone Number</label>
             <input
-              type="text"
+              type="tel" // Changed to type="tel"
               id="phone"
               value={noTelepon}
               onChange={(e) => setNoTelepon(e.target.value)}
-              placeholder="Enter your phone number"
+              placeholder="Enter your phone number (e.g., +62812...)"
               required
               className="w-full p-2 sm:p-2.5 rounded-lg border border-gray-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isLoading}
             />
           </div>
 
-          {/* Submit Button */}
           <button
             type="submit"
-            className="w-full py-2.5 bg-purple-600 text-white rounded-full text-base font-semibold hover:bg-purple-700 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed" // Padding dan ukuran teks dikurangi
+            className="w-full py-2.5 bg-purple-600 text-white rounded-full text-base font-semibold hover:bg-purple-700 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isLoading}
           >
             {isLoading ? "Registering..." : "Register"}
           </button>
 
-          {/* Link to Login */}
-          <p className="text-center mt-3 text-xs sm:text-sm text-gray-600"> {/* Margin-top dan ukuran teks dikurangi */}
+          <p className="text-center mt-3 text-xs sm:text-sm text-gray-600">
             Already have an account?{" "}
             <a
               href="/login"
