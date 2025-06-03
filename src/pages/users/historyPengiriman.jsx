@@ -37,7 +37,7 @@ const HistoryPengiriman = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userId, setUserId] = useState(null);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(null);
 
   const navigate = useNavigate();
 
@@ -87,13 +87,45 @@ const HistoryPengiriman = () => {
 
     return "Status tidak diketahui";
   };
+  const handleComplain = async (orderId) => {
+    if (!firestore || !userId) {
+      setError("Firebase Firestore tidak tersedia atau pengguna belum login.");
+      return;
+    }
+    setIsUpdating("complain");
+
+    try {
+      const orderRef = doc(firestore, "orders", orderId);
+
+      await runTransaction(firestore, async (transaction) => {
+        const orderDoc = await transaction.get(orderRef);
+        if (!orderDoc.exists()) {
+          throw "Dokumen pesanan tidak ditemukan!";
+        }
+
+        const data = orderDoc.data();
+        const updatedItems = data.items.map((item) => {
+          return { ...item, status_barang: "dikomplain" };
+        });
+
+        transaction.update(orderRef, { items: updatedItems });
+      });
+
+      console.log(`Pesanan ${orderId} berhasil diajukan komplain.`);
+    } catch (err) {
+      console.error("Gagal mengajukan komplain: ", err);
+      setError(`Gagal mengajukan komplain: ${err.message}`);
+    } finally {
+      setIsUpdating(null);
+    }
+  };
 
   const handleConfirmDelivery = async (orderId) => {
     if (!firestore || !userId) {
       setError("Firebase Firestore tidak tersedia atau pengguna belum login.");
       return;
     }
-    setIsUpdating(true);
+    setIsUpdating("confirm");
 
     try {
       const orderRef = doc(firestore, "orders", orderId);
@@ -159,7 +191,7 @@ const HistoryPengiriman = () => {
       );
       setError(`Gagal mengkonfirmasi penerimaan: ${err.message}`);
     } finally {
-      setIsUpdating(false);
+      setIsUpdating(null);
     }
   };
 
@@ -826,17 +858,30 @@ const HistoryPengiriman = () => {
                       delivery.status.toLowerCase() === "sampai di tujuan") && (
                       <div className="mb-4 text-right">
                         <button
+                          onClick={() => handleComplain(delivery.id)}
+                          disabled={isUpdating !== null}
+                          className={`px-4 py-2 rounded-md transition-colors mr-2 ${
+                            isUpdating !== null
+                              ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                              : "bg-red-600 hover:bg-red-700 text-white"
+                          }`}
+                        >
+                          {isUpdating === "complain"
+                            ? "Memproses..."
+                            : "Ajukan Komplain"}
+                        </button>
+                        <button
                           onClick={() =>
                             handleConfirmDelivery(delivery.id, delivery.items)
                           }
-                          disabled={isUpdating}
+                          disabled={isUpdating !== null}
                           className={`px-4 py-2 rounded-md transition-colors ${
-                            isUpdating
+                            isUpdating !== null
                               ? "bg-gray-400 text-gray-200 cursor-not-allowed"
                               : "bg-purple-600 hover:bg-purple-700 text-white"
                           }`}
                         >
-                          {isUpdating
+                          {isUpdating === "confirm"
                             ? "Memproses..."
                             : "Konfirmasi Barang Diterima"}
                         </button>
