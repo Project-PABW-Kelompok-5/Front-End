@@ -140,57 +140,62 @@ useEffect(() => {
   };
 }, [userId, fetchOrders]);
 
-  const handleChangeItemStatus = useCallback(
-    async (orderId, productIdToUpdate, newStatus) => {
-      if (!firestore) {
-        setError("Layanan Firestore tidak tersedia.");
-        return;
-      }
-      setIsUpdatingItem(`${productIdToUpdate}_${newStatus}`);
-      setError(null);
-      const orderRef = doc(firestore, "orders", orderId);
+const handleChangeItemStatus = useCallback(
+  async (orderId, productIdToUpdate, newStatus) => {
+    if (!firestore) {
+      setError("Layanan Firestore tidak tersedia.");
+      return;
+    }
+    setIsUpdatingItem(`${productIdToUpdate}_${newStatus}`);
+    setError(null);
+    const orderRef = doc(firestore, "orders", orderId);
 
-      try {
-        const orderSnap = await getDoc(orderRef);
-        if (!orderSnap.exists()) throw new Error("Pesanan tidak ditemukan.");
+    try {
+      const orderSnap = await getDoc(orderRef);
+      if (!orderSnap.exists()) throw new Error("Pesanan tidak ditemukan.");
 
-        const orderData = orderSnap.data();
-        const currentItems = orderData.items || [];
-        let itemFound = false;
+      const orderData = orderSnap.data();
+      const currentItems = orderData.items || [];
+      let itemFound = false;
 
-        const updatedItems = currentItems.map((item) => {
-          if (item.productId === productIdToUpdate) {
-            itemFound = true;
-            return { ...item, status_barang: newStatus };
+      const updatedItems = currentItems.map((item) => {
+        if (item.productId === productIdToUpdate) {
+          itemFound = true;
+          // Remove pesanKomplain when status is "diproses penjual"
+          const updatedItem = { ...item, status_barang: newStatus };
+          if (newStatus === KNOWN_STATUSES.DIPROSES_PENJUAL) {
+            delete updatedItem.pesanKomplain;
           }
-          return item;
-        });
+          return updatedItem;
+        }
+        return item;
+      });
 
-        if (!itemFound)
-          throw new Error(`Barang ${productIdToUpdate} tidak ditemukan.`);
+      if (!itemFound)
+        throw new Error(`Barang ${productIdToUpdate} tidak ditemukan.`);
 
-        await updateDoc(orderRef, { items: updatedItems });
-        setOrders((prevOrders) =>
-          prevOrders.map((o) =>
-            o.id === orderId ? { ...o, items: updatedItems } : o
-          )
-        );
-        console.log(
-          `Status barang ${productIdToUpdate} di pesanan ${orderId} -> ${newStatus}`
-        );
-      } catch (err) {
-        console.error(`Gagal mengubah status barang ke ${newStatus}:`, err);
-        setError(
-          typeof err === "string"
-            ? err
-            : err.message || `Gagal update ke ${newStatus}.`
-        );
-      } finally {
-        setIsUpdatingItem(null);
-      }
-    },
-    []
-  );
+      await updateDoc(orderRef, { items: updatedItems });
+      setOrders((prevOrders) =>
+        prevOrders.map((o) =>
+          o.id === orderId ? { ...o, items: updatedItems } : o
+        )
+      );
+      console.log(
+        `Status barang ${productIdToUpdate} di pesanan ${orderId} -> ${newStatus}`
+      );
+    } catch (err) {
+      console.error(`Gagal mengubah status barang ke ${newStatus}:`, err);
+      setError(
+        typeof err === "string"
+          ? err
+          : err.message || `Gagal update ke ${newStatus}.`
+      );
+    } finally {
+      setIsUpdatingItem(null);
+    }
+  },
+  []
+);
 
   async function handleCancelItem(item, setIsUpdatingItem) {
   const orderId = item.orderId;
@@ -750,198 +755,202 @@ useEffect(() => {
           </div>{" "}
         </div>
 
-        {processedItems.length === 0 && !isLoading ? (
-          <div className="text-center py-12">
-            {" "}
-            <Box className="h-12 w-12 mx-auto text-gray-400 mb-4" />{" "}
-            <h3 className="text-lg font-medium mb-2 text-white">
-              {" "}
-              Tidak ada barang penjualan ditemukan{" "}
-            </h3>{" "}
-            <p className="text-gray-300">
-              {" "}
-              Sesuaikan filter atau Anda belum memiliki barang yang cocok.{" "}
-            </p>{" "}
+{processedItems.length === 0 && !isLoading ? (
+  <div className="text-center py-12">
+    <Box className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+    <h3 className="text-lg font-medium mb-2 text-white">
+      Tidak ada barang penjualan ditemukan
+    </h3>
+    <p className="text-gray-300">
+      Sesuaikan filter atau Anda belum memiliki barang yang cocok.
+    </p>
+  </div>
+) : (
+  <div className="space-y-4">
+    {processedItems.map((item, index) => {
+      const itemStatusLower = item.itemStatus
+        ? item.itemStatus.toLowerCase()
+        : KNOWN_STATUSES.BARU;
+
+      const showProsesButton =
+        itemStatusLower === KNOWN_STATUSES.MENUNGGU_PENJUAL;
+      const showPanggilKurirUntukJemput =
+        item.status_barang === KNOWN_STATUSES.DIPROSES_PENJUAL;
+      const showPanggilKurirUntukPengembalian =
+        item.status_barang === KNOWN_STATUSES.DIKOMPLAIN;
+      const showCancelButton =
+        itemStatusLower === KNOWN_STATUSES.MENUNGGU_PENJUAL ||
+        itemStatusLower === KNOWN_STATUSES.DIPROSES_PENJUAL;
+
+      // New condition to show pesanKomplain
+      const showPesanKomplain = itemStatusLower === KNOWN_STATUSES.DIKOMPLAIN;
+
+      return (
+        <div
+          key={`${item.orderId}-${item.productId || "item"}-${index}`}
+          className="border border-[#ffffff33] rounded-lg shadow-sm bg-white text-[#100428] p-4 transition-all hover:shadow-md"
+        >
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+            <div className="flex items-center gap-3 mb-2 sm:mb-0">
+              {getStatusIcon(item.itemStatus)}
+              <div>
+                <h3 className="font-semibold text-base sm:text-lg">
+                  {item.nama || "Nama Barang Tidak Ada"}
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Produk ID: {item.productId || "N/A"}
+                </p>
+              </div>
+            </div>
+            <div className="flex-shrink-0 text-left sm:text-right">
+              <p className="text-sm font-medium text-purple-700">
+                Rp{Number(item.harga || 0).toLocaleString("id-ID")} &times;{" "}
+                {item.qty || 0}
+              </p>
+              <p className="text-sm font-bold text-purple-800">
+                Subtotal Item: Rp
+                {Number(
+                  item.subtotal || item.harga * item.qty || 0
+                ).toLocaleString("id-ID")}
+              </p>
+            </div>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {processedItems.map((item, index) => {
-              const itemStatusLower = item.itemStatus
-                ? item.itemStatus.toLowerCase()
-                : KNOWN_STATUSES.BARU;
-
-              const showProsesButton =
-                itemStatusLower === KNOWN_STATUSES.MENUNGGU_PENJUAL;
-              const showPanggilKurirUntukJemput =
-                item.status_barang === KNOWN_STATUSES.DIPROSES_PENJUAL;
-              const showPanggilKurirUntukPengembalian =
-                item.status_barang === KNOWN_STATUSES.DIKOMPLAIN;
-              const showCancelButton =
-                itemStatusLower === KNOWN_STATUSES.MENUNGGU_PENJUAL ||
-                itemStatusLower === KNOWN_STATUSES.DIPROSES_PENJUAL;
-
-              return (
-                <div
-                  key={`${item.orderId}-${item.productId || "item"}-${index}`}
-                  className="border border-[#ffffff33] rounded-lg shadow-sm bg-white text-[#100428] p-4 transition-all hover:shadow-md"
+          <hr className="my-3 border-gray-200" />
+          {showPesanKomplain && item.pesanKomplain && (
+            <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm font-semibold text-red-700">Pesan Komplain:</p>
+              <p className="text-sm text-red-600">{item.pesanKomplain}</p>
+            </div>
+          )}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs text-gray-600">
+            <div className="mb-2 sm:mb-0">
+              <p>
+                <span className="font-medium">Dari Pesanan ID:</span>{" "}
+                {item.orderId}
+              </p>
+              <p>
+                <span className="font-medium">Tanggal Pesan:</span>{" "}
+                {item.orderDate}
+              </p>
+            </div>
+            <div className="flex flex-col items-stretch sm:items-end space-y-1 mt-2 sm:mt-0 w-full sm:w-auto">
+              <div className="self-stretch sm:self-end">
+                {getStatusBadge(item.itemStatus)}
+              </div>
+              {showProsesButton && (
+                <button
+                  onClick={() =>
+                    handleChangeItemStatus(
+                      item.orderId,
+                      item.productId,
+                      KNOWN_STATUSES.DIPROSES_PENJUAL
+                    )
+                  }
+                  disabled={
+                    isUpdatingItem ===
+                    `${item.productId}_${KNOWN_STATUSES.DIPROSES_PENJUAL}`
+                  }
+                  className={`py-1 px-3 text-xs rounded-full transition-colors w-full mt-1
+                                    ${
+                                      isUpdatingItem ===
+                                      `${item.productId}_${KNOWN_STATUSES.DIPROSES_PENJUAL}`
+                                        ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                                        : "bg-blue-600 hover:bg-blue-700 text-white"
+                                    }`}
                 >
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
-                    <div className="flex items-center gap-3 mb-2 sm:mb-0">
-                      {getStatusIcon(item.itemStatus)}
-                      <div>
-                        <h3 className="font-semibold text-base sm:text-lg">
-                          {item.nama || "Nama Barang Tidak Ada"}
-                        </h3>
-                        <p className="text-xs text-gray-500">
-                          Produk ID: {item.productId || "N/A"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex-shrink-0 text-left sm:text-right">
-                      <p className="text-sm font-medium text-purple-700">
-                        Rp{Number(item.harga || 0).toLocaleString("id-ID")}{" "}
-                        &times; {item.qty || 0}
-                      </p>
-                      <p className="text-sm font-bold text-purple-800">
-                        Subtotal Item: Rp
-                        {Number(
-                          item.subtotal || item.harga * item.qty || 0
-                        ).toLocaleString("id-ID")}
-                      </p>
-                    </div>
-                  </div>
-                  <hr className="my-3 border-gray-200" />
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center text-xs text-gray-600">
-                    <div className="mb-2 sm:mb-0">
-                      <p>
-                        <span className="font-medium">Dari Pesanan ID:</span>{" "}
-                        {item.orderId}
-                      </p>
-                      <p>
-                        <span className="font-medium">Tanggal Pesan:</span>{" "}
-                        {item.orderDate}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-stretch sm:items-end space-y-1 mt-2 sm:mt-0 w-full sm:w-auto">
-                      <div className="self-stretch sm:self-end">
-                        {getStatusBadge(item.itemStatus)}
-                      </div>
-                      {showProsesButton && (
-                        <button
-                          onClick={() =>
-                            handleChangeItemStatus(
-                              item.orderId,
-                              item.productId,
-                              KNOWN_STATUSES.DIPROSES_PENJUAL
-                            )
-                          }
-                          disabled={
-                            isUpdatingItem ===
-                            `${item.productId}_${KNOWN_STATUSES.DIPROSES_PENJUAL}`
-                          }
-                          className={`py-1 px-3 text-xs rounded-full transition-colors w-full mt-1
-                                      ${
-                                        isUpdatingItem ===
-                                        `${item.productId}_${KNOWN_STATUSES.DIPROSES_PENJUAL}`
-                                          ? "bg-gray-400 text-gray-700 cursor-not-allowed"
-                                          : "bg-blue-600 hover:bg-blue-700 text-white"
-                                      }`}
-                        >
-                          {isUpdatingItem ===
-                          `${item.productId}_${KNOWN_STATUSES.DIPROSES_PENJUAL}`
-                            ? "Memproses..."
-                            : "Proses Pesanan"}
-                        </button>
-                      )}
-                      {
-                      showCancelButton && (
-                        <button
-                          onClick={() =>
-                            handleCancelItem(
-                              item,
-                              setIsUpdatingItem
-                            )
-                          }
-                          disabled={
-                            isUpdatingItem ===
-                            `${item.productId}_${KNOWN_STATUSES.TRANSAKSI_GAGAL}`
-                          }
-                          className={`py-1 px-3 text-xs rounded-full transition-colors w-full mt-1
-                                        ${
-                                          isUpdatingItem ===
-                                          `${item.productId}_${KNOWN_STATUSES.TRANSAKSI_GAGAL}`
-                                            ? "bg-gray-400 text-gray-700 cursor-not-allowed"
-                                            : "bg-red-600 hover:bg-red-700 text-white"
-                                        }`}
-                        >
-                          {isUpdatingItem ===
-                          `${item.productId}_${KNOWN_STATUSES.TRANSAKSI_GAGAL}`
-                            ? "Membatalkan..."
-                            : "Batalkan Pesanan"}
-                        </button>
-                      )
-                    }
-                      {showPanggilKurirUntukJemput && (
-                        <button
-                          onClick={() =>
-                            handleChangeItemStatus(
-                              item.orderId,
-                              item.productId,
-                              KNOWN_STATUSES.MENUNGGU_KURIR
-                            )
-                          }
-                          disabled={
-                            isUpdatingItem ===
-                            `${item.productId}_${KNOWN_STATUSES.MENUNGGU_KURIR}`
-                          }
-                          className={`py-1 px-3 text-xs rounded-full transition-colors w-full mt-1
-                                      ${
-                                        isUpdatingItem ===
-                                        `${item.productId}_${KNOWN_STATUSES.MENUNGGU_KURIR}`
-                                          ? "bg-gray-400 text-gray-700 cursor-not-allowed"
-                                          : "bg-orange-500 hover:bg-orange-600 text-white"
-                                      }`}
-                        >
-                          {isUpdatingItem ===
-                          `${item.productId}_${KNOWN_STATUSES.MENUNGGU_KURIR}`
-                            ? "Memanggil..."
-                            : "Panggil Kurir"}
-                        </button>
-                      )}
-                      {showPanggilKurirUntukPengembalian && (
-                        <button
-                          onClick={() =>
-                            handleChangeItemStatus(
-                              item.orderId,
-                              item.productId,
-                              KNOWN_STATUSES.MENUNGGU_DIKIRIM_BALIK
-                            )
-                          }
-                          disabled={
-                            isUpdatingItem ===
-                            `${item.productId}_${KNOWN_STATUSES.MENUNGGU_DIKIRIM_BALIK}`
-                          }
-                          className={`py-1 px-3 text-xs rounded-full transition-colors w-full mt-1
-                                      ${
-                                        isUpdatingItem ===
-                                        `${item.productId}_${KNOWN_STATUSES.MENUNGGU_DIKIRIM_BALIK}`
-                                          ? "bg-gray-400 text-gray-700 cursor-not-allowed"
-                                          : "bg-orange-500 hover:bg-orange-600 text-white"
-                                      }`}
-                        >
-                          {isUpdatingItem ===
-                          `${item.productId}_${KNOWN_STATUSES.MENUNGGU_DIKIRIM_BALIK}`
-                            ? "Memanggil..."
-                            : "Panggil Kurir"}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                  {isUpdatingItem ===
+                  `${item.productId}_${KNOWN_STATUSES.DIPROSES_PENJUAL}`
+                    ? "Memproses..."
+                    : "Proses Pesanan"}
+                </button>
+              )}
+              {showCancelButton && (
+                <button
+                  onClick={() =>
+                    handleCancelItem(
+                      item,
+                      setIsUpdatingItem
+                    )
+                  }
+                  disabled={
+                    isUpdatingItem ===
+                    `${item.productId}_${KNOWN_STATUSES.TRANSAKSI_GAGAL}`
+                  }
+                  className={`py-1 px-3 text-xs rounded-full transition-colors w-full mt-1
+                                    ${
+                                      isUpdatingItem ===
+                                      `${item.productId}_${KNOWN_STATUSES.TRANSAKSI_GAGAL}`
+                                        ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                                        : "bg-red-600 hover:bg-red-700 text-white"
+                                    }`}
+                >
+                  {isUpdatingItem ===
+                  `${item.productId}_${KNOWN_STATUSES.TRANSAKSI_GAGAL}`
+                    ? "Membatalkan..."
+                    : "Batalkan Pesanan"}
+                </button>
+              )}
+              {showPanggilKurirUntukJemput && (
+                <button
+                  onClick={() =>
+                    handleChangeItemStatus(
+                      item.orderId,
+                      item.productId,
+                      KNOWN_STATUSES.MENUNGGU_KURIR
+                    )
+                  }
+                  disabled={
+                    isUpdatingItem ===
+                    `${item.productId}_${KNOWN_STATUSES.MENUNGGU_KURIR}`
+                  }
+                  className={`py-1 px-3 text-xs rounded-full transition-colors w-full mt-1
+                                    ${
+                                      isUpdatingItem ===
+                                      `${item.productId}_${KNOWN_STATUSES.MENUNGGU_KURIR}`
+                                        ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                                        : "bg-orange-500 hover:bg-orange-600 text-white"
+                                    }`}
+                >
+                  {isUpdatingItem ===
+                  `${item.productId}_${KNOWN_STATUSES.MENUNGGU_KURIR}`
+                    ? "Memanggil..."
+                    : "Panggil Kurir"}
+                </button>
+              )}
+              {showPanggilKurirUntukPengembalian && (
+                <button
+                  onClick={() =>
+                    handleChangeItemStatus(
+                      item.orderId,
+                      item.productId,
+                      KNOWN_STATUSES.MENUNGGU_DIKIRIM_BALIK
+                    )
+                  }
+                  disabled={
+                    isUpdatingItem ===
+                    `${item.productId}_${KNOWN_STATUSES.MENUNGGU_DIKIRIM_BALIK}`
+                  }
+                  className={`py-1 px-3 text-xs rounded-full transition-colors w-full mt-1
+                                    ${
+                                      isUpdatingItem ===
+                                      `${item.productId}_${KNOWN_STATUSES.MENUNGGU_DIKIRIM_BALIK}`
+                                        ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                                        : "bg-orange-500 hover:bg-orange-600 text-white"
+                                    }`}
+                >
+                  {isUpdatingItem ===
+                  `${item.productId}_${KNOWN_STATUSES.MENUNGGU_DIKIRIM_BALIK}`
+                    ? "Memanggil..."
+                    : "Panggil Kurir"}
+                </button>
+              )}
+            </div>
           </div>
-        )}
+        </div>
+      );
+    })}
+  </div>
+)}
       </div>
     </div>
   );

@@ -27,6 +27,59 @@ import {
   Box,
 } from "lucide-react";
 
+// --- Status Map (as suggested in previous review for better consistency) ---
+const STATUS_MAP = {
+  'diterima pembeli': { label: 'Diterima Pembeli', badgeClass: 'bg-green-700 text-white', icon: CheckCircle, iconClass: 'text-green-700' },
+  'sampai di tujuan': { label: 'Sampai di Tujuan', badgeClass: 'bg-green-100 text-green-800', icon: CheckCircle, iconClass: 'text-green-500' },
+  'sedang dikirim': { label: 'Sedang Dikirim', badgeClass: 'bg-blue-100 text-blue-800', icon: Truck, iconClass: 'text-blue-500' },
+  'dikirim balik': { label: 'Dikirim Balik', badgeClass: 'bg-blue-100 text-blue-800', icon: Truck, iconClass: 'text-blue-500' },
+  'diproses penjual': { label: 'Diproses Penjual', badgeClass: 'bg-yellow-100 text-yellow-800', icon: Clock, iconClass: 'text-yellow-500' },
+  'menunggu kurir': { label: 'Menunggu Kurir', badgeClass: 'bg-yellow-100 text-yellow-800', icon: Clock, iconClass: 'text-yellow-500' },
+  'menunggu penjual': { label: 'Menunggu Penjual', badgeClass: 'bg-yellow-100 text-yellow-800', icon: Clock, iconClass: 'text-yellow-500' },
+  'dikomplain': { label: 'Dikomplain', badgeClass: 'bg-red-100 text-red-800', icon: AlertCircle, iconClass: 'text-red-500' },
+  'dibatalkan': { label: 'Dibatalkan', badgeClass: 'bg-red-100 text-red-800', icon: AlertCircle, iconClass: 'text-red-500' },
+  'default': { label: 'Status Tidak Diketahui', badgeClass: 'border border-gray-300', icon: Package, iconClass: 'text-gray-500' },
+};
+
+// --- Helper Functions (as suggested in previous review) ---
+const getStatusInfo = (status) => {
+  const lowerStatus = status?.toLowerCase();
+  return STATUS_MAP[lowerStatus] || STATUS_MAP['default'];
+};
+
+const formatDate = (timestamp) => {
+  if (timestamp?.toDate) {
+    return timestamp.toDate().toLocaleDateString("id-ID", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  }
+  return "Tanggal tidak tersedia";
+};
+
+const formatAddress = (addressData) => {
+  if (!addressData) return "Alamat tidak tersedia";
+
+  if (typeof addressData === "string") {
+    return addressData;
+  }
+
+  if (addressData.alamat_lengkap) return addressData.alamat_lengkap;
+  if (addressData.fullAddress || addressData.detail) {
+    const fullAddress = addressData.fullAddress || "";
+    const detail = addressData.detail || "";
+    return `${fullAddress}, ${detail}`.replace(/^, | ,$|, $|^ $/g, "").trim();
+  }
+  if (addressData.alamatLengkap) return addressData.alamatLengkap;
+  if (addressData.street || addressData.city || addressData.province) {
+    return `${addressData.street || ""} ${addressData.city || ""} ${addressData.province || ""}`.trim();
+  }
+
+  return "Alamat tidak tersedia";
+};
+
+
 const HistoryPengiriman = () => {
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -38,6 +91,8 @@ const HistoryPengiriman = () => {
   const [error, setError] = useState(null);
   const [userId, setUserId] = useState(null);
   const [isUpdating, setIsUpdating] = useState(null);
+  const [complainMessage, setComplainMessage] = useState(""); // New state for complain message input
+  const [complainOrderId, setComplainOrderId] = useState(null); // To track which order is being complained
 
   const navigate = useNavigate();
 
@@ -46,52 +101,67 @@ const HistoryPengiriman = () => {
       return "Status tidak diketahui";
     }
 
-    const itemStatuses = items.map((item) => item.status_barang?.toLowerCase());
+    let hasCancelledOrComplain = false;
+    let allReceivedByBuyer = true;
+    let allArrivedAtDestination = true;
+    let hasBeingShipped = false;
+    let hasSentBack = false;
+    let hasProcessedBySeller = false;
+    let hasWaitingCourier = false;
+    let hasWaitingSeller = false;
 
-    // Prioritas status: Dibatalkan > Diterima Pembeli > Dikirim > Dalam Perjalanan > Proses Pengiriman > Menunggu Penjual
-    if (
-      itemStatuses.includes("dibatalkan") ||
-      itemStatuses.includes("dikomplain")
-    ) {
-      return "Dikomplain";
+    for (const item of items) {
+      const status = item.status_barang?.toLowerCase();
+
+      if (status === "dibatalkan" || status === "dikomplain") {
+        hasCancelledOrComplain = true;
+      }
+      if (status !== "diterima pembeli") {
+        allReceivedByBuyer = false;
+      }
+      if (status !== "sampai di tujuan" && status !== "delivered") {
+        allArrivedAtDestination = false;
+      }
+      if (status === "sedang dikirim") {
+        hasBeingShipped = true;
+      }
+      if (status === "dikirim balik") {
+        hasSentBack = true;
+      }
+      if (status === "diproses penjual") {
+        hasProcessedBySeller = true;
+      }
+      if (status === "menunggu kurir" || status === "menunggu dikirim balik") {
+        hasWaitingCourier = true;
+      }
+      if (status === "menunggu penjual" || status === "pending") {
+        hasWaitingSeller = true;
+      }
     }
-    // Jika semua item sudah "diterima pembeli", maka status keseluruhan adalah "Diterima Pembeli"
-    if (itemStatuses.every((status) => status === "diterima pembeli")) {
-      return "Diterima Pembeli";
-    }
-    // Jika semua item sudah "sampai di tujuan" atau "delivered", maka status keseluruhan adalah "Sampai di Tujuan"
-    if (itemStatuses.every((status) => status === "sampai di tujuan")) {
-      return "Sampai di Tujuan";
-    }
-    if (itemStatuses.includes("sedang dikirim")) {
-      return "Sedang Dikirim";
-    }
-    if (itemStatuses.includes("dikirim balik")) {
-      return "Dikirim Balik";
-    }
-    if (itemStatuses.includes("diproses penjual")) {
-      return "Diproses Penjual";
-    }
-    if (
-      itemStatuses.includes("menunggu kurir") ||
-      itemStatuses.includes("menunggu dikirim balik")
-    ) {
-      return "Menunggu Kurir";
-    }
-    if (
-      itemStatuses.includes("menunggu penjual") ||
-      itemStatuses.includes("pending")
-    ) {
-      return "Menunggu Penjual";
-    }
+
+    if (hasCancelledOrComplain) return "Dikomplain";
+    if (allReceivedByBuyer) return "Diterima Pembeli";
+    if (allArrivedAtDestination) return "Sampai di Tujuan";
+    if (hasBeingShipped) return "Sedang Dikirim";
+    if (hasSentBack) return "Dikirim Balik";
+    if (hasProcessedBySeller) return "Diproses Penjual";
+    if (hasWaitingCourier) return "Menunggu Kurir";
+    if (hasWaitingSeller) return "Menunggu Penjual";
 
     return "Status tidak diketahui";
   };
+
+  // Modified handleComplain function
   const handleComplain = async (orderId) => {
     if (!firestore || !userId) {
       setError("Firebase Firestore tidak tersedia atau pengguna belum login.");
       return;
     }
+    if (!complainMessage.trim()) { // Ensure complain message is not empty
+      alert("Pesan komplain tidak boleh kosong.");
+      return;
+    }
+
     setIsUpdating("complain");
 
     try {
@@ -105,13 +175,16 @@ const HistoryPengiriman = () => {
 
         const data = orderDoc.data();
         const updatedItems = data.items.map((item) => {
-          return { ...item, status_barang: "dikomplain" };
+          // Add pesanKomplain to each item and change its status
+          return { ...item, status_barang: "dikomplain", pesanKomplain: complainMessage };
         });
 
         transaction.update(orderRef, { items: updatedItems });
       });
 
-      console.log(`Pesanan ${orderId} berhasil diajukan komplain.`);
+      console.log(`Pesanan ${orderId} berhasil diajukan komplain dengan pesan: ${complainMessage}`);
+      setComplainMessage(""); // Clear the message input after successful complain
+      setComplainOrderId(null); // Reset the complain order ID
     } catch (err) {
       console.error("Gagal mengajukan komplain: ", err);
       setError(`Gagal mengajukan komplain: ${err.message}`);
@@ -253,6 +326,7 @@ const HistoryPengiriman = () => {
                   productId: item.productId,
                   status_barang: item.status_barang,
                   id_penjual: item.id_penjual,
+                  pesanKomplain: item.pesanKomplain || '', // Include complain message
                 }))
               : [];
 
@@ -260,55 +334,9 @@ const HistoryPengiriman = () => {
 
             orders.push({
               id: doc.id,
-              date: data.tanggal_pemesanan?.toDate
-                ? data.tanggal_pemesanan.toDate().toLocaleDateString("id-ID", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })
-                : data.createdAt?.toDate
-                ? data.createdAt.toDate().toLocaleDateString("id-ID", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })
-                : data.Alamat?.createdAt?.toDate
-                ? data.Alamat.createdAt.toDate().toLocaleDateString("id-ID", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })
-                : "Tanggal tidak tersedia",
+              date: formatDate(data.tanggal_pemesanan || data.createdAt || data.Alamat?.createdAt),
               status: determinedStatus,
-              address: data.alamat_pengiriman
-                ? typeof data.alamat_pengiriman === "string"
-                  ? data.alamat_pengiriman
-                  : data.alamat_pengiriman.alamat_lengkap ||
-                    `${data.alamat_pengiriman.jalan || ""} ${
-                      data.alamat_pengiriman.kota || ""
-                    } ${data.alamat_pengiriman.provinsi || ""} ${
-                      data.alamat_pengiriman.kode_pos || ""
-                    }`.trim() ||
-                    `${data.alamat_pengiriman.fullAddress || ""}, ${
-                      data.alamat_pengiriman.detail || ""
-                    }`
-                      .replace(", ", "")
-                      .trim()
-                : data.alamat && data.alamat.alamatLengkap
-                ? data.alamat.alamatLengkap
-                : data.Alamat
-                ? `${data.Alamat.fullAddress || ""}, ${
-                    data.Alamat.detail || ""
-                  }`
-                    .replace(", ", "")
-                    .trim()
-                : data.shipping_address
-                ? typeof data.shipping_address === "string"
-                  ? data.shipping_address
-                  : `${data.shipping_address.street || ""} ${
-                      data.shipping_address.city || ""
-                    } ${data.shipping_address.province || ""}`.trim()
-                : "Alamat tidak tersedia",
+              address: formatAddress(data.alamat_pengiriman || data.alamat || data.Alamat || data.shipping_address),
               items: items,
               shippingCost: `Rp${(data.shippingCost || 0).toLocaleString(
                 "id-ID"
@@ -345,8 +373,8 @@ const HistoryPengiriman = () => {
         }
       );
     } catch (err) {
-      console.error("Error setting up listener:", err);
-      setError(`Error: ${err.message}`);
+      console.error("Error setting up Firestore listener:", err);
+      setError(`Terjadi kesalahan saat menyiapkan koneksi data: ${err.message}`);
       setLoading(false);
     }
 
@@ -359,6 +387,8 @@ const HistoryPengiriman = () => {
 
   const toggleOrderDetails = (orderId) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
+    setComplainMessage(""); // Clear message when collapsing/expanding
+    setComplainOrderId(expandedOrder === orderId ? null : orderId); // Set the current order ID for complain
   };
 
   const homepage = () => {
@@ -388,92 +418,17 @@ const HistoryPengiriman = () => {
   });
 
   const getStatusIcon = (status) => {
-    if (!status) return <Package className="h-5 w-5 text-gray-500" />;
-    switch (status.toLowerCase()) {
-      case "diterima pembeli":
-        return <CheckCircle className="h-5 w-5 text-green-700" />;
-      case "dikirim":
-      case "sampai di tujuan":
-        return <CheckCircle className="h-5 w-5 text-green-500" />;
-      case "dalam perjalanan":
-      case "sedang dikirim":
-      case "dikirim balik":
-        return <Truck className="h-5 w-5 text-blue-500" />;
-      case "menunggu penjual":
-      case "diproses penjual":
-      case "menunggu kurir":
-        return <Clock className="h-5 w-5 text-yellow-500" />;
-      case "dibatalkan":
-      case "dikomplain":
-        return <AlertCircle className="h-5 w-5 text-red-500" />;
-      default:
-        return <Package className="h-5 w-5 text-gray-500" />;
-    }
+    const { icon: Icon, iconClass } = getStatusInfo(status);
+    return <Icon className={`h-5 w-5 ${iconClass}`} />;
   };
 
   const getStatusBadge = (status) => {
-    if (!status)
-      return (
-        <span className="px-2 py-1 text-xs font-medium rounded-full border border-gray-300">
-          Status Tidak Diketahui
-        </span>
-      );
-    switch (status.toLowerCase()) {
-      case "diterima pembeli":
-        return (
-          <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-700 text-white">
-            Diterima Pembeli
-          </span>
-        );
-      case "menunggu penjual":
-        return (
-          <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
-            Menunggu Penjual
-          </span>
-        );
-      case "diproses penjual":
-        return (
-          <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
-            Diproses Penjual
-          </span>
-        );
-      case "menunggu kurir":
-        return (
-          <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
-            Menunggu Kurir
-          </span>
-        );
-      case "dikirim":
-      case "sampai di tujuan":
-        return (
-          <div className="flex flex-col space-y-2">
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800 w-max">
-              Sampai di Tujuan
-            </span>
-          </div>
-        );
-      case "dalam perjalanan":
-      case "sedang dikirim":
-      case "dikirim balik":
-        return (
-          <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-            {status}
-          </span>
-        );
-      case "dibatalkan":
-      case "dikomplain":
-        return (
-          <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
-            Dikomplain
-          </span>
-        );
-      default:
-        return (
-          <span className="px-2 py-1 text-xs font-medium rounded-full border border-gray-300">
-            {status}
-          </span>
-        );
-    }
+    const { label, badgeClass } = getStatusInfo(status);
+    return (
+      <span className={`px-2 py-1 text-xs font-medium rounded-full ${badgeClass}`}>
+        {label}
+      </span>
+    );
   };
 
   if (loading) {
@@ -697,14 +652,15 @@ const HistoryPengiriman = () => {
         </div>
 
         {filteredDeliveries.length === 0 ? (
-          <div className="text-center py-12">
+          <div className="text-center py-12 text-white">
             <Package className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium mb-2 text-white">
+            <h3 className="text-lg font-medium mb-2">
               Tidak ada riwayat pengiriman ditemukan
             </h3>
             <p className="text-gray-300">
-              Coba sesuaikan pencarian atau filter Anda, atau Anda belum
-              memiliki pesanan.
+              Coba sesuaikan pencarian atau filter Anda, atau{" "}
+              <span className="font-semibold">mulai berbelanja sekarang</span>{" "}
+              untuk melihat pesanan Anda di sini!
             </p>
           </div>
         ) : (
@@ -808,7 +764,8 @@ const HistoryPengiriman = () => {
                               <span className="font-medium">
                                 Dikomplain pada:
                               </span>{" "}
-                              {delivery.cancelledDate} - {delivery.cancelReason}
+                              {delivery.cancelledDate} -{" "}
+                              {delivery.cancelReason}
                             </p>
                           )}
                         </div>
@@ -836,6 +793,11 @@ const HistoryPengiriman = () => {
                             <span className="text-sm font-medium">
                               {item.price}
                             </span>
+                            {item.pesanKomplain && item.status_barang === "dikomplain" && (
+                              <p className="text-xs text-red-500 italic mt-1">
+                                Pesan Komplain: {item.pesanKomplain}
+                              </p>
+                            )}
                           </div>
                         ))}
                       <hr className="my-2 border-gray-200" />
@@ -854,35 +816,105 @@ const HistoryPengiriman = () => {
                       </div>
                     </div>
 
+                    {/* Complain input and buttons */}
                     {(delivery.status.toLowerCase() === "dikirim" ||
-                      delivery.status.toLowerCase() === "sampai di tujuan") && (
-                      <div className="mb-4 text-right">
-                        <button
-                          onClick={() => handleComplain(delivery.id)}
+                      delivery.status.toLowerCase() === "sampai di tujuan" ||
+                      delivery.status.toLowerCase() === "diterima pembeli") && // Allow complain even after confirmed, if needed
+                      delivery.status.toLowerCase() !== "dikomplain" && ( // Don't show complain button if already complained
+                      <div className="mb-4">
+                        <label htmlFor={`complain-message-${delivery.id}`} className="block text-sm font-medium text-gray-700 mb-1">
+                          Pesan Komplain:
+                        </label>
+                        <textarea
+                          id={`complain-message-${delivery.id}`}
+                          className="w-full p-2 border border-gray-300 rounded-md mb-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+                          rows="3"
+                          value={complainOrderId === delivery.id ? complainMessage : ""} // Only show message for the expanded order
+                          onChange={(e) => setComplainMessage(e.target.value)}
+                          placeholder="Jelaskan masalah Anda di sini..."
                           disabled={isUpdating !== null}
-                          className={`px-4 py-2 rounded-md transition-colors mr-2 ${
-                            isUpdating !== null
-                              ? "bg-gray-400 text-gray-200 cursor-not-allowed"
-                              : "bg-red-600 hover:bg-red-700 text-white"
-                          }`}
-                        >
-                          {isUpdating === "complain"
-                            ? "Memproses..."
-                            : "Ajukan Komplain"}
-                        </button>
+                        ></textarea>
+                        <div className="text-right">
+                          <button
+                            onClick={() => handleComplain(delivery.id)}
+                            disabled={isUpdating === "complain" || !complainMessage.trim()}
+                            className={`px-4 py-2 rounded-md transition-colors ${
+                              isUpdating === "complain" || !complainMessage.trim()
+                                ? "bg-gray-400 text-gray-200 cursor-not-allowed"
+                                : "bg-red-600 hover:bg-red-700 text-white"
+                            }`}
+                          >
+                            {isUpdating === "complain" ? (
+                              <span className="flex items-center justify-center">
+                                <svg
+                                  className="animate-spin h-4 w-4 mr-2 text-white"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                  ></circle>
+                                  <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                  ></path>
+                                </svg>
+                                Memproses...
+                              </span>
+                            ) : (
+                              "Ajukan Komplain"
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {/* End Complain input and buttons */}
+
+
+                    {(delivery.status.toLowerCase() === "sampai di tujuan") && (
+                      <div className="mb-4 text-right">
                         <button
                           onClick={() =>
                             handleConfirmDelivery(delivery.id, delivery.items)
                           }
                           disabled={isUpdating !== null}
                           className={`px-4 py-2 rounded-md transition-colors ${
-                            isUpdating !== null
+                            isUpdating === "confirm"
                               ? "bg-gray-400 text-gray-200 cursor-not-allowed"
                               : "bg-purple-600 hover:bg-purple-700 text-white"
                           }`}
                         >
                           {isUpdating === "confirm"
-                            ? "Memproses..."
+                            ? <span className="flex items-center justify-center">
+                                <svg
+                                  className="animate-spin h-4 w-4 mr-2 text-white"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                  ></circle>
+                                  <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                  ></path>
+                                </svg>
+                                Memproses...
+                              </span>
                             : "Konfirmasi Barang Diterima"}
                         </button>
                       </div>
@@ -899,7 +931,10 @@ const HistoryPengiriman = () => {
                             <p className="text-sm text-gray-600">
                               No. Resi: {delivery.trackingNumber}
                             </p>
-                            <button className="ml-auto px-3 py-1 text-sm border border-[#753799] text-[#753799] rounded-md hover:bg-[#75379922] transition-colors">
+                            <button
+                              onClick={() => window.open(`https://www.aftership.com/track/${delivery.carrier ? delivery.carrier.toLowerCase().replace(/\s/g, '') : ''}/${delivery.trackingNumber}`, '_blank')} // Example tracking site
+                              className="ml-auto px-3 py-1 text-sm border border-[#753799] text-[#753799] rounded-md hover:bg-[#75379922] transition-colors"
+                            >
                               Lacak Paket
                             </button>
                           </div>
