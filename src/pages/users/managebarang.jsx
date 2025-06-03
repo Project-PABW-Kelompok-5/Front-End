@@ -9,12 +9,18 @@ import {
   doc,
   query,
   where,
+  getDoc, // Tetap perlukan getDoc untuk berjaga-jaga jika ada kebutuhan lain di masa depan
 } from "firebase/firestore";
 // import Navbar from "../../components/header";
 import { firestore } from "../../firebase";
 import * as LucideIcons from "lucide-react";
 import { Pencil, Trash2, HomeIcon } from "lucide-react";
 import Header from "../../components/header";
+
+// <<< BAGIAN DITAMBAHKAN: Import ToastContainer dan toast dari react-toastify
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css"; // Import CSS-nya
+// <<< AKHIR BAGIAN DITAMBAHKAN
 
 // Modal component for adding/editing product
 function ProductModal({ isOpen, onClose, onSave, initialData }) {
@@ -180,7 +186,8 @@ function ProductModal({ isOpen, onClose, onSave, initialData }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!namaBarang || !harga || !stok || !kategori) {
-      alert("Mohon isi semua field yang wajib.");
+      // <<< BAGIAN DIUBAH: Menggunakan toast.error
+      toast.error("Mohon isi semua field yang wajib.");
       return;
     }
     onSave({
@@ -363,18 +370,86 @@ export default function ProductManagement() {
     }
   }, [uid]);
 
+  // <<< BAGIAN DIHAPUS: useEffect untuk memeriksa alamat saat komponen dimuat
+  // useEffect(() => {
+  //   const checkUserAddress = async () => {
+  //     if (!uid) {
+  //       navigate("/login");
+  //       return;
+  //     }
+  //     try {
+  //       const alamatCollectionRef = collection(
+  //         firestore,
+  //         "users",
+  //         uid,
+  //         "alamat"
+  //       );
+  //       const alamatSnapshot = await getDocs(alamatCollectionRef);
+
+  //       if (alamatSnapshot.empty) {
+  //         toast.warn(
+  //           "Anda harus menambahkan alamat terlebih dahulu sebelum mengelola produk.",
+  //           {
+  //             onClose: () => navigate("/profile"),
+  //             autoClose: 5000,
+  //             position: "top-center",
+  //           }
+  //         );
+  //       }
+  //     } catch (err) {
+  //       console.error("Error checking user address sub-collection:", err);
+  //       toast.error("Gagal memeriksa data alamat pengguna: " + err.message);
+  //       setError("Gagal memeriksa data alamat pengguna: " + err.message);
+  //     }
+  //   };
+  //   checkUserAddress();
+  // }, [uid, navigate]);
+  // <<< AKHIR BAGIAN DIHAPUS
+
   // Jalankan fetchProducts saat komponen dimuat atau UID berubah
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
 
-  // Buka modal tambah produk
-  const openAddModal = () => {
-    setEditProduct(null);
-    setModalOpen(true);
-  };
+  // <<< BAGIAN DITAMBAHKAN: Fungsi baru untuk membuka modal tambah produk setelah validasi alamat
+  const handleOpenAddModal = async () => {
+    if (!uid) {
+      navigate("/login");
+      return;
+    }
+    try {
+      const alamatCollectionRef = collection(firestore, "users", uid, "alamat");
+      const alamatSnapshot = await getDocs(alamatCollectionRef);
 
-  // Buka modal edit produk dengan data produk
+      if (alamatSnapshot.empty) {
+        toast.warn(
+          "Anda harus menambahkan alamat terlebih dahulu sebelum bisa menambahkan produk.",
+          {
+            onClose: () => navigate("/profile"),
+            autoClose: 5000,
+            position: "top-center",
+          }
+        );
+      } else {
+        // Jika alamat ada, baru buka modal tambah produk
+        setEditProduct(null);
+        setModalOpen(true);
+      }
+    } catch (err) {
+      console.error(
+        "Error checking user address sub-collection for add product:",
+        err
+      );
+      toast.error(
+        "Gagal memeriksa data alamat pengguna untuk menambahkan produk: " +
+          err.message
+      );
+      setError("Gagal memeriksa data alamat pengguna: " + err.message);
+    }
+  };
+  // <<< AKHIR BAGIAN DITAMBAHKAN
+
+  // Buka modal edit produk dengan data produk (tidak perlu cek alamat untuk edit)
   const openEditModal = (product) => {
     setEditProduct(product);
     setModalOpen(true);
@@ -394,6 +469,7 @@ export default function ProductManagement() {
         // Update produk
         const productRef = doc(firestore, "barang", editProduct.id);
         await updateDoc(productRef, productData);
+        toast.success("Produk berhasil diperbarui!"); // Menggunakan toast.success
       } else {
         // Tambah produk baru
         const newBarangRef = await addDoc(
@@ -403,11 +479,13 @@ export default function ProductManagement() {
         await updateDoc(newBarangRef, {
           id_barang: newBarangRef.id,
         });
+        toast.success("Produk berhasil ditambahkan!"); // Menggunakan toast.success
       }
       closeModal();
       fetchProducts();
     } catch (err) {
       setError("Gagal menyimpan produk: " + err.message);
+      toast.error("Gagal menyimpan produk: " + err.message); // Menggunakan toast.error
     }
   };
 
@@ -418,8 +496,10 @@ export default function ProductManagement() {
       try {
         await deleteDoc(doc(firestore, "barang", id));
         fetchProducts();
+        toast.success("Produk berhasil dihapus!"); // Menggunakan toast.success
       } catch (err) {
         setError("Gagal menghapus produk: " + err.message);
+        toast.error("Gagal menghapus produk: " + err.message); // Menggunakan toast.error
       }
     }
   };
@@ -431,7 +511,9 @@ export default function ProductManagement() {
         background: "linear-gradient(135deg, #4a2362 0%, #08001a 100%)",
       }}
     >
-      {/* <Navbar /> */}
+      {/* <<< BAGIAN DITAMBAHKAN: Komponen ToastContainer */}
+      <ToastContainer />
+      {/* <<< AKHIR BAGIAN DITAMBAHKAN */}
       <Header />
       <div className="px-6 md:px-10 lg:px-20 py-8 max-w-7xl mx-auto">
         <div className="flex justify-between items-center mt-2 mb-6">
@@ -444,7 +526,8 @@ export default function ProductManagement() {
           </button>
           <h1 className="text-2xl font-bold text-white">Manajemen Produk</h1>
           <button
-            onClick={openAddModal}
+            // <<< BAGIAN DIUBAH: Menggunakan handleOpenAddModal
+            onClick={handleOpenAddModal}
             className="flex items-center gap-2 px-5 py-2 bg-purple-500 text-white rounded hover:bg-purple-800 transition"
           >
             + Tambah Produk
