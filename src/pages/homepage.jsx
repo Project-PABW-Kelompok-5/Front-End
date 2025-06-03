@@ -34,6 +34,7 @@ import {
 import * as LucideIcons from "lucide-react";
 import { toast, ToastContainer } from 'react-toastify'; // Import ToastContainer dan toast
 import 'react-toastify/dist/ReactToastify.css'; // Import CSS Toastify
+import Footer from "../components/footer";
 
 export default function HomePage() {
   const storedUser = JSON.parse(localStorage.getItem("user"));
@@ -594,57 +595,7 @@ export default function HomePage() {
           </div>
         )}
       </div>
-
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-8">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-              <h3 className="text-lg font-bold mb-4">Blessing Store</h3>
-              <p className="text-gray-400 text-sm">
-                Temukan berbagai produk berkualitas dengan harga terbaik.
-                Belanja mudah, aman, dan nyaman.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-lg font-bold mb-4">Layanan Pelanggan</h3>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li>
-                  <a href="#" className="hover:text-white">
-                    Bantuan
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white">
-                    Cara Berbelanja
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white">
-                    Pengiriman
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white">
-                    Pengembalian
-                  </a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="text-lg font-bold mb-4">Hubungi Kami</h3>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li>Email: cs@myshop.com</li>
-                <li>Telepon: 0800-123-4567</li>
-                <li>Jam Operasional: 08.00 - 20.00 WIB</li>
-              </ul>
-            </div>
-          </div>
-          <div className="mt-8 pt-4 border-t border-gray-700 text-center text-sm text-gray-400">
-            <p>© 2025 MyShop. Hak Cipta Dilindungi.</p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
