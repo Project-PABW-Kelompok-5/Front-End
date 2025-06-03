@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import AdminSidebar from '../../components/AdminSidebar.jsx';
 import axios from 'axios';
+import { PlusCircle, MinusCircle, Wallet, X, Plus, Minus } from 'lucide-react';
 
 const API_URL = 'http://localhost:3000/api/admin/users';
 
@@ -9,10 +10,12 @@ const ManageBalance = () => {
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showModalContent, setShowModalContent] = useState(false);
   const [saldoInput, setSaldoInput] = useState('');
   const [isAdding, setIsAdding] = useState(true);
-  const [showAlertDialog, setShowAlertDialog] = useState(false); 
-  const [dialogMessage, setDialogMessage] = useState('');       
+  const [showAlertDialog, setShowAlertDialog] = useState(false);
+  const [dialogMessage, setDialogMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const token = localStorage.getItem("token");
 
@@ -61,12 +64,17 @@ const ManageBalance = () => {
     setIsAdding(mode === 'add');
     setSaldoInput('');
     setIsModalOpen(true);
+    setTimeout(() => setShowModalContent(true), 50);
   };
 
   const closeModal = () => {
-    setIsModalOpen(false);
-    setSelectedUser(null);
-    setSaldoInput('');
+    setShowModalContent(false);
+    setTimeout(() => {
+      setIsModalOpen(false);
+      setSelectedUser(null);
+      setSaldoInput('');
+      setIsSubmitting(false);
+    }, 300);
   };
 
   const handleSubmit = async () => {
@@ -77,6 +85,7 @@ const ManageBalance = () => {
     }
 
     const amount = isAdding ? jumlah : -jumlah;
+    setIsSubmitting(true);
 
     try {
       const response = await axios.patch(`${API_URL}/${selectedUser.id}`, { amount }, {
@@ -100,6 +109,8 @@ const ManageBalance = () => {
       } else {
         showCustomDialog("Terjadi kesalahan saat menghubungi server.");
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -135,23 +146,25 @@ const ManageBalance = () => {
                     <td className="px-6 py-3 text-gray-800">{user.username}</td>
                     <td className="px-6 py-3 text-gray-800">{user.email}</td>
                     <td className="px-6 py-3 text-gray-800">
-                      {typeof user.saldo === 'number' ? `Rp ${user.saldo.toLocaleString('id-ID')}` : 'Rp 0'}
+                      {typeof user.saldo === 'number' ? `Rp ${user.saldo.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).replace('IDR', '').trim()}` : 'Rp 0'}
                     </td>
-                    <td className="px-6 py-3 space-x-2">
-                      <button
-                        onClick={() => openModal(user, 'add')}
-                        className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75"
-                        title="Tambah Saldo"
-                      >
-                        Tambah
-                      </button>
-                      <button
-                        onClick={() => openModal(user, 'subtract')}
-                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75"
-                        title="Kurangi Saldo"
-                      >
-                        Kurangi
-                      </button>
+                    <td className="px-6 py-3">
+                      <div className="flex items-center space-x-2"> {/* Modifikasi di sini */}
+                        <button
+                          onClick={() => openModal(user, 'add')}
+                          className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-75 flex items-center justify-center gap-1"
+                          title="Tambah Saldo"
+                        >
+                          <Plus size={16} /> Tambah
+                        </button>
+                        <button
+                          onClick={() => openModal(user, 'subtract')}
+                          className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75 flex items-center justify-center gap-1"
+                          title="Kurangi Saldo"
+                        >
+                          <Minus size={16} /> Kurangi
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -168,30 +181,46 @@ const ManageBalance = () => {
 
         {isModalOpen && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm transform transition-all duration-300 scale-100 opacity-100">
-              <h2 className="text-xl font-semibold mb-4 text-gray-800">
+            <div
+              className={`bg-white p-6 rounded-lg shadow-xl w-full max-w-sm relative
+                          transform transition-all duration-300 ease-out
+                          ${showModalContent ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
+            >
+              <button
+                onClick={closeModal}
+                className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
+                aria-label="Tutup modal"
+              >
+                <X size={20} />
+              </button>
+              <h2 className="text-xl font-semibold mb-4 text-gray-800 flex items-center gap-2">
+                {isAdding ? <PlusCircle className="text-green-500" size={24} /> : <MinusCircle className="text-red-500" size={24} />}
                 {isAdding ? "Tambah" : "Kurangi"} Saldo untuk {selectedUser?.username}
               </h2>
+              <p className="text-sm text-gray-600 mb-4">
+                Saldo saat ini: {typeof selectedUser?.saldo === 'number' ? `Rp ${selectedUser.saldo.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0 }).replace('IDR', '').trim()}` : 'Rp 0'}
+              </p>
               <input
                 type="number"
-                placeholder="Jumlah saldo"
+                placeholder="Jumlah saldo (contoh: 100000)"
                 value={saldoInput}
                 onChange={(e) => setSaldoInput(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 mb-4 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 mb-4 focus:ring-blue-500 focus:border-blue-500 text-gray-800 placeholder-gray-400"
                 required
               />
               <div className="flex justify-end space-x-2">
                 <button
                   onClick={closeModal}
-                  className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 transition duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75"
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-75"
                 >
                   Batal
                 </button>
                 <button
                   onClick={handleSubmit}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isSubmitting}
                 >
-                  Simpan
+                  {isSubmitting ? 'Menyimpan...' : 'Simpan'}
                 </button>
               </div>
             </div>

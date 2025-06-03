@@ -1,17 +1,17 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "../assets/dashboardAdmin/logo.png";
-import { auth } from "../firebase";
+import { auth } from "../firebase"; // HANYA import auth
 import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
 } from "firebase/auth";
-import { toast } from "react-toastify"; // Example for Toastify
+import { toast } from "react-toastify";
 
 const RegisterPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState(""); // New state for confirmation
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [username, setUsername] = useState("");
   const [noTelepon, setNoTelepon] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -23,7 +23,7 @@ const RegisterPage = () => {
   };
 
   const isValidPhoneNumber = (phoneNumber) => {
-    const regex = /^\+?[0-9]{7,15}$/; // Basic regex for 7-15 digits, optional leading '+'
+    const regex = /^\+?[0-9]{7,15}$/;
     return regex.test(phoneNumber);
   };
 
@@ -31,22 +31,23 @@ const RegisterPage = () => {
     e.preventDefault();
 
     if (!email || !password || !confirmPassword || !username || !noTelepon) {
-      toast.error("All fields are required.");
+      toast.error("Semua kolom wajib diisi.");
       return;
     }
 
     if (!isValidEmail(email)) {
-      toast.error("Invalid email format.");
+      toast.error("Format email tidak valid.");
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error("Passwords do not match.");
+      toast.error("Konfirmasi password tidak cocok.");
       return;
+    {/* // ... (kode validasi lainnya) ... */}
     }
 
     if (!isValidPhoneNumber(noTelepon)) {
-      toast.error("Invalid phone number format. Please use 7-15 digits.");
+      toast.error("Format nomor telepon tidak valid. Gunakan 7-15 digit.");
       return;
     }
 
@@ -62,39 +63,41 @@ const RegisterPage = () => {
 
       await sendEmailVerification(user);
 
-      toast.success("Registration successful! Please check your email for verification.");
-
-      // Using sessionStorage for temporary data
-      sessionStorage.setItem(
-        "pendingUser",
+      // --- PERUBAHAN UTAMA DI SINI ---
+      // Simpan data tambahan di localStorage, bukan sessionStorage
+      localStorage.setItem(
+        "pendingUserForFirestore",
         JSON.stringify({
-          username,
-          email,
-          noTelepon,
           uid: user.uid,
+          username: username,
+          email: email, // Simpan email juga untuk konsistensi
+          noTelepon: noTelepon,
         })
       );
+      // --- AKHIR PERUBAHAN ---
 
+      toast.success("Registrasi berhasil! Silakan cek email Anda untuk verifikasi.");
       navigate("/verifikasi-email");
     } catch (error) {
       console.error("Firebase Error:", error.message);
-      let errorMessage = "Registration failed. Please try again.";
+      let errorMessage = "Registrasi gagal. Silakan coba lagi.";
       if (error.code === "auth/email-already-in-use") {
-        errorMessage = "This email is already registered. Please use another email or login.";
+        errorMessage = "Email ini sudah terdaftar. Silakan gunakan email lain atau login.";
       } else if (error.code === "auth/weak-password") {
-        errorMessage = "Password is too weak. It should be at least 6 characters and ideally include a mix of uppercase, lowercase, numbers, and symbols.";
+        errorMessage = "Password terlalu lemah. Seharusnya minimal 6 karakter dan idealnya mencakup campuran huruf besar, huruf kecil, angka, dan simbol.";
       } else if (error.message) {
         errorMessage = error.message;
       }
-      toast.error("Registration failed: " + errorMessage);
+      toast.error("Registrasi gagal: " + errorMessage);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
+    // ... (JSX untuk form register, tidak ada perubahan di sini) ...
     <div className="relative flex flex-col items-center justify-center min-h-screen bg-white overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-r from-[#753799] to-[#100428]  z-0" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#753799] to-[#100428]  z-0" />
       <div
         className="flex flex-col items-center justify-center w-full z-20 p-4 sm:p-6 md:p-8 lg:p-10"
         style={{ minHeight: '100vh' }}
@@ -121,10 +124,10 @@ const RegisterPage = () => {
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
+              placeholder="Masukkan email Anda"
               required
               className="w-full p-2 sm:p-2.5 rounded-lg border border-gray-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isLoading} // Disable input while loading
+              disabled={isLoading}
             />
           </div>
 
@@ -135,7 +138,7 @@ const RegisterPage = () => {
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
+              placeholder="Masukkan password Anda"
               required
               className="w-full p-2 sm:p-2.5 rounded-lg border border-gray-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isLoading}
@@ -143,13 +146,13 @@ const RegisterPage = () => {
           </div>
 
           <div className="mb-3">
-            <label htmlFor="confirmPassword" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+            <label htmlFor="confirmPassword" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Konfirmasi Password</label>
             <input
               type="password"
               id="confirmPassword"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm your password"
+              placeholder="Konfirmasi password Anda"
               required
               className="w-full p-2 sm:p-2.5 rounded-lg border border-gray-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isLoading}
@@ -163,7 +166,7 @@ const RegisterPage = () => {
               id="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your username"
+              placeholder="Masukkan username Anda"
               required
               className="w-full p-2 sm:p-2.5 rounded-lg border border-gray-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isLoading}
@@ -171,13 +174,13 @@ const RegisterPage = () => {
           </div>
 
           <div className="mb-4">
-            <label htmlFor="phone" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+            <label htmlFor="phone" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Nomor Telepon</label>
             <input
-              type="tel" // Changed to type="tel"
+              type="tel"
               id="phone"
               value={noTelepon}
               onChange={(e) => setNoTelepon(e.target.value)}
-              placeholder="Enter your phone number (e.g., +62812...)"
+              placeholder="Masukkan nomor telepon Anda (misal: +62812...)"
               required
               className="w-full p-2 sm:p-2.5 rounded-lg border border-gray-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={isLoading}
@@ -189,11 +192,11 @@ const RegisterPage = () => {
             className="w-full py-2.5 bg-purple-600 text-white rounded-full text-base font-semibold hover:bg-purple-700 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isLoading}
           >
-            {isLoading ? "Registering..." : "Register"}
+            {isLoading ? "Mendaftar..." : "Daftar"}
           </button>
 
           <p className="text-center mt-3 text-xs sm:text-sm text-gray-600">
-            Already have an account?{" "}
+            Sudah punya akun?{" "}
             <a
               href="/login"
               className="text-purple-700 hover:underline cursor-pointer"

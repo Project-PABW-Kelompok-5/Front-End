@@ -20,12 +20,12 @@ const KurirSidebar = ({ activePage }) => {
       to="/kurir/dashboard" 
       active={activePage === "Dashboard"} 
       />
-      <SidebarItem 
+      {/* <SidebarItem 
       icon={<Package size={20} color="white" />} 
       text={<span style={{ color: "white" }}>barang</span>} 
       to="/kurir/barang" 
       active={activePage === "barang"} 
-      />
+      /> */}
     </Sidebar>
     );
 };

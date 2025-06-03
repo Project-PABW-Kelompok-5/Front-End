@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, PlusCircle, UserCog, X } from "lucide-react";
 import AdminSidebar from '../../components/AdminSidebar.jsx';
 import axios from 'axios';
 
@@ -9,9 +9,11 @@ const ManageCourier = () => {
   const [couriers, setCouriers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showModalContent, setShowModalContent] = useState(false);
   const [newCourier, setNewCourier] = useState({ nama: '', email: '', no_telepon: '', password: '' });
   const [editingCourierId, setEditingCourierId] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [showAlertDialog, setShowAlertDialog] = useState(false);
   const [dialogMessage, setDialogMessage] = useState('');
@@ -61,17 +63,23 @@ const ManageCourier = () => {
       setIsEditing(false);
     }
     setShowModal(true);
+    setTimeout(() => setShowModalContent(true), 50);
   };
 
   const closeModal = () => {
-    setShowModal(false);
-    setNewCourier({ nama: '', email: '', no_telepon: '', password: '' });
-    setEditingCourierId(null);
-    setIsEditing(false);
+    setShowModalContent(false);
+    setTimeout(() => {
+      setShowModal(false);
+      setNewCourier({ nama: '', email: '', no_telepon: '', password: '' });
+      setEditingCourierId(null);
+      setIsEditing(false);
+      setIsSubmitting(false);
+    }, 300);
   };
 
   const handleSubmitCourier = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     try {
       if (isEditing) {
@@ -101,6 +109,8 @@ const ManageCourier = () => {
     } catch (err) {
       console.error("Error saat menyimpan kurir:", err.response ? err.response.data : err.message);
       showCustomDialog(`Gagal menyimpan kurir: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -198,19 +208,33 @@ const ManageCourier = () => {
 
         {showModal && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl transform transition-all duration-300 scale-100 opacity-100">
-              <h2 className="text-xl font-semibold mb-4 text-gray-800">
-                {isEditing ? "Edit Kurir" : "Tambah Kurir"}
+            <div className={`bg-white rounded-xl p-6 w-full max-w-md shadow-xl relative
+                          transform transition-all duration-300 ease-out
+                          ${showModalContent ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+              <button
+                onClick={closeModal}
+                className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
+                aria-label="Tutup modal"
+              >
+                <X size={20} />
+              </button>
+              <h2 className="text-xl font-semibold mb-6 text-gray-800 flex items-center gap-2">
+                {isEditing ? (
+                  <UserCog size={24} className="text-blue-600" />
+                ) : (
+                  <PlusCircle size={24} className="text-green-600" />
+                )}
+                {isEditing ? "Edit Kurir" : "Tambah Kurir Baru"}
               </h2>
               <form onSubmit={handleSubmitCourier}>
                 <div className="space-y-4">
                   <input
                     type="text"
                     name="nama"
-                    placeholder="Nama"
+                    placeholder="Nama Lengkap"
                     value={newCourier.nama}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-800 placeholder-gray-400"
                     required
                   />
                   <input
@@ -219,51 +243,52 @@ const ManageCourier = () => {
                     placeholder="Email"
                     value={newCourier.email}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-800 placeholder-gray-400"
                     required
                   />
                   <input
                     type="text"
                     name="no_telepon"
-                    placeholder="No Telepon"
+                    placeholder="Nomor Telepon (misal: 081234567890)"
                     value={newCourier.no_telepon}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-800 placeholder-gray-400"
                     required
                   />
                   {!isEditing ? (
                     <input
                       type="password"
                       name="password"
-                      placeholder="Password"
+                      placeholder="Password (minimal 6 karakter)"
                       value={newCourier.password}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-800 placeholder-gray-400"
                       required
                     />
                   ) : (
                     <input
                       type="password"
                       name="password"
-                      placeholder="Ubah Password (opsional)"
+                      placeholder="Ubah Password (kosongkan jika tidak ingin diubah)"
                       value={newCourier.password}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-800 placeholder-gray-400"
                     />
                   )}
                   <div className="flex justify-end space-x-3 mt-6">
                     <button
                       type="button"
                       onClick={closeModal}
-                      className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 transition duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75"
+                      className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-75"
                     >
                       Batal
                     </button>
                     <button
                       type="submit"
-                      className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75"
+                      className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={isSubmitting}
                     >
-                      {isEditing ? "Simpan Perubahan" : "Tambah Kurir"}
+                      {isSubmitting ? (isEditing ? "Menyimpan..." : "Menambahkan...") : (isEditing ? "Simpan Perubahan" : "Tambah Kurir")}
                     </button>
                   </div>
                 </div>
@@ -274,13 +299,15 @@ const ManageCourier = () => {
 
         {showConfirmModal && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
-              <h3 className="text-lg font-semibold mb-4 text-gray-800">Konfirmasi Penghapusan</h3>
-              <p className="mb-6 text-gray-700">Apakah Anda yakin ingin menghapus kurir ini?</p>
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm transform transition-all duration-300 scale-100 opacity-100">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
+                <Trash2 size={20} className="text-red-600" /> Konfirmasi Penghapusan
+              </h3>
+              <p className="mb-6 text-gray-700">Apakah Anda yakin ingin menghapus kurir ini? Aksi ini tidak dapat dibatalkan.</p>
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => setShowConfirmModal(false)}
-                  className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 transition duration-200"
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition duration-200"
                 >
                   Batal
                 </button>
@@ -297,7 +324,7 @@ const ManageCourier = () => {
 
         {showAlertDialog && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 p-4">
-            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
+            <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm transform transition-all duration-300 scale-100 opacity-100">
               <h3 className="text-lg font-semibold mb-4 text-gray-800">Informasi</h3>
               <p className="mb-6 text-gray-700">{dialogMessage}</p>
               <div className="flex justify-end">

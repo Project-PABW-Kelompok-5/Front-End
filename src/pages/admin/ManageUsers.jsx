@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, UserPlus, UserCog, X } from "lucide-react";
 import AdminSidebar from "../../components/AdminSidebar.jsx";
 import axios from 'axios';
-import { getAuth, createUserWithEmailAndPassword, sendEmailVerification, deleteUser } from "firebase/auth";
+import { getAuth, createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { app } from "../../firebase";
 
 const API_USERS_URL = "http://localhost:3000/api/admin/users";
@@ -10,9 +10,11 @@ const API_USERS_URL = "http://localhost:3000/api/admin/users";
 const ManageUsers = () => {
   const [users, setUsers] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [showModalContent, setShowModalContent] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
   const [editUserId, setEditUserId] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [newUser, setNewUser] = useState({
     name: "",
@@ -71,17 +73,21 @@ const ManageUsers = () => {
   }, []);
 
   const resetModalState = () => {
-    setNewUser({
-      name: "",
-      email: "",
-      username: "",
-      password: "",
-      no_telepon: "",
-      role: "User",
-    });
-    setShowModal(false);
-    setIsEditMode(false);
-    setEditUserId(null);
+    setShowModalContent(false);
+    setTimeout(() => {
+      setNewUser({
+        name: "",
+        email: "",
+        username: "",
+        password: "",
+        no_telepon: "",
+        role: "User",
+      });
+      setShowModal(false);
+      setIsEditMode(false);
+      setEditUserId(null);
+      setIsSubmitting(false);
+    }, 300);
   };
 
   const handleChange = (e) => {
@@ -91,15 +97,16 @@ const ManageUsers = () => {
 
   const handleSubmitForm = async (e) => {
     e.preventDefault();
+    setIsSubmitting(true);
     if (isEditMode) {
       await handleUpdateUser();
     } else {
       await handleAddUser();
     }
+    setIsSubmitting(false);
   };
 
   const handleAddUser = async () => {
-    setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -155,8 +162,6 @@ const ManageUsers = () => {
         errorMessage = error.message;
       }
       showCustomDialog(errorMessage);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -172,10 +177,10 @@ const ManageUsers = () => {
       role: user.role,
     });
     setShowModal(true);
+    setTimeout(() => setShowModalContent(true), 50);
   };
 
   const handleUpdateUser = async () => {
-    setLoading(true);
     try {
       const updatedUser = { ...newUser };
       if (!updatedUser.password) {
@@ -204,8 +209,6 @@ const ManageUsers = () => {
     } catch (error) {
       console.error("Kesalahan saat memperbarui pengguna:", error);
       showCustomDialog(`Gagal memperbarui pengguna: ${error.response?.data?.message || error.message}`);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -252,7 +255,7 @@ const ManageUsers = () => {
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-semibold text-gray-800">Manajemen Pengguna</h1>
           <button
-            onClick={() => { setIsEditMode(false); resetModalState(); setShowModal(true); }}
+            onClick={() => { setIsEditMode(false); setNewUser({ name: "", email: "", username: "", password: "", no_telepon: "", role: "User" }); setShowModal(true); setTimeout(() => setShowModalContent(true), 50); }}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md hover:bg-blue-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75"
           >
             + Tambah Pengguna
@@ -323,9 +326,23 @@ const ManageUsers = () => {
 
         {showModal && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl transform transition-all duration-300 scale-100 opacity-100">
-              <h2 className="text-xl font-semibold mb-4 text-gray-800">
-                {isEditMode ? "Edit Pengguna" : "Tambah Pengguna"}
+            <div className={`bg-white rounded-xl p-6 w-full max-w-md shadow-xl relative
+                          transform transition-all duration-300 ease-out
+                          ${showModalContent ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+              <button
+                onClick={resetModalState}
+                className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
+                aria-label="Tutup modal"
+              >
+                <X size={20} />
+              </button>
+              <h2 className="text-xl font-semibold mb-6 text-gray-800 flex items-center gap-2">
+                {isEditMode ? (
+                  <UserCog size={24} className="text-blue-600" />
+                ) : (
+                  <UserPlus size={24} className="text-green-600" />
+                )}
+                {isEditMode ? "Edit Pengguna" : "Tambah Pengguna Baru"}
               </h2>
               <form onSubmit={handleSubmitForm}>
                 <div className="space-y-4">
@@ -335,7 +352,7 @@ const ManageUsers = () => {
                     placeholder="Nama Lengkap"
                     value={newUser.name}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-800 placeholder-gray-400"
                     required
                   />
 
@@ -345,9 +362,9 @@ const ManageUsers = () => {
                     placeholder="Email"
                     value={newUser.email}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 border rounded-lg ${
+                    className={`w-full px-4 py-2 border border-gray-300 rounded-lg ${
                       isEditMode ? "bg-gray-100 cursor-not-allowed" : ""
-                    } focus:ring-blue-500 focus:border-blue-500`}
+                    } focus:ring-blue-500 focus:border-blue-500 text-gray-800 placeholder-gray-400`}
                     disabled={isEditMode}
                     required={!isEditMode}
                   />
@@ -358,7 +375,7 @@ const ManageUsers = () => {
                     placeholder="Username"
                     value={newUser.username}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-800 placeholder-gray-400"
                     required
                   />
 
@@ -367,22 +384,22 @@ const ManageUsers = () => {
                     name="password"
                     placeholder={
                       isEditMode
-                        ? "Kosongkan jika tidak ingin mengubah password"
-                        : "Password"
+                        ? "Ubah Password (kosongkan jika tidak ingin diubah)"
+                        : "Password (minimal 6 karakter)"
                     }
                     value={newUser.password}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-800 placeholder-gray-400"
                     required={!isEditMode}
                   />
 
                   <input
                     type="tel"
                     name="no_telepon"
-                    placeholder="Nomor Telepon"
+                    placeholder="Nomor Telepon (misal: 081234567890)"
                     value={newUser.no_telepon}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-800 placeholder-gray-400"
                     required
                   />
 
@@ -390,7 +407,7 @@ const ManageUsers = () => {
                     name="role"
                     value={newUser.role}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-800"
                   >
                     <option value="User">User</option>
                     <option value="Admin">Admin</option>
@@ -400,17 +417,17 @@ const ManageUsers = () => {
                     <button
                       type="button"
                       onClick={resetModalState}
-                      className="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 transition duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75"
+                      className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 hover:bg-gray-300 transition duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-75"
                     >
                       Batal
                     </button>
 
                     <button
                       type="submit"
-                      className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75"
-                      disabled={loading}
+                      className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={isSubmitting}
                     >
-                      {loading ? "Memproses..." : (isEditMode ? "Update Pengguna" : "Tambah Pengguna")}
+                      {isSubmitting ? "Memproses..." : (isEditMode ? "Update Pengguna" : "Tambah Pengguna")}
                     </button>
                   </div>
                 </div>
@@ -422,21 +439,23 @@ const ManageUsers = () => {
         {showConfirmModal && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex justify-center items-center z-50 p-4">
             <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm">
-              <h3 className="text-lg font-semibold mb-4 text-gray-800">Konfirmasi Penghapusan</h3>
+              <h3 className="text-lg font-semibold mb-4 text-gray-800 flex items-center gap-2">
+                <Trash2 size={20} className="text-red-600" /> Konfirmasi Penghapusan
+              </h3>
               <p className="mb-6 text-gray-700">Apakah Anda yakin ingin menghapus pengguna ini? Tindakan ini tidak dapat dibatalkan.</p>
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => setShowConfirmModal(false)}
-                  className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 transition duration-200"
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition duration-200"
                 >
                   Batal
                 </button>
                 <button
                   onClick={confirmDelete}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-200"
-                  disabled={loading}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isSubmitting}
                 >
-                  {loading ? "Menghapus..." : "Hapus"}
+                  {isSubmitting ? "Menghapus..." : "Hapus"}
                 </button>
               </div>
             </div>
