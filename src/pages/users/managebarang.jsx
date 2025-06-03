@@ -14,6 +14,7 @@ import {
 import { firestore } from "../../firebase";
 import * as LucideIcons from "lucide-react";
 import { Pencil, Trash2, HomeIcon } from "lucide-react";
+import Header from "../../components/header";
 
 // Modal component for adding/editing product
 function ProductModal({ isOpen, onClose, onSave, initialData }) {
@@ -431,6 +432,7 @@ export default function ProductManagement() {
       }}
     >
       {/* <Navbar /> */}
+      <Header />
       <div className="px-6 md:px-10 lg:px-20 py-8 max-w-7xl mx-auto">
         <div className="flex justify-between items-center mt-2 mb-6">
           <button

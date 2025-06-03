@@ -348,13 +348,43 @@ export default function HomePage() {
             </button>
             <button
               className={`cursor-pointer px-4 py-2 rounded-full whitespace-nowrap ${
-                filterCategory === "Rumah dan Dapur"
+                filterCategory === "Rumah & Dapur"
                   ? "bg-[#753799] text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
-              onClick={() => setFilterCategory("Rumah dan Dapur")}
+              onClick={() => setFilterCategory("Rumah & Dapur")}
             >
-              Rumah dan Dapur
+              Rumah & Dapur
+            </button>
+            <button
+              className={`cursor-pointer px-4 py-2 rounded-full whitespace-nowrap ${
+                filterCategory === "Fashion"
+                  ? "bg-[#753799] text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+              onClick={() => setFilterCategory("Fashion")}
+            >
+              Fashion
+            </button>
+            <button
+              className={`cursor-pointer px-4 py-2 rounded-full whitespace-nowrap ${
+                filterCategory === "Hobi"
+                  ? "bg-[#753799] text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+              onClick={() => setFilterCategory("Hobi")}
+            >
+              Hobi
+            </button>
+            <button
+              className={`cursor-pointer px-4 py-2 rounded-full whitespace-nowrap ${
+                filterCategory === "Olahraga"
+                  ? "bg-[#753799] text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+              onClick={() => setFilterCategory("Olahraga")}
+            >
+              Olahraga
             </button>
           </div>
         </div>
@@ -518,7 +548,7 @@ export default function HomePage() {
                     {previewProduct.nama_barang}
                   </h3>
                   {/* Rating and reviews, pastikan data ada di previewProduct */}
-                  <div className="flex items-center mb-3">
+                  {/* <div className="flex items-center mb-3">
                     <div className="flex items-center">
                       <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
                       <span className="ml-1 text-sm font-medium">
@@ -529,7 +559,7 @@ export default function HomePage() {
                     <span className="text-xs text-gray-500">
                       {previewProduct.reviewCount || 0} ulasan
                     </span>
-                  </div>
+                  </div> */}
                   <p className="text-sm text-gray-600 mb-6">
                     {previewProduct.deskripsi}
                   </p>

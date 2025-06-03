@@ -17,11 +17,8 @@ const Header = () => {
     case "/checkout":
       pageTitle = "Checkout";
       break;
-    case "/myOrder":
-      pageTitle = "Profil Pengguna";
-      break;
-    case "/wallet":
-      pageTitle = "wallet";
+    case "/managebarang":
+      pageTitle = "Manage Barang";
       break;
   }
 
