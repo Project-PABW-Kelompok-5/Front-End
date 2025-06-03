@@ -18,13 +18,14 @@ import {
   collection,
   query,
   where,
-  getDocs,
+  onSnapshot,
   doc,
   updateDoc,
   getDoc,
+  runTransaction
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
-import { firestore, auth } from "../../firebase";
+import { firestore, auth, db } from "../../firebase";
 
 function formatFirestoreTimestampToDate(timestamp) {
   if (!timestamp || typeof timestamp.toDate !== "function") {
@@ -77,46 +78,67 @@ const HistoryPenjualan = () => {
   const ordersCollectionPath = "orders";
 
   const fetchOrders = useCallback(async () => {
-    if (!userId || !firestore) {
-      if (!userId) {
-        setOrders([]);
-        setIsLoading(false);
-      }
-      if (!firestore && userId) {
-        setError("Layanan Firestore tidak tersedia untuk fetchOrders.");
-        setIsLoading(false);
-        setOrders([]);
-      }
-      return;
+  if (!userId || !firestore) {
+    if (!userId) {
+      setOrders([]);
+      setIsLoading(false);
     }
+    if (!firestore && userId) {
+      setError("Layanan Firestore tidak tersedia untuk fetchOrders.");
+      setIsLoading(false);
+      setOrders([]);
+    }
+    return;
+  }
 
-    setIsLoading(true);
-    setError(null);
+  setIsLoading(true);
+  setError(null);
+
+  const q = query(
+    collection(firestore, ordersCollectionPath),
+    where("item_ids_penjual", "array-contains", userId)
+  );
+
+  // Menggunakan onSnapshot untuk mendengarkan perubahan secara real-time
+  const unsubscribe = onSnapshot(q, (querySnapshot) => {
     try {
-      const q = query(
-        collection(firestore, ordersCollectionPath),
-        where("item_ids_penjual", "array-contains", userId)
-      );
-      const querySnapshot = await getDocs(q);
       const fetchedOrdersData = querySnapshot.docs.map((docSnapshot) => ({
         id: docSnapshot.id,
         ...docSnapshot.data(),
       }));
       setOrders(fetchedOrdersData);
+      setIsLoading(false); // Pindahkan isLoading ke sini karena data akan selalu di-update
+      setError(null); // Reset error jika sebelumnya ada
     } catch (err) {
-      console.error("Error mengambil dokumen pesanan: ", err);
+      console.error("Error memproses snapshot pesanan: ", err);
       setError(err);
       setOrders([]);
-    } finally {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, (err) => { // Callback untuk error pada snapshot
+    console.error("Error mendengarkan pesanan: ", err);
+    setError(err);
+    setOrders([]);
+    setIsLoading(false);
+  });
 
-  useEffect(() => {
-    if (userId && firestore) {
-      fetchOrders();
+  // onSnapshot mengembalikan fungsi 'unsubscribe'.
+  // Ini penting untuk membersihkan listener saat komponen tidak lagi digunakan
+  // agar tidak terjadi kebocoran memori atau listening yang tidak perlu.
+  return unsubscribe;
+
+}, [userId, ordersCollectionPath]); 
+useEffect(() => {
+  let unsubscribe;
+  if (userId && firestore) {
+    unsubscribe = fetchOrders(); 
+  }
+  return () => {
+    if (unsubscribe) {
+      unsubscribe(); 
     }
-  }, [userId, fetchOrders]);
+  };
+}, [userId, fetchOrders]);
 
   const handleChangeItemStatus = useCallback(
     async (orderId, productIdToUpdate, newStatus) => {
@@ -170,6 +192,77 @@ const HistoryPenjualan = () => {
     []
   );
 
+  async function handleCancelItem(item, setIsUpdatingItem) {
+  const orderId = item.orderId;
+  const productIdToCancel = item.productId; 
+  const qtyToReturn = item.qty;
+  const userId = item.id_pembeli; 
+
+  setIsUpdatingItem(`${productIdToCancel}_${KNOWN_STATUSES.TRANSAKSI_GAGAL}`);
+
+  try {
+    await runTransaction(db, async (transaction) => {
+      const orderRef = doc(db, 'orders', orderId);
+      const barangRef = doc(db, 'barang', productIdToCancel); 
+      const userRef = doc(db, 'users', userId); 
+
+      const orderDoc = await transaction.get(orderRef);
+      const barangDoc = await transaction.get(barangRef);
+      const userDoc = await transaction.get(userRef);
+
+      if (!orderDoc.exists()) {
+        throw new Error("Dokumen order tidak ditemukan!");
+      }
+      if (!barangDoc.exists()) {
+        throw new Error(`Dokumen barang dengan ID ${productIdToCancel} tidak ditemukan!`);
+      }
+      if (!userDoc.exists()) {
+        throw new Error(`Dokumen user dengan ID ${userId} tidak ditemukan!`);
+      }
+
+      const currentOrderData = orderDoc.data();
+      const currentBarangData = barangDoc.data();
+      const currentUserData = userDoc.data();
+
+      const updatedItems = currentOrderData.items.map(i => {
+        if (i.productId === productIdToCancel) {
+          return { ...i, status_barang: KNOWN_STATUSES.TRANSAKSI_GAGAL };
+        }
+        return i;
+      });
+
+      transaction.update(orderRef, {
+        items: updatedItems,
+      });
+
+      const newStock = (currentBarangData.stok || 0) + qtyToReturn;
+      transaction.update(barangRef, {
+        stok: newStock, 
+      });
+
+      const currentBalance = currentUserData.saldo || 0; 
+      const itemPrice = item.harga || 0;
+      const amountToRefund = itemPrice * qtyToReturn;
+
+      const newBalance = currentBalance + amountToRefund;
+      transaction.update(userRef, {
+        saldo: newBalance,
+      });
+
+      console.log(`Logika pengembalian saldo untuk user ${userId} sejumlah ${amountToRefund} telah dieksekusi.`);
+    });
+
+    console.log(`Pembatalan item ${productIdToCancel} dari order ${orderId} berhasil.`);
+    console.log("Item berhasil dibatalkan:", item);
+
+  } catch (error) {
+    console.error("Gagal membatalkan item:", error);
+    alert(`Gagal membatalkan pesanan: ${error.message || error}`);
+  } finally {
+    setIsUpdatingItem(null); 
+  }
+}
+
   const processedItems = useMemo(() => {
     let allSellerItems = [];
     orders.forEach((order) => {
@@ -180,6 +273,9 @@ const HistoryPenjualan = () => {
             allSellerItems.push({
               ...item,
               orderId: order.id,
+              productId: item.productId || item._id || item.id_barang,
+              id_pembeli: order.userId,
+              qty: item.qty || 1,
               orderDate: formatFirestoreTimestampToDate(order.createdAt),
               itemStatus: item.status_barang || "baru",
             });
@@ -251,6 +347,7 @@ const HistoryPenjualan = () => {
         return <CheckCircle className="h-5 w-5 text-green-700" />;
       case "dikomplain":
       case "dibatalkan":
+      case "transaksi gagal":
         return <AlertCircle className="h-5 w-5 text-red-500" />;
       default:
         return <Package className="h-5 w-5 text-gray-500" />;
@@ -326,6 +423,13 @@ const HistoryPenjualan = () => {
             Dikomplain{" "}
           </span>
         );
+      case "transaksi gagal":
+        return (
+          <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
+            {" "}
+            Transaksi Gagal{" "}
+          </span>
+        );
       default:
         return (
           <span className="px-2 py-1 text-xs font-medium rounded-full border border-gray-300">
@@ -349,6 +453,7 @@ const HistoryPenjualan = () => {
     DITERIMA_PEMBELI: "diterima pembeli",
     DIKOMPLAIN: "dikomplain",
     DIBATALKAN: "dibatalkan",
+    TRANSAKSI_GAGAL: "transaksi gagal",
   };
 
   if (isLoading && orders.length === 0) {
@@ -671,6 +776,9 @@ const HistoryPenjualan = () => {
                 item.status_barang === KNOWN_STATUSES.DIPROSES_PENJUAL;
               const showPanggilKurirUntukPengembalian =
                 item.status_barang === KNOWN_STATUSES.DIKOMPLAIN;
+              const showCancelButton =
+                itemStatusLower === KNOWN_STATUSES.MENUNGGU_PENJUAL ||
+                itemStatusLower === KNOWN_STATUSES.DIPROSES_PENJUAL;
 
               return (
                 <div
@@ -745,6 +853,34 @@ const HistoryPenjualan = () => {
                             : "Proses Pesanan"}
                         </button>
                       )}
+                      {
+                      showCancelButton && (
+                        <button
+                          onClick={() =>
+                            handleCancelItem(
+                              item,
+                              setIsUpdatingItem
+                            )
+                          }
+                          disabled={
+                            isUpdatingItem ===
+                            `${item.productId}_${KNOWN_STATUSES.TRANSAKSI_GAGAL}`
+                          }
+                          className={`py-1 px-3 text-xs rounded-full transition-colors w-full mt-1
+                                        ${
+                                          isUpdatingItem ===
+                                          `${item.productId}_${KNOWN_STATUSES.TRANSAKSI_GAGAL}`
+                                            ? "bg-gray-400 text-gray-700 cursor-not-allowed"
+                                            : "bg-red-600 hover:bg-red-700 text-white"
+                                        }`}
+                        >
+                          {isUpdatingItem ===
+                          `${item.productId}_${KNOWN_STATUSES.TRANSAKSI_GAGAL}`
+                            ? "Membatalkan..."
+                            : "Batalkan Pesanan"}
+                        </button>
+                      )
+                    }
                       {showPanggilKurirUntukJemput && (
                         <button
                           onClick={() =>
