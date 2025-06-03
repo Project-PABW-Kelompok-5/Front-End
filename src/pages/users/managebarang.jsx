@@ -13,7 +13,7 @@ import {
 // import Navbar from "../../components/header";
 import { firestore } from "../../firebase";
 import * as LucideIcons from "lucide-react";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, HomeIcon } from "lucide-react";
 
 // Modal component for adding/editing product
 function ProductModal({ isOpen, onClose, onSave, initialData }) {
@@ -435,14 +435,15 @@ export default function ProductManagement() {
         <div className="flex justify-between items-center mt-2 mb-6">
           <button
             onClick={() => navigate(-1)}
-            className="mb-6 px-5 py-2 bg-purple-900 text-white rounded hover:bg-gray-700 transition"
+            className="mb-6 px-5 py-2 flex bg-purple-800 text-white rounded hover:bg-purple-900 transition"
           >
-            &larr; Kembali
+            <HomeIcon className="h-6 w-6 mr-2 text-white group-hover:text-purple-300 transition-colors" />{" "}
+            <span>Kembali</span>
           </button>
           <h1 className="text-2xl font-bold text-white">Manajemen Produk</h1>
           <button
             onClick={openAddModal}
-            className="flex items-center gap-2 px-5 py-2 bg-purple-500 text-white rounded hover:bg-gray-800 transition"
+            className="flex items-center gap-2 px-5 py-2 bg-purple-500 text-white rounded hover:bg-purple-800 transition"
           >
             + Tambah Produk
           </button>
@@ -502,26 +503,26 @@ export default function ProductManagement() {
                       key={product.id}
                       className="hover:bg-gray-50 transition-colors "
                     >
-                      <td className="px-4 py-3  font-semibold  text-white bg-purple-500">
+                      <td className="px-4 py-3  font-semibold  text-black bg-gray-300">
                         <div className="flex items-center gap-2 ">
                           {/* Render ikon produk */}
                           <ProductIconComponent
                             size={28}
-                            className="text-white"
+                            className="text-black"
                           />
                           <span>{product.nama_barang}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-white bg-purple-500">
+                      <td className="px-4 py-3 text-black bg-gray-300">
                         {product.kategori}
                       </td>
-                      <td className="px-4 py-3  text-white bg-purple-500">
+                      <td className="px-4 py-3  text-black bg-gray-300">
                         {formatRupiah(product.harga)}
                       </td>
-                      <td className="px-4 py-3  text-white bg-purple-500">
+                      <td className="px-4 py-3  text-black bg-gray-300">
                         {product.stok}
                       </td>
-                      <td className="px-4 py-3  bg-purple-500">
+                      <td className="px-4 py-3  bg-gray-300">
                         <span
                           className={`inline-block px-3 py-1 rounded-sm text-xs font-bold ${
                             isAvailable
@@ -532,21 +533,21 @@ export default function ProductManagement() {
                           {isAvailable ? "Stok Tersedia" : "Stok Kosong"}
                         </span>
                       </td>
-                      <td className="px-4 py-3  bg-purple-500">
+                      <td className="px-4 py-3  bg-gray-300">
                         <div className="flex items-center space-x-2 ">
                           <button
                             onClick={() => openEditModal(product)}
-                            className="p-2 bg-yellow-400 hover:bg-yellow-500 text-white rounded"
+                            className="p-2 bg-transparent hover:text-gray-900 text-gray-500 rounded"
                             title="Edit Produk"
                           >
-                            <Pencil size={16} />
+                            <Pencil size={18} />
                           </button>
                           <button
                             onClick={() => handleDelete(product.id)}
-                            className="p-2 bg-red-500 hover:bg-red-600 text-white rounded"
+                            className="p-2 bg-transparent hover:text-red-600 text-gray-500 rounded"
                             title="Hapus Produk"
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={18} />
                           </button>
                         </div>
                       </td>
