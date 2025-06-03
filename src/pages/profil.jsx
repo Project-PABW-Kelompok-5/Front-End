@@ -58,6 +58,7 @@ const UserProfile = () => {
   const [activeTab, setActiveTab] = useState("profile");
   const [isVisible, setIsVisible] = useState(true);
   const [saldo, setSaldo] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   const loggedInUser = JSON.parse(localStorage.getItem("user"));
   const userId = loggedInUser?.uid || loggedInUser?.id;
@@ -272,7 +273,10 @@ const UserProfile = () => {
 
   const handleSaveAddress = async (e) => {
     e.preventDefault();
+
     if (!userId) return alert("User tidak ditemukan.");
+    setIsLoading(true);
+
     const payload = {
       ...currentAddressForm,
       address: [
@@ -314,6 +318,9 @@ const UserProfile = () => {
     } catch (error) {
       console.error("Error saving address: ", error);
       alert("Gagal menyimpan alamat: " + error.message);
+    } finally {
+      setIsLoading(false); // <--- Ditambahkan di sini!
+      console.log("Proses selesai, tombol diaktifkan kembali.");
     }
   };
 
@@ -1351,9 +1358,11 @@ const UserProfile = () => {
                 </button>
                 <button
                   type="submit"
+                  disabled={isLoading}
                   className="px-4 py-2 bg-gradient-to-r from-[#753799] to-[#100428] text-white rounded-md hover:from-[#632f86] hover:to-[#0d041f] transition"
                 >
-                  Simpan Alamat
+                  {""}
+                  {isLoading ? "Menyimpan..." : "Simpan Alamat"}
                 </button>
               </div>
             </form>
