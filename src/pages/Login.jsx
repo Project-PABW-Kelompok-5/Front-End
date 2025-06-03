@@ -12,7 +12,9 @@ import {
   where,
   getDocs
 } from "firebase/firestore";
-import Background from "../assets/background.jpg"; // Tetap diimpor, meskipun tidak digunakan secara langsung di className jika background diatur di CSS lain
+import { toast } from "react-toastify"; // Import toast
+
+import Background from "../assets/background.jpg";
 import Logo from "../assets/dashboardAdmin/logo.png";
 
 const LoginPage = () => {
@@ -24,8 +26,8 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) {
-      // Menggunakan alert browser standar. Bisa diganti dengan UI modal kustom.
-      return alert("Email dan password wajib diisi.");
+      toast.error("Email dan password wajib diisi."); // Changed from alert to toast.error
+      return;
     }
 
     setIsLoading(true);
@@ -36,7 +38,7 @@ const LoginPage = () => {
         collection(firestore, "kurir"),
         where("email", "==", email),
         where("password", "==", password) // PENTING: Menyimpan dan mengkueri password seperti ini sangat tidak aman.
-                                         // Password HARUS di-hash (misalnya menggunakan bcrypt) dan dibandingkan dengan aman.
+        // Password HARUS di-hash (misalnya menggunakan bcrypt) dan dibandingkan dengan aman.
       );
       const kurirSnapshot = await getDocs(kurirQuery);
 
@@ -51,6 +53,7 @@ const LoginPage = () => {
         }));
 
         navigate("/kurir/dashboard");
+        toast.success("Berhasil login sebagai kurir!"); // Success toast for courier
         return; // Hentikan eksekusi jika berhasil login sebagai kurir
       }
 
@@ -60,7 +63,7 @@ const LoginPage = () => {
 
       // Verifikasi email pengguna
       if (!user.emailVerified) {
-        alert("Email belum diverifikasi. Silakan cek email Anda.");
+        toast.error("Email belum diverifikasi. Silakan cek email Anda."); // Changed from alert to toast.error
         // Opsional: signOut pengguna jika email belum diverifikasi
         // await auth.signOut();
         return;
@@ -86,44 +89,41 @@ const LoginPage = () => {
 
       // Navigasi berdasarkan peran pengguna
       navigate(userData.role === "admin" ? "/admin/dashboard" : "/");
+      toast.success("Berhasil login!"); // Success toast for admin/regular user
     } catch (error) {
       // Tangani berbagai jenis kesalahan login
+      console.error("Login Error:", error); // Log the full error for debugging
       let errorMessage = "Login gagal. Silakan coba lagi.";
-      if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
+      if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
         errorMessage = "Email atau password salah.";
       } else if (error.code === "auth/invalid-email") {
         errorMessage = "Format email tidak valid.";
       } else if (error.message) {
         errorMessage = error.message;
       }
-      alert("Login gagal: " + errorMessage);
+      toast.error("Login gagal: " + errorMessage); // Changed from alert to toast.error
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    // Kontainer utama - background, flex, center konten
     <div
       className="relative flex flex-col items-center justify-center min-h-screen "
-      // Jika Anda ingin menggunakan gambar background, uncomment baris di bawah ini dan sesuaikan
       // style={{ backgroundImage: `url(${Background})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
     >
-      {/* Overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-[#753799] to-[#100428] bg-opacity-50 z-10" />
 
-      {/* Kontainer konten (form) - di tengah di atas overlay */}
       <div className="flex flex-col items-center justify-center min-h-screen w-full z-20 p-4">
         <form
           onSubmit={handleSubmit}
           className="w-full max-w-sm p-6 border border-gray-300 rounded-lg bg-white shadow-lg"
         >
-          {/* Bagian Logo */}
           <div className="text-center mb-6">
             <img
               src={Logo}
               alt="Logo"
-              className="w-24 h-auto block mx-auto" // Lebar 96px, di tengah secara horizontal
+              className="w-24 h-auto block mx-auto"
             />
           </div>
           <h2 className="text-center text-3xl font-poppins font-bold mb-6 text-purple-700">

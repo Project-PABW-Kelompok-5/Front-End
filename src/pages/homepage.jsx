@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -34,12 +32,15 @@ import {
   arrayUnion,
 } from "firebase/firestore";
 import * as LucideIcons from "lucide-react";
+import { toast, ToastContainer } from 'react-toastify'; // Import ToastContainer dan toast
+import 'react-toastify/dist/ReactToastify.css'; // Import CSS Toastify
 
 export default function HomePage() {
   const storedUser = JSON.parse(localStorage.getItem("user"));
   const uid = storedUser?.id;
   const [currentPage, setCurrentPage] = useState(1);
   const [previewProduct, setPreviewProduct] = useState(null);
+  const [modalQuantity, setModalQuantity] = useState(1); // State baru untuk kuantitas di modal
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [cartItems, setCartItems] = useState([]);
@@ -51,7 +52,7 @@ export default function HomePage() {
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
     const matchesCategory =
-      filterCategory === "all" || product.kategori === filterCategory;
+      filterCategory === "all" || product.kategori === filterCategory; // Gunakan product.kategori
     return matchesSearch && matchesCategory;
   });
 
@@ -115,30 +116,32 @@ export default function HomePage() {
     setPreviewProduct(null);
   };
 
+  // Fungsi untuk membuka modal dan mereset kuantitas
+  const handleOpenPreviewModal = (product) => {
+    setPreviewProduct(product);
+    setModalQuantity(1); // Reset kuantitas ke 1 setiap kali modal dibuka
+  };
+
   const addToCartFirestore = async (productId) => {
     if (!uid) {
-      alert("Silakan login terlebih dahulu.");
+      toast.error("Silakan login terlebih dahulu.");
       navigate("/login");
       return;
     }
 
     try {
-      // Referensi dokumen barang
       const productRef = doc(firestore, "barang", productId);
-
-      // Tambahkan uid ke array id_cart_user (tidak duplikat)
       await updateDoc(productRef, {
         id_cart_user: arrayUnion(uid),
       });
     } catch (err) {
       console.error("Gagal menambah ke cart di Firestore:", err);
-      alert("Terjadi kesalahan saat menambah ke keranjang.");
+      toast.error("Terjadi kesalahan saat menambah ke keranjang.");
     }
   };
 
   const getCartItems = async (uid) => {
     if (!uid) return [];
-
     try {
       const snapshot = await getDocs(
         collection(firestore, `carts/${uid}/items`)
@@ -149,11 +152,11 @@ export default function HomePage() {
       }));
     } catch (error) {
       console.error("Gagal mengambil data cart:", error);
+      toast.error("Gagal memuat item keranjang.");
       return [];
     }
   };
 
-  // Fungsi untuk load cart items dari Firestore dan update state
   const loadCartItems = useCallback(async () => {
     if (!uid) return;
     try {
@@ -170,52 +173,67 @@ export default function HomePage() {
 
   const handleAddToCart = async (product) => {
     if (!uid) {
-      alert("Silakan login terlebih dahulu.");
+      toast.error("Silakan login terlebih dahulu.");
       navigate("/login");
       return;
     }
 
     if (product.id_user === uid) {
-      alert("Anda tidak dapat menambahkan produk milik sendiri ke keranjang.");
+      toast.error("Anda tidak dapat menambahkan produk milik sendiri ke keranjang.");
       return;
     }
 
     try {
-      // 1. Update Firestore ke dalam koleksi carts/{uid}/items/{productId}
       const cartItemRef = doc(firestore, "carts", uid, "items", product.id);
-      await setDoc(cartItemRef, {
-        qty: product.jumlah, // jumlah dari state
-        productId: product.id,
-      });
+      await setDoc(
+        cartItemRef,
+        {
+          qty: modalQuantity, // Gunakan modalQuantity di sini
+          productId: product.id,
+        },
+        { merge: true } // Penting: untuk memperbarui kuantitas jika item sudah ada
+      );
 
       await loadCartItems();
-      alert("Berhasil menambahkan ke keranjang!");
+      toast.success("Berhasil menambahkan ke keranjang!");
     } catch (err) {
       console.error("Gagal menambah ke cart di Firestore:", err);
-      alert("Terjadi kesalahan saat menambah ke keranjang.");
+      toast.error("Terjadi kesalahan saat menambah ke keranjang.");
     }
     await addToCartFirestore(product.id);
   };
 
   const addToWishlist = (product) => {
-    // Simulasi penyimpanan ke localStorage
+    if (!uid) {
+      toast.error("Silakan login terlebih dahulu untuk menambahkan ke wishlist.");
+      navigate("/login");
+      return;
+    }
     const wishlist = JSON.parse(localStorage.getItem("wishlist") || "[]");
     const alreadyExists = wishlist.some((item) => item.id === product.id);
     if (!alreadyExists) {
       const updatedWishlist = [...wishlist, product];
       localStorage.setItem("wishlist", JSON.stringify(updatedWishlist));
-      alert("Produk berhasil ditambahkan ke wishlist!");
+      toast.success("Produk berhasil ditambahkan ke wishlist!");
     } else {
-      alert("Produk sudah ada di wishlist!");
+      toast.info("Produk sudah ada di wishlist!");
     }
   };
 
   const navigate = useNavigate();
 
-  // Scroll to top when page changes
+  // --- START PERUBAHAN DI SINI ---
+  // Gulir ke elemen mainContent saat currentPage berubah
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const mainContent = document.getElementById("mainContent");
+    if (mainContent) {
+      mainContent.scrollIntoView({ behavior: "smooth" });
+    } else {
+      // Fallback jika mainContent tidak ditemukan
+      window.scrollTo(0, 0);
+    }
   }, [currentPage]);
+  // --- END PERUBAHAN DI SINI ---
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -229,11 +247,13 @@ export default function HomePage() {
         setproductsData(
           fetchedProducts.map((p) => ({
             ...p,
-            jumlah: p.jumlah || 1,
+            // Tidak perlu inisialisasi 'jumlah' di sini lagi karena sudah ditangani di modal
+            // jumlah: p.jumlah || 1,
           }))
         );
       } catch (error) {
         console.error("Gagal mengambil data barang:", error);
+        toast.error("Gagal memuat produk. Silakan coba lagi nanti.");
       }
     };
 
@@ -241,32 +261,35 @@ export default function HomePage() {
   }, []);
 
   const tambahJumlah = () => {
-    setPreviewProduct((prev) =>
-      prev && prev.jumlah < prev.stok
-        ? { ...prev, jumlah: prev.jumlah + 1 }
-        : prev
+    setModalQuantity((prevQty) =>
+      previewProduct && prevQty < previewProduct.stok ? prevQty + 1 : prevQty
     );
   };
 
   const kurangJumlah = () => {
-    setPreviewProduct((prev) =>
-      prev && prev.jumlah > 1 ? { ...prev, jumlah: prev.jumlah - 1 } : prev
-    );
+    setModalQuantity((prevQty) => (prevQty > 1 ? prevQty - 1 : prevQty));
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ToastContainer position="top-right" autoClose={3000} hideProgressBar={false} newestOnTop={false} closeOnClick rtl={false} pauseOnFocusLoss draggable pauseOnHover />
       {/* Header */}
       <Navbar1
         cartItems={cartItems}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
       />
-
-      {/* Hero Banner */}
-      <div className="bg-gradient-to-r from-[#753799] to-[#100428] text-white py-12 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between">
+        <div
+          className="bg-gradient-to-r from-[#753799] to-[#100428] text-white py-12 px-4 cursor-pointer"
+          onClick={() => {
+            const mainContent = document.getElementById("mainContent");
+            if (mainContent) {
+              mainContent.scrollIntoView({ behavior: "smooth" });
+            }
+          }}
+        >
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="md:w-1/2 mb-8 md:mb-0">
               <h1 className="text-3xl md:text-4xl font-bold mb-4">
                 Temukan Produk Terbaik untuk Anda
@@ -284,12 +307,12 @@ export default function HomePage() {
                 <ShoppingBag className="w-24 h-24 text-white/80" />
               </div>
             </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Category Filter */}
-      <div className="bg-white shadow-sm">
+        {/* Category Filter */}
+      <div  id="mainContent" className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto py-4 px-4">
           <div className="flex overflow-x-auto space-x-4 pb-2 scrollbar-hide">
             <button
@@ -337,7 +360,7 @@ export default function HomePage() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto py-12 px-4 md:px-10">
+      <div  className="max-w-7xl mx-auto py-12 px-4 md:px-10">
         <h2 className="text-[#753799] text-2xl font-bold mb-6">
           Rekomendasi untukmu
         </h2>
@@ -351,7 +374,7 @@ export default function HomePage() {
                   className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden "
                 >
                   <div
-                    onClick={() => setPreviewProduct(product)}
+                    onClick={() => handleOpenPreviewModal(product)} // Gunakan fungsi baru di sini
                     className="cursor-pointer"
                   >
                     <div className="p-4">
@@ -372,6 +395,7 @@ export default function HomePage() {
                           <h3 className="font-medium text-gray-900 mb-1 line-clamp-2 h-12">
                             {product.nama_barang}
                           </h3>
+                          {/* Rating and Reviews (uncomment if data available) */}
                           {/* <div className="flex items-center mb-2">
                             <div className="flex items-center">
                               <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
@@ -467,6 +491,7 @@ export default function HomePage() {
               <button
                 className="absolute top-3 right-3 text-gray-500 hover:text-black p-1 rounded-full hover:bg-gray-100"
                 onClick={handleCloseModal}
+                aria-label="Tutup pratinjau produk" // Tambahkan aria-label
               >
                 <X className="h-5 w-5" />
               </button>
@@ -486,21 +511,22 @@ export default function HomePage() {
               <div className="flex flex-col justify-between w-full md:w-1/2">
                 <div>
                   <span className="text-sm text-[#753799] font-medium">
-                    {previewProduct.category}
+                    {previewProduct.kategori} {/* Gunakan product.kategori */}
                   </span>
                   <h3 className="text-xl font-bold mb-2">
                     {previewProduct.nama_barang}
                   </h3>
+                  {/* Rating and reviews, pastikan data ada di previewProduct */}
                   <div className="flex items-center mb-3">
                     <div className="flex items-center">
                       <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
                       <span className="ml-1 text-sm font-medium">
-                        {previewProduct.rating}
+                        {previewProduct.rating || "N/A"}
                       </span>
                     </div>
                     <span className="mx-1 text-gray-300">|</span>
                     <span className="text-xs text-gray-500">
-                      {previewProduct.reviewCount} ulasan
+                      {previewProduct.reviewCount || 0} ulasan
                     </span>
                   </div>
                   <p className="text-sm text-gray-600 mb-6">
@@ -530,7 +556,7 @@ export default function HomePage() {
                         -
                       </button>
                       <span className="text-black">
-                        {previewProduct.jumlah}
+                        {modalQuantity} {/* Tampilkan modalQuantity */}
                       </span>
                       <button
                         onClick={tambahJumlah}

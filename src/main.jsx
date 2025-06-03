@@ -2,6 +2,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ToastContainer } from 'react-toastify'; // Import ToastContainer
+import 'react-toastify/dist/ReactToastify.css'; // Import the CSS!
 
 import RegisterPage from "./pages/Register.jsx";
 import LoginPage from "./pages/Login.jsx";
@@ -27,6 +29,7 @@ import Addresses from "./pages/Addressses.jsx";
 import VerifikasiEmail from "./pages/verifikasiEmail.jsx";
 import HistoryPenjualan from "./pages/users/historyPenjualan.jsx";
 import ErrorSection7 from "./pages/ErrorSection7.jsx";
+import ForgotPassword from "./pages/auth/forgotPassword.jsx";
 
 import { startTokenRefreshListener } from "./authListener";
 
@@ -48,6 +51,7 @@ createRoot(document.getElementById("root")).render(
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/verifikasi-email" element={<VerifikasiEmail />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Protected User Routes */}
         <Route element={<PrivateRoute role="User" />}>
@@ -79,6 +83,7 @@ createRoot(document.getElementById("root")).render(
           <Route path="/kurir/barang" element={<KurirBarang />} />
         </Route>
       </Routes>
+      <ToastContainer/> 
     </BrowserRouter>
   </StrictMode>
 );
