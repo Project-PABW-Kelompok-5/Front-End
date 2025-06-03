@@ -314,23 +314,23 @@ export default function HomePage() {
             </button>
             <button
               className={`cursor-pointer px-4 py-2 rounded-full whitespace-nowrap ${
-                filterCategory === "Fashion"
+                filterCategory === "Makanan & Minuman"
                   ? "bg-[#753799] text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
-              onClick={() => setFilterCategory("Fashion")}
+              onClick={() => setFilterCategory("Makanan & Minuman")}
             >
-              Fashion
+              Makanan & Minuman
             </button>
             <button
               className={`cursor-pointer px-4 py-2 rounded-full whitespace-nowrap ${
-                filterCategory === "Rumah Tangga"
+                filterCategory === "Rumah dan Dapur"
                   ? "bg-[#753799] text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
-              onClick={() => setFilterCategory("Rumah Tangga")}
+              onClick={() => setFilterCategory("Rumah dan Dapur")}
             >
-              Rumah Tangga
+              Rumah dan Dapur
             </button>
           </div>
         </div>
@@ -574,7 +574,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
-              <h3 className="text-lg font-bold mb-4">MyShop</h3>
+              <h3 className="text-lg font-bold mb-4">Blessing Store</h3>
               <p className="text-gray-400 text-sm">
                 Temukan berbagai produk berkualitas dengan harga terbaik.
                 Belanja mudah, aman, dan nyaman.
