@@ -1,10 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { auth, firestore } from "../firebase";
+import {
+  signInWithEmailAndPassword
+} from "firebase/auth";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs
+} from "firebase/firestore";
+import { toast } from "react-toastify"; // Import toast
+
+import Background from "../assets/background.jpg";
 import Logo from "../assets/dashboardAdmin/logo.png";
-import { auth, firestore } from "../firebase"; // Import auth dan firestore
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore"; // Import fungsi Firestore
-import { toast } from "react-toastify";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
@@ -12,128 +23,101 @@ const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
-
     if (!email || !password) {
-      toast.error("Email dan password harus diisi.");
-      setIsLoading(false);
+      toast.error("Email dan password wajib diisi."); // Changed from alert to toast.error
       return;
     }
 
+    setIsLoading(true);
+
     try {
+      // Percobaan login sebagai kurir (courier) terlebih dahulu
+      const kurirQuery = query(
+        collection(firestore, "kurir"),
+        where("email", "==", email),
+        where("password", "==", password) // PENTING: Menyimpan dan mengkueri password seperti ini sangat tidak aman.
+        // Password HARUS di-hash (misalnya menggunakan bcrypt) dan dibandingkan dengan aman.
+      );
+      const kurirSnapshot = await getDocs(kurirQuery);
+
+      if (!kurirSnapshot.empty) {
+        const kurirDoc = kurirSnapshot.docs[0];
+        const kurirData = kurirDoc.data();
+
+        localStorage.setItem("user", JSON.stringify({
+          id: kurirDoc.id,
+          email: kurirData.email,
+          role: "kurir",
+        }));
+
+        navigate("/kurir/dashboard");
+        toast.success("Berhasil login sebagai kurir!"); // Success toast for courier
+        return; // Hentikan eksekusi jika berhasil login sebagai kurir
+      }
+
+      // Jika bukan kurir, coba otentikasi Firebase (untuk admin/pengguna biasa)
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // 1. Cek apakah email sudah diverifikasi
+      // Verifikasi email pengguna
       if (!user.emailVerified) {
-        // Jika belum diverifikasi, berikan pesan dan mungkin opsi untuk mengirim ulang verifikasi
-        toast.error("Email Anda belum diverifikasi. Silakan cek kotak masuk email Anda.");
-        setIsLoading(false);
-        // Opsional: berikan opsi untuk mengirim ulang email verifikasi
-        // await sendEmailVerification(user);
-        // toast.info("Email verifikasi telah dikirim ulang.");
+        toast.error("Email belum diverifikasi. Silakan cek email Anda."); // Changed from alert to toast.error
+        // Opsional: signOut pengguna jika email belum diverifikasi
+        // await auth.signOut();
         return;
       }
 
-      // 2. Cek apakah ada data pengguna tertunda di localStorage
-      const pendingUserDataString = localStorage.getItem("pendingUserForFirestore");
-      let pendingUserData = null;
+      const token = await user.getIdToken();
+      // Ambil data peran pengguna dari Firestore
+      const userDoc = await getDoc(doc(firestore, "users", user.uid));
 
-      if (pendingUserDataString) {
-        try {
-          pendingUserData = JSON.parse(pendingUserDataString);
-        } catch (parseError) {
-          console.error("Error parsing pending user data from localStorage:", parseError);
-          localStorage.removeItem("pendingUserForFirestore"); // Hapus data yang rusak
-        }
+      if (!userDoc.exists()) {
+        throw new Error("Data pengguna tidak ditemukan.");
       }
 
-      // 3. Jika email terverifikasi DAN ada data tertunda, simpan ke Firestore
-      if (pendingUserData && pendingUserData.uid === user.uid) {
-        const userDocRef = doc(firestore, "users", user.uid);
-        const userDocSnap = await getDoc(userDocRef);
+      const userData = userDoc.data();
 
-        if (!userDocSnap.exists()) { // Pastikan dokumen belum ada
-          await setDoc(userDocRef, {
-            uid: user.uid,
-            username: pendingUserData.username,
-            email: user.email, // Gunakan email dari Firebase Auth untuk kepastian
-            noTelepon: pendingUserData.noTelepon,
-            role: "user", // Tetapkan peran default
-            isEmailVerified: true,
-            saldoUangElektronik: 0,
-            createdAt: new Date(),
-            verifiedAt: new Date(), // Waktu verifikasi
-          });
-          toast.success("Profil Anda berhasil dibuat!");
-          localStorage.removeItem("pendingUserForFirestore"); // Hapus data dari localStorage
-        } else {
-          // Jika dokumen sudah ada (misalnya, pengguna login dari perangkat lain)
-          // Anda bisa memperbarui isEmailVerified jika perlu atau abaikan
-          await setDoc(userDocRef, {
-             isEmailVerified: true,
-             verifiedAt: new Date(),
-          }, { merge: true }); // Gunakan merge agar tidak menimpa field lain
-          localStorage.removeItem("pendingUserForFirestore");
-          toast.info("Selamat datang kembali!");
-        }
-      } else {
-        // Jika tidak ada data tertunda atau UID tidak cocok,
-        // cek apakah pengguna sudah ada di Firestore 'users' atau belum.
-        const userDocRef = doc(firestore, "users", user.uid);
-        const userDocSnap = await getDoc(userDocRef);
+      // Simpan token dan data pengguna ke localStorage
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify({
+        id: user.uid,
+        email: user.email,
+        role: userData.role,
+      }));
 
-        if (!userDocSnap.exists()) {
-            // Ini bisa terjadi jika pengguna langsung login tanpa melewati flow register dengan localStorage.
-            // Buat dokumen dasar untuk mereka.
-            await setDoc(userDocRef, {
-                uid: user.uid,
-                email: user.email,
-                username: user.displayName || "Pengguna Baru", // Jika tidak ada username dari register, pakai displayName atau default
-                noTelepon: null, // Jika tidak ada noTelepon dari register, set null atau minta user untuk mengisi
-                role: "user",
-                isEmailVerified: true,
-                saldoUangElektronik: 0,
-                createdAt: new Date(),
-                verifiedAt: new Date(),
-            });
-            toast.success("Selamat datang!");
-        } else {
-            // Pengguna sudah ada di Firestore. Login berhasil.
-            toast.success("Login berhasil!");
-        }
-      }
-
-      // Arahkan pengguna ke dashboard atau halaman selanjutnya
-      navigate("/"); // Ganti dengan path dashboard pengguna Anda
+      // Navigasi berdasarkan peran pengguna
+      navigate(userData.role === "admin" ? "/admin/dashboard" : "/");
+      toast.success("Berhasil login!"); // Success toast for admin/regular user
     } catch (error) {
-      console.error("Firebase Login Error:", error.message);
+      // Tangani berbagai jenis kesalahan login
+      console.error("Login Error:", error); // Log the full error for debugging
       let errorMessage = "Login gagal. Silakan coba lagi.";
-      if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password") {
+      if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
         errorMessage = "Email atau password salah.";
       } else if (error.code === "auth/invalid-email") {
         errorMessage = "Format email tidak valid.";
       } else if (error.message) {
         errorMessage = error.message;
       }
-      toast.error("Login gagal: " + errorMessage);
+      toast.error("Login gagal: " + errorMessage); // Changed from alert to toast.error
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="relative flex flex-col items-center justify-center min-h-screen bg-white overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-r from-[#753799] to-[#100428] z-0" />
-      <div
-        className="flex flex-col items-center justify-center w-full z-20 p-4 sm:p-6 md:p-8 lg:p-10"
-        style={{ minHeight: '100vh' }}
-      >
+    <div
+      className="relative flex flex-col items-center justify-center min-h-screen "
+      // style={{ backgroundImage: `url(${Background})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+    >
+      <div className="absolute inset-0 bg-gradient-to-r from-[#753799] to-[#100428] bg-opacity-50 z-10" />
+
+      <div className="flex flex-col items-center justify-center min-h-screen w-full z-20 p-4">
         <form
-          onSubmit={handleLogin}
-          className="w-full max-w-sm p-5 sm:p-6 rounded-lg bg-white shadow-lg border border-gray-200 flex flex-col justify-center"
+          onSubmit={handleSubmit}
+          className="w-full max-w-sm p-6 border border-gray-300 rounded-lg bg-white shadow-lg"
         >
           <div className="text-center mb-6">
             <img
@@ -142,55 +126,61 @@ const LoginPage = () => {
               className="w-24 h-auto block mx-auto"
             />
           </div>
-          <h2 className="text-center text-2xl font-poppins font-semibold mb-5 text-gray-800">
+          <h2 className="text-center text-3xl font-poppins font-bold mb-6 text-purple-700">
             Login
           </h2>
-
-          <div className="mb-3">
-            <label htmlFor="email" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Email</label>
+          <div className="mb-4">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              Email
+            </label>
             <input
               type="email"
               id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Masukkan email Anda"
+              placeholder="Enter your email"
+              className="w-full p-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-              className="w-full p-2 sm:p-2.5 rounded-lg border border-gray-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isLoading}
             />
           </div>
-
-          <div className="mb-3">
-            <label htmlFor="password" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Password</label>
+          <div className="mb-4">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              Password
+            </label>
             <input
               type="password"
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Masukkan password Anda"
+              placeholder="Enter your password"
+              className="w-full p-3 rounded-xl border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
-              className="w-full p-2 sm:p-2.5 rounded-lg border border-gray-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isLoading}
             />
           </div>
-
+          <div className="text-left mb-6">
+            <a
+              href="/forgot-password"
+              className="text-purple-700 hover:underline text-sm"
+            >
+              Forgot Password?
+            </a>
+          </div>
           <button
             type="submit"
-            className="w-full py-2.5 bg-purple-600 text-white rounded-full text-base font-semibold hover:bg-purple-700 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-3 bg-purple-600 text-white rounded-full text-lg font-semibold hover:bg-purple-700 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={isLoading}
           >
-            {isLoading ? "Masuk..." : "Masuk"}
+            {isLoading ? "Logging in..." : "Login"}
           </button>
-
-          <p className="text-center mt-3 text-xs sm:text-sm text-gray-600">
-            Belum punya akun?{" "}
+          <div className="text-center mt-4 text-sm text-gray-600">
+            <span>Belum punya akun? </span>
             <a
               href="/register"
               className="text-purple-700 hover:underline cursor-pointer"
             >
-              Daftar
+              Register
             </a>
-          </p>
+          </div>
         </form>
       </div>
     </div>
