@@ -6,12 +6,12 @@ import {
   createUserWithEmailAndPassword,
   sendEmailVerification,
 } from "firebase/auth";
-import { toast } from "react-toastify"; // Example for Toastify
+import { toast } from "react-toastify";
 
 const RegisterPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState(""); // New state for confirmation
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [username, setUsername] = useState("");
   const [noTelepon, setNoTelepon] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -64,8 +64,8 @@ const RegisterPage = () => {
 
       toast.success("Registration successful! Please check your email for verification.");
 
-      // Using sessionStorage for temporary data
-      sessionStorage.setItem(
+      // --- CRITICAL FIX HERE: Changed from sessionStorage to localStorage ---
+      localStorage.setItem(
         "pendingUser",
         JSON.stringify({
           username,
@@ -94,7 +94,7 @@ const RegisterPage = () => {
 
   return (
     <div className="relative flex flex-col items-center justify-center min-h-screen bg-white overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-r from-[#753799] to-[#100428]  z-0" />
+      <div className="absolute inset-0 bg-gradient-to-r from-[#753799] to-[#100428] z-0" />
       <div
         className="flex flex-col items-center justify-center w-full z-20 p-4 sm:p-6 md:p-8 lg:p-10"
         style={{ minHeight: '100vh' }}
@@ -124,7 +124,7 @@ const RegisterPage = () => {
               placeholder="Enter your email"
               required
               className="w-full p-2 sm:p-2.5 rounded-lg border border-gray-300 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isLoading} // Disable input while loading
+              disabled={isLoading}
             />
           </div>
 
@@ -173,7 +173,7 @@ const RegisterPage = () => {
           <div className="mb-4">
             <label htmlFor="phone" className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Phone Number</label>
             <input
-              type="tel" // Changed to type="tel"
+              type="tel"
               id="phone"
               value={noTelepon}
               onChange={(e) => setNoTelepon(e.target.value)}

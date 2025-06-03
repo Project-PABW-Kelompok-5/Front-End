@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { setDoc, doc } from "firebase/firestore";
 import { firestore, auth } from "../firebase";
+import { toast } from "react-toastify"; // Added Toastify for consistent notifications
 
 const VerifikasiEmail = () => {
   const navigate = useNavigate();
@@ -11,39 +12,59 @@ const VerifikasiEmail = () => {
   const handleCekLagi = async () => {
     setLoading(true);
     const user = auth.currentUser;
-    await user.reload();
 
-    if (user.emailVerified) {
-      setVerified(true);
-
-      const pendingUser = JSON.parse(localStorage.getItem("pendingUser"));
-
-      if (pendingUser) {
-        try {
-          await setDoc(doc(firestore, "users", user.uid), {
-            username: pendingUser.username,
-            email: pendingUser.email,
-            no_telepon: pendingUser.noTelepon,
-            uid: user.uid,
-            role: "User",
-            saldo: 0,
-            tanggal_registrasi: new Date(),
-          });
-
-          localStorage.removeItem("pendingUser");
-          alert("Email berhasil diverifikasi dan data berhasil disimpan!");
-        } catch (err) {
-          console.error("Gagal menyimpan data user ke Firestore:", err);
-          alert("Terjadi kesalahan saat menyimpan data.");
-        }
-      } else {
-        alert("Data pengguna tidak ditemukan.");
-      }
-    } else {
-      alert("Email belum diverifikasi. Silakan cek kembali.");
+    if (!user) {
+      toast.error("No active user found. Please register or log in again.");
+      setLoading(false);
+      navigate("/register"); // Redirect to register if no user is found
+      return;
     }
 
-    setLoading(false);
+    try {
+      await user.reload(); // Reload user data to get latest verification status
+
+      if (user.emailVerified) {
+        setVerified(true);
+
+        // --- CRITICAL FIX HERE: Ensured consistency with localStorage ---
+        const pendingUser = JSON.parse(localStorage.getItem("pendingUser"));
+
+        if (pendingUser && pendingUser.uid === user.uid) { // Added UID check for robustness
+          try {
+            await setDoc(doc(firestore, "users", user.uid), {
+              username: pendingUser.username,
+              email: pendingUser.email,
+              no_telepon: pendingUser.noTelepon,
+              uid: user.uid,
+              role: "User",
+              saldo: 0, // Initial saldo
+              tanggal_registrasi: new Date(),
+            });
+
+            localStorage.removeItem("pendingUser"); // Clear pending data after successful save
+            toast.success("Email successfully verified and user data saved!");
+          } catch (err) {
+            console.error("Failed to save user data to Firestore:", err);
+            toast.error("An error occurred while saving your data. Please try again.");
+          }
+        } else if (pendingUser && pendingUser.uid !== user.uid) {
+          toast.warn("Mismatch between current user and pending data. Please re-register if needed.");
+          localStorage.removeItem("pendingUser"); // Clear stale pending data
+        }
+        else {
+          toast.info("User data not found in local storage. Proceed to login if already registered.");
+          // No pending user data, maybe the user already registered and verified or the data was lost.
+          // We can still allow them to login if verified.
+        }
+      } else {
+        toast.warn("Email is not yet verified. Please check your inbox and spam folder.");
+      }
+    } catch (error) {
+      console.error("Error checking verification status:", error);
+      toast.error("Failed to check verification status. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -82,6 +103,8 @@ const VerifikasiEmail = () => {
           <p className="text-sm text-gray-500 mt-4">
             Belum menerima email? Cek folder spam atau klik "Cek Lagi" setelah
             beberapa saat.
+            {/* You could add a resend email button here if desired */}
+            {/* <button onClick={handleResendEmail} disabled={loading} className="text-blue-500 hover:underline ml-1">Resend Email</button> */}
           </p>
         )}
       </div>
