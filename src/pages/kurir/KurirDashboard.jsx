@@ -1,21 +1,21 @@
 import { useEffect, useState, useCallback } from "react";
 import {
   query,
-  getDocs,
+  getDocs, // Kita akan menggunakan ini untuk subcollection alamat
   getDoc,
   collection,
   doc,
   updateDoc,
 } from "firebase/firestore";
 import { getAuth, signOut } from "firebase/auth";
-import { db } from "../../../src/firebase.js"; 
+import { db } from "../../../src/firebase.js";
 import KurirSidebar from "../../components/KurirSidebar.jsx";
 import { useNavigate } from "react-router-dom";
-import { LogOut } from "lucide-react"; // Import ikon LogOut
-import {  toast, ToastContainer } from "react-toastify"; // Import toast untuk notifikasi
+import { LogOut } from "lucide-react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
-
-const auth = getAuth(); 
+const auth = getAuth();
 
 const statusOptions = [
   { value: "menunggu kurir", label: "📦 Menunggu Kurir" },
@@ -34,14 +34,13 @@ const KurirDashboard = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [sellersLoading, setSellersLoading] = useState(true);
 
-  const navigate = useNavigate(); // Inisialisasi useNavigate
+  const navigate = useNavigate();
 
-  // Fungsi untuk logout
   const handleLogout = async () => {
     try {
-      await signOut(auth); // Melakukan proses logout
-      localStorage.removeItem("user"); // Hapus data user dari localStorage
-      navigate("/login"); // Arahkan pengguna ke halaman login
+      await signOut(auth);
+      localStorage.removeItem("user");
+      navigate("/login");
       toast.success("Anda telah berhasil logout.");
     } catch (error) {
       console.error("Error during logout:", error);
@@ -78,16 +77,50 @@ const KurirDashboard = () => {
           const userDocRef = doc(db, "users", sellerId);
           const userSnap = await getDoc(userDocRef);
 
+          let sellerAddress = "Alamat Tidak Ada";
+
           if (userSnap.exists()) {
             const userData = userSnap.data();
+
+            // --- PERUBAHAN PENTING DI SINI ---
+            // Mengambil dokumen dari subcollection 'alamat' dengan query
+            const alamatCollectionRef = collection(
+              db,
+              "users",
+              sellerId,
+              "alamat"
+            );
+            const alamatSnap = await getDocs(alamatCollectionRef);
+
+            if (!alamatSnap.empty) {
+              // Periksa apakah ada dokumen di subcollection
+              const alamatData = alamatSnap.docs[0].data(); // Ambil dokumen pertama
+              // SESUAIKAN NAMA FIELD INI dengan struktur data alamat Anda di Firestore
+              sellerAddress = `${alamatData.address || ""}, ${
+                alamatData.addressDetail || ""
+              }, ${alamatData.kecamatan || ""}`;
+              // Berdasarkan screenshot, fields: address, addressDetail, kecamatan
+            } else {
+              console.warn(
+                `Subcollection alamat untuk ID pengguna ${sellerId} kosong atau tidak ditemukan.`
+              );
+            }
+            // --- AKHIR PERUBAHAN ---
+
             return {
               id: sellerId,
               username: userData.username || "Username Tidak Ada",
+              address: sellerAddress,
             };
           } else {
-            // Dokumen tidak ditemukan
-            console.warn(`User document with ID ${sellerId} not found.`);
-            return { id: sellerId, username: "Penjual Tdk Ditemukan" };
+            console.warn(
+              `Dokumen pengguna dengan ID ${sellerId} tidak ditemukan.`
+            );
+            return {
+              id: sellerId,
+              username: "Penjual Tdk Ditemukan",
+              address: "Alamat Tdk Ditemukan",
+            };
           }
         });
         fetchedSellerDetails = await Promise.all(promises);
@@ -99,16 +132,26 @@ const KurirDashboard = () => {
           let mapChanged = false;
 
           fetchedSellerDetails.forEach((seller) => {
-            if (seller && !newMap[seller.id]) {
-              newMap[seller.id] = seller.username;
+            if (
+              seller &&
+              (!newMap[seller.id] ||
+                newMap[seller.id].address !== seller.address ||
+                newMap[seller.id].username !== seller.username)
+            ) {
+              newMap[seller.id] = {
+                username: seller.username,
+                address: seller.address,
+              };
               mapChanged = true;
             }
           });
 
-          // Tandai penjual yang gagal diambil (jika belum ada di map dan belum berhasil diambil)
           Array.from(sellerIdsToFetch).forEach((id) => {
             if (!newMap[id] && !fetchedSellerDetails.some((s) => s.id === id)) {
-              newMap[id] = "Gagal Memuat";
+              newMap[id] = {
+                username: "Gagal Memuat",
+                address: "Gagal Memuat",
+              };
               mapChanged = true;
             }
           });
@@ -220,7 +263,6 @@ const KurirDashboard = () => {
 
       const orderData = orderSnap.data();
 
-      // Memperbarui status_barang dalam array items
       const updatedItems = orderData.items.map((item) => {
         if (item.productId === productIdToUpdate) {
           return { ...item, status_barang: newStatus };
@@ -250,12 +292,12 @@ const KurirDashboard = () => {
         "sedang dikirim"
       );
       if (success) {
-        alert(
+        toast.success(
           "Pesanan berhasil diambil! Status diperbarui menjadi 'Sedang Dikirim'."
         );
         fetchOrders();
       } else {
-        alert("Terjadi kesalahan saat mengambil pesanan.");
+        toast.error("Terjadi kesalahan saat mengambil pesanan.");
       }
     }
   };
@@ -272,12 +314,12 @@ const KurirDashboard = () => {
         "sampai di tujuan"
       );
       if (success) {
-        alert(
+        toast.success(
           "Pesanan berhasil dikonfirmasi sampai di tujuan! Status diperbarui menjadi 'Sampai di tujuan'."
         );
         fetchOrders();
       } else {
-        alert("Terjadi kesalahan saat menyelesaikan pesanan.");
+        toast.error("Terjadi kesalahan saat menyelesaikan pesanan.");
       }
     }
   };
@@ -294,12 +336,12 @@ const KurirDashboard = () => {
         "dikirim balik"
       );
       if (success) {
-        alert(
+        toast.success(
           "Pengiriman balik pesanan berhasil diambil! Status diperbarui menjadi 'Dikirim balik'."
         );
         fetchOrders();
       } else {
-        alert("Terjadi kesalahan saat mengambil pesanan.");
+        toast.error("Terjadi kesalahan saat mengambil pesanan.");
       }
     }
   };
@@ -316,12 +358,12 @@ const KurirDashboard = () => {
         "menunggu penjual"
       );
       if (success) {
-        alert(
+        toast.success(
           "Pengembalian pesanan berhasil dikonfirmasi! Status diperbarui menjadi 'Menunggu penjual'."
         );
         fetchOrders();
       } else {
-        alert("Terjadi kesalahan saat mengkonfirmasi pengembalian.");
+        toast.error("Terjadi kesalahan saat mengkonfirmasi pengembalian.");
       }
     }
   };
@@ -372,7 +414,7 @@ const KurirDashboard = () => {
   const formatCurrency = (amount) =>
     amount?.toLocaleString("id-ID", { style: "currency", currency: "IDR" });
 
-  const statusOptions = [
+  const statusOptionsWithCounts = [
     {
       value: "menunggu kurir",
       label: "📦 Menunggu Kurir",
@@ -390,7 +432,7 @@ const KurirDashboard = () => {
     },
     {
       value: "dikirim balik",
-      label: "🔁 Dikirim Balik",
+      label: "🔁 Dikirim Balir",
       count: statusCounts["dikirim balik"] || 0,
     },
   ];
@@ -398,16 +440,14 @@ const KurirDashboard = () => {
   return (
     <div className="flex">
       <KurirSidebar activePage="Dashboard" />
-      <div className="flex-1 p-6 bg-gray-100 min-h-screen overflow-y-auto relative"> {/* Tambahkan relative di sini */}
-        <div className="absolute top-4 right-4"> 
+      <div className="flex-1 p-6 bg-gray-100 min-h-screen overflow-y-auto relative">
+        <div className="absolute top-4 right-4">
           <button
             onClick={handleLogout}
             className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md shadow-md flex items-center space-x-2"
           >
             <LogOut size={18} />
             <span>Logout</span>
-            {/* Anda bisa menambahkan ikon logout dari lucide-react jika diinginkan */}
-            
           </button>
         </div>
         <h1 className="text-2xl font-bold mb-4">Dashboard Kurir</h1>
@@ -418,13 +458,14 @@ const KurirDashboard = () => {
           <div className="inline-flex items-stretch gap-2">
             <button
               type="button"
-              className="p-2 border rounded focus:ring-blue-500 focus:border-blue-500 inline-flex items-center w-60 bg-white" // Hapus justify-between
+              className="p-2 border rounded focus:ring-blue-500 focus:border-blue-500 inline-flex items-center w-60 bg-white"
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             >
               <span className="flex-1 text-left">
                 {
-                  statusOptions.find((opt) => opt.value === selectedStatus)
-                    ?.label
+                  statusOptionsWithCounts.find(
+                    (opt) => opt.value === selectedStatus
+                  )?.label
                 }
               </span>
               {statusCounts[selectedStatus] > 0 && (
@@ -456,13 +497,13 @@ const KurirDashboard = () => {
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
-                stroke-width="1.5"
+                strokeWidth="1.5"
                 stroke="currentColor"
-                class="size-6 mr-2"
+                className="size-6 mr-2"
               >
                 <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                   d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"
                 />
               </svg>
@@ -472,9 +513,12 @@ const KurirDashboard = () => {
 
           {/* Dropdown menu kustom */}
           {isDropdownOpen && (
-            <div className="absolute z-10 mt-1 w-60 ml-21 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+            <div
+              className="absolute z-10 mt-1 w-60 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+              style={{ left: "210px" }}
+            >
               <div className="py-1">
-                {statusOptions.map((status) => (
+                {statusOptionsWithCounts.map((status) => (
                   <button
                     key={status.value}
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
@@ -497,9 +541,10 @@ const KurirDashboard = () => {
             <thead className="bg-gray-200 text-gray-700">
               <tr>
                 <th className="px-4 py-2 text-left">Penjual</th>
+                <th className="px-4 py-2 text-left">Alamat Penjual</th>
                 <th className="px-4 py-2 text-left">Penerima</th>
-                <th className="px-4 py-2 text-left">Telepon</th>
-                <th className="px-4 py-2 text-left">Alamat</th>
+                <th className="px-4 py-2 text-left">Telepon Penerima</th>
+                <th className="px-4 py-2 text-left">Alamat Penerima</th>
                 <th className="px-4 py-2 text-left">Barang</th>
                 <th className="px-4 py-2 text-left">Qty</th>{" "}
                 <th className="px-4 py-2 text-left">Subtotal Barang</th>{" "}
@@ -512,19 +557,19 @@ const KurirDashboard = () => {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="7" className="text-center p-4">
+                  <td colSpan="12" className="text-center p-4">
                     Memuat data...
                   </td>
                 </tr>
               ) : error ? (
                 <tr>
-                  <td colSpan="7" className="text-center text-red-500 p-4">
+                  <td colSpan="12" className="text-center text-red-500 p-4">
                     {error}
                   </td>
                 </tr>
               ) : filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="text-center p-4">
+                  <td colSpan="12" className="text-center p-4">
                     Tidak ada pesanan untuk status ini.
                   </td>
                 </tr>
@@ -533,19 +578,32 @@ const KurirDashboard = () => {
                   order.items
                     .filter((item) => item.status_barang === selectedStatus)
                     .map((item, itemIndex) => {
-                      const sellerUsername =
-                        sellersLoading && !sellersMap[item.id_penjual]
-                          ? "Memuat data penjual..."
-                          : sellersMap[item.id_penjual] || "N/A";
+                      const sellerInfo = sellersMap[item.id_penjual];
+                      const sellerUsername = sellerInfo?.username || "N/A";
+                      const sellerAddress =
+                        sellerInfo?.address || "Memuat alamat...";
                       return (
                         <tr
                           key={`${order.id}-${item.id || itemIndex}`}
                           className="border-t align-top hover:bg-gray-50"
                         >
                           <td className="px-4 py-2">{sellerUsername}</td>
+                          <td
+                            className="px-4 py-2 text-wrap"
+                            style={{ maxWidth: "200px" }}
+                          >
+                            {sellersLoading
+                              ? "Memuat alamat..."
+                              : sellerAddress}
+                          </td>
                           <td className="px-4 py-2">{order.namaPenerima}</td>
                           <td className="px-4 py-2">{order.teleponPenerima}</td>
-                          <td className="px-4 py-2">{order.alamatLengkap}</td>
+                          <td
+                            className="px-4 py-2 text-wrap"
+                            style={{ maxWidth: "200px" }}
+                          >
+                            {order.alamatLengkap}
+                          </td>
                           <td className="px-4 py-2">{item.nama}</td>
                           <td className="px-4 py-2">{item.qty}</td>
                           <td className="px-4 py-2">
@@ -574,6 +632,7 @@ const KurirDashboard = () => {
           </table>
         </div>
       </div>
+      <ToastContainer />
     </div>
   );
 };
