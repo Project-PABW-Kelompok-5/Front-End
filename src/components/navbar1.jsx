@@ -98,7 +98,7 @@ export default function Navbar1({
                 className="h-15 w-15 object-cover"
               />
               <div className="flex flex-col ml-2">
-                <span className="text-xl font-semibold">Blesing</span>
+                <span className="text-xl font-semibold">Blessing</span>
                 <span className="text-xl font-semibold">Store</span>
               </div>
             </a>

@@ -35,11 +35,11 @@ const ManageProduct = () => {
     deskripsi: "",
     harga: "",
     stok: "",
-    id_kategori: "",
+    kategori: "", // This will store the sub-category
   });
   const [editingBarangId, setEditingBarangId] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedMainCategory, setSelectedMainCategory] = useState('');
+  const [selectedMainCategory, setSelectedMainCategory] = useState(''); // State to hold the selected main category
 
   const token = localStorage.getItem("token");
 
@@ -48,19 +48,33 @@ const ManageProduct = () => {
     setShowAlertDialog(true);
   };
 
+  const resetForm = () => {
+    setFormData({
+      nama_barang: "",
+      deskripsi: "",
+      harga: "",
+      stok: "",
+      kategori: "",
+    });
+    setSelectedMainCategory(''); // Reset main category
+    setEditingBarangId(null);
+    setIsEditing(false);
+  };
+
+  // Helper function to find the main category given a sub-category name
   const findMainCategoryFromSub = (subCategoryName, categories) => {
     for (const mainCat in categories) {
       if (categories[mainCat].includes(subCategoryName)) {
         return mainCat;
       }
     }
-    return '';
+    return ''; // Return empty string if not found
   };
 
   const fetchBarang = async () => {
     setLoading(true);
     const token = localStorage.getItem("token");
-    console.log("Token yang dikirim:", token);
+    // console.log("Token yang dikirim:", token); // Avoid in production
 
     try {
       const res = await axios.get("http://localhost:3000/api/barang/", {
@@ -68,13 +82,13 @@ const ManageProduct = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      console.log("Response dari API:", res.data);
+      // console.log("Response dari API:", res.data); // Avoid in production
 
       const dataBarang = Array.isArray(res.data)
         ? res.data
         : res.data.data ?? [];
 
-      console.log("Barang yang di-fetch:", dataBarang);
+      // console.log("Barang yang di-fetch:", dataBarang); // Avoid in production
 
       setBarangList(dataBarang);
     } catch (error) {
@@ -107,15 +121,17 @@ const ManageProduct = () => {
   };
 
   const handleEditClick = (barang) => {
+    // 1. Find the main category based on the sub-category of the barang
     const mainCat = findMainCategoryFromSub(barang.kategori, kategoriList);
-    setSelectedMainCategory(mainCat);
+    setSelectedMainCategory(mainCat); // Set the main category state
 
+    // 2. Populate the form data with the barang details
     setFormData({
       nama_barang: barang.nama_barang,
       deskripsi: barang.deskripsi,
       harga: barang.harga,
       stok: barang.stok,
-      id_kategori: barang.kategori,
+      kategori: barang.kategori, // Set the sub-category directly
     });
     setEditingBarangId(barang.id_barang);
     setIsEditing(true);
@@ -152,13 +168,31 @@ const ManageProduct = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
+    // Basic client-side validation
+    if (!formData.nama_barang || !formData.deskripsi || !formData.harga || !formData.stok || !formData.kategori) {
+      showCustomDialog("Harap lengkapi semua bidang.");
+      setLoading(false);
+      return;
+    }
+    if (Number(formData.harga) <= 0) {
+      showCustomDialog("Harga harus lebih besar dari nol.");
+      setLoading(false);
+      return;
+    }
+    if (Number(formData.stok) < 0) {
+      showCustomDialog("Stok tidak boleh negatif.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const payload = {
-        ...formData,
+        nama_barang: formData.nama_barang,
+        deskripsi: formData.deskripsi,
         harga: Number(formData.harga),
         stok: Number(formData.stok),
-        kategori: formData.id_kategori,
-        id_kategori: undefined
+        kategori: formData.kategori, // This is the sub-category selected
       };
 
       const res = await axios.put(
@@ -174,25 +208,17 @@ const ManageProduct = () => {
 
       if (res.status === 200) {
         showCustomDialog("Barang berhasil diperbarui!");
-        setEditingBarangId(null);
-        setIsEditing(false);
+        setShowModal(false);
+        resetForm();
+        fetchBarang();
       } else {
         throw new Error("Gagal memperbarui barang");
       }
-
-      setFormData({
-        nama_barang: "",
-        deskripsi: "",
-        harga: "",
-        stok: "",
-        id_kategori: "",
-      });
-      setSelectedMainCategory('');
-      setShowModal(false);
-      fetchBarang();
     } catch (error) {
       console.error("Error saat menyimpan barang:", error);
-      showCustomDialog("Gagal menyimpan barang. Silakan cek kembali isian form.");
+      // More specific error message if available from backend
+      const errorMessage = error.response?.data?.message || "Silakan cek kembali isian form.";
+      showCustomDialog(`Gagal menyimpan barang: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -240,10 +266,10 @@ const ManageProduct = () => {
                     </td>
                     <td className="px-6 py-3">
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        barang.stok === 0
-                          ? "bg-red-100 text-red-800"
-                          : "bg-green-100 text-green-800"
-                      }`}>
+                          barang.stok === 0
+                            ? "bg-red-100 text-red-800"
+                            : "bg-green-100 text-green-800"
+                        }`}>
                         {barang.stok === 0 ? "Stok Habis" : "Stok Tersedia"}
                       </span>
                     </td>
@@ -350,7 +376,7 @@ const ManageProduct = () => {
                     value={selectedMainCategory}
                     onChange={(e) => {
                       setSelectedMainCategory(e.target.value);
-                      setFormData((prev) => ({ ...prev, id_kategori: '' }));
+                      setFormData((prev) => ({ ...prev, kategori: '' })); // Reset sub-category when main category changes
                     }}
                     className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
                     required
@@ -366,19 +392,19 @@ const ManageProduct = () => {
 
                 {selectedMainCategory && (
                   <div className="mb-4">
-                    <label htmlFor="id_kategori" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="kategori" className="block text-sm font-medium text-gray-700 mb-1">
                       Sub Kategori
                     </label>
                     <select
-                      id="id_kategori"
-                      name="id_kategori"
-                      value={formData.id_kategori}
+                      id="kategori"
+                      name="kategori"
+                      value={formData.kategori}
                       onChange={handleChange}
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-blue-500 focus:border-blue-500"
                       required
                     >
                       <option value="">Pilih Sub Kategori</option>
-                      {kategoriList[selectedMainCategory].map((subCat) => (
+                      {kategoriList[selectedMainCategory]?.map((subCat) => ( // Use optional chaining for safety
                         <option key={subCat} value={subCat}>
                           {subCat}
                         </option>
@@ -390,7 +416,7 @@ const ManageProduct = () => {
                 <div className="flex justify-end space-x-3 mt-6">
                   <button
                     type="button"
-                    onClick={() => setShowModal(false)}
+                    onClick={() => { setShowModal(false); resetForm(); }}
                     className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400 transition duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-75"
                   >
                     Batal
