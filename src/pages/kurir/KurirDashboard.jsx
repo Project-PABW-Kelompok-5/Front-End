@@ -17,12 +17,12 @@ import "react-toastify/dist/ReactToastify.css";
 
 const auth = getAuth();
 
-const statusOptions = [
-  { value: "menunggu kurir", label: "📦 Menunggu Kurir" },
-  { value: "sedang dikirim", label: "🚚 Sedang Dikirim" },
-  { value: "menunggu dikirim balik", label: "📦 Menunggu Dikirim Balik" },
-  { value: "dikirim balik", label: "🔁 Dikirim Balik" },
-];
+// const statusOptions = [
+//   { value: "menunggu kurir", label: "📦 Menunggu Kurir" },
+//   { value: "sedang dikirim", label: "🚚 Sedang Dikirim" },
+//   { value: "menunggu dikirim balik", label: "📦 Menunggu Dikirim Balik" },
+//   { value: "dikirim balik", label: "🔁 Dikirim Balik" },
+// ];
 
 const KurirDashboard = () => {
   const [selectedStatus, setSelectedStatus] = useState("menunggu kurir");
@@ -432,7 +432,7 @@ const KurirDashboard = () => {
     },
     {
       value: "dikirim balik",
-      label: "🔁 Dikirim Balir",
+      label: "🔁 Dikirim Balik",
       count: statusCounts["dikirim balik"] || 0,
     },
   ];
@@ -515,7 +515,7 @@ const KurirDashboard = () => {
           {isDropdownOpen && (
             <div
               className="absolute z-10 mt-1 w-60 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
-              style={{ left: "210px" }}
+              style={{ left: "108px" }}
             >
               <div className="py-1">
                 {statusOptionsWithCounts.map((status) => (

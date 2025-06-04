@@ -151,12 +151,12 @@ export default function Navbar1({
             </div>
 
             {/* Wishlist */}
-            <button
+            {/* <button
               onClick={wishlist}
               className="relative cursor-pointer hover:scale-110 transition-transform"
             >
               <HeartIcon className="h-6 w-6 lg:h-7 lg:w-7" />
-            </button>
+            </button> */}
 
             {/* Cart */}
             <button

@@ -22,6 +22,7 @@ import {
   BadgeDollarSign,
   Store,
   Banknote,
+  User2Icon
 } from "lucide-react";
 import { FaHome } from "react-icons/fa";
 import {
@@ -508,9 +509,9 @@ const UserProfile = () => {
     );
   };
 
-  const handleChangeProfilePicture = () => {
-    alert("Fitur ganti foto profil belum diimplementasikan.");
-  };
+  // const handleChangeProfilePicture = () => {
+  //   alert("Fitur ganti foto profil belum diimplementasikan.");
+  // };
 
   const historyPengiriman = () => navigate("/history");
   const historyPenjualan = () => navigate("/history-penjualan");
@@ -572,7 +573,8 @@ const UserProfile = () => {
               {/* ... Bagian Foto Profil & Navigasi Sidebar ... */}
               <div className="flex flex-col items-center mb-6">
                 <div className="relative mb-4">
-                  <img
+                  <User2Icon className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-md"/>
+                  {/* <img
                     src={
                       userData.profilePicture ||
                       "https://via.placeholder.com/150"
@@ -592,7 +594,7 @@ const UserProfile = () => {
                     onClick={handleChangeProfilePicture}
                   >
                     <Camera className="w-4 h-4" />
-                  </button>
+                  </button> */}
                 </div>
                 <h2 className="text-xl font-bold" style={{ color: "#100428" }}>
                   {userData.name}
